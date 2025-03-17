@@ -1,0 +1,10 @@
+---
+BasedOnStyle: Chromium
+AlignArrayOfStructures: Right
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AlwaysBreakBeforeMultilineStrings: false
+IndentPPDirectives: AfterHash
+NamespaceIndentation: All
+SpacesInAngles: Always
