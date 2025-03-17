@@ -3,7 +3,9 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic
 
 NAME := webserv
 
-SRC := main.cpp
+UTILS := utils/Endianness.cpp
+
+SRC := $(UTILS) main.cpp
 
 SRCDIR := src
 OBJDIR := obj
