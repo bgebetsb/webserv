@@ -36,8 +36,6 @@
 
 #include <vector>
 
-#define MAX_EVENTS 1024
-
 using std::pair;
 using std::vector;
 
@@ -83,14 +81,6 @@ int main(int argc, char* argv[]) {
   (void)argc;
   (void)argv;
 
-  u_int16_t port = htons(8080);
-  u_int8_t ar[4] = {127, 0, 0, 1};
-  u_int32_t ip = Utils::ipv4ToBigEndian(ar);
-
-  struct epoll_event ep_event2;
-  ep_event2.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
-  struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
-
   setup_signals();
 
   vector< pair< vector< Listener >, Server > > testData = createTestServers();
@@ -101,62 +91,8 @@ int main(int argc, char* argv[]) {
     for (it_type it = testData.begin(); it < testData.end(); it++) {
       w.addServer(it->first, it->second);
     }
-    Listener listener(ip, port);
 
-    int fd = listener.listen();
-    /*
-     * The `size` argument in epoll_create is just for backwards compatibility.
-     * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
-     * than zero.
-     */
-    int epoll_fd = epoll_create(1024);
-    if (epoll_fd == -1) {
-      throw std::runtime_error("Unable to create epoll fd");
-    }
-
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, listener.getEpollEvent()) < 0) {
-      close(epoll_fd);
-      throw std::runtime_error("Unable to add fd to epoll fd");
-    }
-    while (1) {
-      int count = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-
-      if (g_signal || count == -1) {
-        std::cerr << "Signal received, shutdown server\n";
-        break;
-      }
-
-      // std::cout << count << " fds are ready\n";
-
-      for (int j = 0; j < count; j++) {
-        if (events[j].data.fd == fd) {
-          std::cout << "Trying to accept new fd\n";
-          struct sockaddr_in peer_addr;
-          socklen_t peer_addr_size = sizeof(peer_addr);
-          int cfd = accept(fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
-          if (cfd == -1) {
-            std::cerr << "Accept failure\n";
-            return 1;
-          }
-          std::cout << "Success\n";
-          ep_event2.data.fd = cfd;
-          epoll_ctl(epoll_fd, EPOLL_CTL_ADD, cfd, &ep_event2);
-          continue;
-        }
-        // std::cout << "FD: " << events[j].data.fd << "\n";
-        // std::cout << "POLLIN: " << (events[j].events & EPOLLIN) << "\n";
-        // std::cout << "POLLOUT: " << (events[j].events & EPOLLOUT) << "\n";
-        if (events[j].events & EPOLLRDHUP) {
-          std::cout << "FD disconnected: " << events[j].data.fd << "\n";
-          epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[j].data.fd, NULL);
-        }
-        // std::cout << "EPOLLRDHUP: " << (events[j].events & EPOLLRDHUP) <<
-        // "\n";
-      }
-    }
-
-    close(epoll_fd);
-
+    w.startListeners();
   } catch (std::exception& e) {
     std::cerr << e.what() << "\n";
   }
