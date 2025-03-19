@@ -5,7 +5,7 @@ NAME := webserv
 
 UTILS := utils/Endianness.cpp
 
-SRC := $(UTILS) main.cpp
+SRC := $(UTILS) Listener.cpp Server.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
 OBJDIR := obj
