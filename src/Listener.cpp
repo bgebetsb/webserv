@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <stdexcept>
+#include "epoll/EpollEventData.hpp"
 
 Listener::Listener(u_int32_t ip, u_int16_t port)
     : ip_(ip), port_(port), fd_(-1) {}
@@ -50,7 +51,9 @@ void Listener::setup() {
   }
 
   ep_event.events = EPOLLIN | EPOLLRDHUP;
-  ep_event.data.fd = fd_;
+  EpollEventData* data = new EpollEventData(fd_, LISTENING_SOCKET, NULL);
+
+  ep_event.data.ptr = data;
 }
 
 struct epoll_event* Listener::getEpollEvent() {

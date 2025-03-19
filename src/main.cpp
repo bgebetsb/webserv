@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <exception>
 #include <iostream>
-#include <stdexcept>
 #include "Listener.hpp"
 #include "Webserv.hpp"
 #include "utils/Utils.hpp"
@@ -49,11 +48,11 @@ void setup_signals(void) {
   int catch_signals[] = {SIGINT, SIGQUIT, SIGHUP, SIGTERM, 0};
   int ignore_signals[] = {SIGUSR1, SIGUSR2, 0};
 
-  for (size_t i = 0; catch_signals[i]; i++) {
+  for (size_t i = 0; catch_signals[i]; ++i) {
     signal(catch_signals[i], handle_signal);
   }
 
-  for (size_t i = 0; ignore_signals[i]; i++) {
+  for (size_t i = 0; ignore_signals[i]; ++i) {
     signal(ignore_signals[i], SIG_IGN);
   }
 }
@@ -88,7 +87,7 @@ int main(int argc, char* argv[]) {
   typedef vector< pair< vector< Listener >, Server > >::iterator it_type;
   Webserv w;
   try {
-    for (it_type it = testData.begin(); it < testData.end(); it++) {
+    for (it_type it = testData.begin(); it < testData.end(); ++it) {
       w.addServer(it->first, it->second);
     }
 
