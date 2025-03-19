@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "Listener.hpp"
+#include "Webserv.hpp"
 #include "utils/Utils.hpp"
 
 // struct sockaddr_in {
@@ -33,7 +34,12 @@
 //     uint8_t   s6_addr[16];
 // };
 
+#include <vector>
+
 #define MAX_EVENTS 1024
+
+using std::pair;
+using std::vector;
 
 volatile sig_atomic_t g_signal = 0;
 
@@ -54,6 +60,24 @@ void setup_signals(void) {
   }
 }
 
+vector< pair< vector< Listener >, Server > > createTestServers() {
+  u_int16_t port = htons(8080);
+  u_int8_t ar[4] = {127, 0, 0, 1};
+  u_int32_t ip = Utils::ipv4ToBigEndian(ar);
+
+  Listener listener(ip, port);
+  Server server;
+
+  vector< Listener > listeners;
+  listeners.push_back(listener);
+
+  pair< vector< Listener >, Server > pair(listeners, server);
+  vector< ::pair< vector< Listener >, Server > > ret;
+  ret.push_back(pair);
+
+  return ret;
+}
+
 int main(int argc, char* argv[]) {
   // TODO: Read config file
   (void)argc;
@@ -69,7 +93,14 @@ int main(int argc, char* argv[]) {
 
   setup_signals();
 
+  vector< pair< vector< Listener >, Server > > testData = createTestServers();
+
+  typedef vector< pair< vector< Listener >, Server > >::iterator it_type;
+  Webserv w;
   try {
+    for (it_type it = testData.begin(); it < testData.end(); it++) {
+      w.addServer(it->first, it->second);
+    }
     Listener listener(ip, port);
 
     int fd = listener.listen();
