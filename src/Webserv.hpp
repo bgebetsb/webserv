@@ -15,5 +15,5 @@ class Webserv {
 
  private:
   std::vector< Listener > listeners_;
-  int epoll_fd_;
+  const int epoll_fd_;
 };

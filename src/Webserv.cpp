@@ -15,13 +15,12 @@
 
 #define MAX_EVENTS 1024
 
-Webserv::Webserv() {
-  /*
-   * The `size` argument in epoll_create is just for backwards compatibility.
-   * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
-   * than zero.
-   */
-  epoll_fd_ = epoll_create(1024);
+/*
+ * The `size` argument in epoll_create is just for backwards compatibility.
+ * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
+ * than zero.
+ */
+Webserv::Webserv() : epoll_fd_(epoll_create(1024)) {
   if (epoll_fd_ == -1) {
     throw std::runtime_error("Unable to create epoll fd");
   }
