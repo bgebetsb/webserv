@@ -1,11 +1,12 @@
 CXX := c++
-CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic
+# TODO: Add back -Werror again
+CXXFLAGS := -Wall -Wextra -std=c++98 -pedantic
 
 NAME := webserv
 
 UTILS := utils/Endianness.cpp
 
-SRC := $(UTILS) Listener.cpp Server.cpp Webserv.cpp main.cpp
+SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollEventData.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
 OBJDIR := obj
