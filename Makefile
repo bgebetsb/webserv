@@ -6,7 +6,7 @@ NAME := webserv
 
 UTILS := utils/Endianness.cpp
 
-SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollEventData.cpp Webserv.cpp main.cpp
+SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollEventData.cpp ip/IpAddress.cpp ip/Ipv4Address.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
 OBJDIR := obj
@@ -22,7 +22,7 @@ $(NAME): $(OBJ)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CXX) -MMD -MP $(CXXFLAGS) -c $< -o $@
+	$(CXX) -MMD -MP -I$(SRCDIR) $(CXXFLAGS) -c $< -o $@
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)

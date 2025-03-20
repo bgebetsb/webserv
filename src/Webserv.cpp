@@ -47,15 +47,12 @@ void Webserv::addServer(const std::vector< Listener >& listeners,
 
 void Webserv::startListeners() {
   typedef std::vector< Listener >::iterator iter_type;
-  int fd;
   extern volatile sig_atomic_t g_signal;
   struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
 
   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it) {
-    fd = it->listen();
-    if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, it->getEpollEvent()) < 0) {
-      throw std::runtime_error("Unable to add fd to epoll fd");
-    }
+    it->setEpollfd(epoll_fd_);
+    it->listen();
   }
 
   while (true) {

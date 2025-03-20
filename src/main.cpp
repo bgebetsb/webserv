@@ -9,6 +9,8 @@
 #include <iostream>
 #include "Listener.hpp"
 #include "Webserv.hpp"
+#include "ip/IpAddress.hpp"
+#include "ip/Ipv4Address.hpp"
 #include "utils/Utils.hpp"
 
 // struct sockaddr_in {
@@ -58,11 +60,12 @@ void setup_signals(void) {
 }
 
 vector< pair< vector< Listener >, Server > > createTestServers() {
-  u_int16_t port = htons(8080);
-  u_int8_t ar[4] = {127, 0, 0, 1};
-  u_int32_t ip = Utils::ipv4ToBigEndian(ar);
+  // u_int16_t port = htons(8080);
+  // u_int8_t ar[4] = {127, 0, 0, 1};
+  // u_int32_t ip = Utils::ipv4ToBigEndian(ar);
 
-  Listener listener(ip, port);
+  IpAddress* ip = new Ipv4Address("127.0.0.1:8080");
+  Listener listener(ip);
   Server server;
 
   vector< Listener > listeners;

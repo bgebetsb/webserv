@@ -2,9 +2,10 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdexcept>
+#include "ip/IpAddress.hpp"
 #include "utils/Utils.hpp"
 
-Ipv4Address::Ipv4Address(const std::string& address) : address_(address) {
+Ipv4Address::Ipv4Address(const std::string& address) {
   // TODO: Actually parse the address
   (void)address;
   u_int16_t port = htons(8080);
@@ -13,6 +14,7 @@ Ipv4Address::Ipv4Address(const std::string& address) : address_(address) {
 
   ip_ = ip;
   port_ = port;
+  IpAddress::address_ = address;
 }
 
 Ipv4Address::~Ipv4Address() {}
