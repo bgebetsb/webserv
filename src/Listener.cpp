@@ -10,43 +10,33 @@
 #include <new>
 #include <stdexcept>
 #include "Connection.hpp"
-#include "epoll/EpollEventData.hpp"
-#include "epoll/EpollListenerEventData.hpp"
+#include "Webserv.hpp"
 #include "ip/IpAddress.hpp"
 
-Listener::Listener(IpAddress* address)
-    : address_(address), socket_fd_(-1), epoll_fd_(-1) {}
+Listener::Listener(Webserv& webserver, IpAddress* address)
+    : EpollFd(webserver), address_(address) {}
 
-Listener::~Listener() {
-  if (socket_fd_ != -1) {
-    close(socket_fd_);
-  }
-}
+Listener::~Listener() {}
 
 void Listener::listen() {
-  if (epoll_fd_ == -1) {
-    throw std::runtime_error("Called listen() without setting epoll fd first");
-  }
-
   setup();
-  if (::listen(socket_fd_, 0) == -1) {
+  if (::listen(fd_, 0) == -1) {
     throw std::runtime_error("Unable to listen");
   }
 
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket_fd_, getEpollEvent()) < 0) {
-    throw std::runtime_error("Unable to add fd to epoll fd");
-  }
+  std::cout << "Started listening\n";
+
+  webserver_.addFd(fd_, ep_event_);
 }
 
 void Listener::setup() {
-  socket_fd_ = address_->createSocket();
+  fd_ = address_->createSocket();
 
   ep_event_ = new struct epoll_event();
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
-  EpollEventData* data = new EpollListenerEventData(socket_fd_, *this);
-  std::cout << data << "\n";
+  // EpollEventData* data = new EpollListenerEventData(socket_fd_, *this);
 
-  ep_event_->data.ptr = data;
+  ep_event_->data.ptr = this;
 }
 
 struct epoll_event* Listener::getEpollEvent() {
@@ -67,21 +57,25 @@ void Listener::addServer(const Server& server) {
   }
 }
 
-void Listener::setEpollfd(int fd) {
-  epoll_fd_ = fd;
+void Listener::epollCallback(int event) {
+  acceptConnection(event);
 }
 
+// void Listener::setEpollfd(int fd) {
+//   epoll_fd_ = fd;
+// }
+//
 void Listener::acceptConnection(int event) {
   std::cout << "Received event type " << event << "\n";
-  Connection* c = new Connection(socket_fd_, epoll_fd_, servers_);
+  Connection* c = new Connection(webserver_, fd_, servers_);
   try {
-    connections_.push_back(c);
+    // connections_.push_back(c);
     std::cerr << "Successfully accepted connection\n";
   } catch (std::exception& e) {
     delete c;
   }
 }
 
-int Listener::getFd() const {
-  return socket_fd_;
-}
+// int Listener::getFd() const {
+//   return socket_fd_;
+// }

@@ -1,9 +1,9 @@
-#include "ip/Ipv4Address.hpp"
+#include "Ipv4Address.hpp"
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdexcept>
-#include "ip/IpAddress.hpp"
-#include "utils/Utils.hpp"
+#include "../utils/Utils.hpp"
+#include "IpAddress.hpp"
 
 Ipv4Address::Ipv4Address(const std::string& address) {
   // TODO: Actually parse the address

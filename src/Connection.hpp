@@ -3,18 +3,22 @@
 #include <sys/epoll.h>
 #include <set>
 #include "Server.hpp"
+#include "epoll/EpollFd.hpp"
 
-class Connection {
+class Connection : public EpollFd {
  public:
-  Connection(int socket_fd, int epoll_fd, const std::set< Server >& servers);
+  Connection(Webserv& webserver,
+             int socket_fd,
+             const std::set< Server >& servers);
   ~Connection();
-  void handleConnection(int type);
+  void epollCallback(int event);
 
  private:
-  int fd_;
   const std::set< Server >& servers_;
   struct epoll_event ep_event_;
+  std::string buffer_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
+  void handleConnection(int type);
 };

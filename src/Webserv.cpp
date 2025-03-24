@@ -45,13 +45,36 @@ void Webserv::addServer(const std::vector< Listener >& listeners,
   }
 }
 
+void Webserv::addFd(int fd, struct epoll_event* event) {
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, event) == -1) {
+    throw std::runtime_error("Unable to add fd to epoll");
+  }
+
+  fds_[fd] = static_cast< EpollFd* >(event->data.ptr);
+}
+
+void Webserv::modifyFd(int fd, struct epoll_event* event) const {
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, event) == -1) {
+    throw std::runtime_error("Unable to modify epoll event");
+  }
+}
+
+void Webserv::deleteFd(int fd) {
+  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1) {
+    throw std::runtime_error("Unable to remove fd from epoll");
+  }
+
+  // TODO: Probably I should also delete the data.ptr inside the event here
+  delete fds_[fd];
+  fds_.erase(fd);
+}
+
 void Webserv::startListeners() {
   typedef std::vector< Listener >::iterator iter_type;
   extern volatile sig_atomic_t g_signal;
   struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
 
   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it) {
-    it->setEpollfd(epoll_fd_);
     it->listen();
   }
 
@@ -64,8 +87,9 @@ void Webserv::startListeners() {
     }
 
     for (int j = 0; j < count; ++j) {
-      EpollEventData* data = static_cast< EpollEventData* >(events[j].data.ptr);
-      data->callback(events[j].events);
+      EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
+      fd->epollCallback(events[j].events);
+      // data->callback(events[j].events);
       // if (data->getType() == LISTENING_SOCKET) {
       //   std::cout << data << "\n";
       //   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it)
