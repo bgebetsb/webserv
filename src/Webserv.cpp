@@ -59,13 +59,22 @@ void Webserv::startListeners() {
     int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
 
     if (g_signal || count == -1) {
-      std::cerr << "Signal received, shutdown server\n";
+      std::cerr << "\nSignal received, shutdown server\n";
       break;
     }
 
     for (int j = 0; j < count; ++j) {
       EpollEventData* data = static_cast< EpollEventData* >(events[j].data.ptr);
-      if (data->getType() == LISTENING_SOCKET) {}
+      data->callback(events[j].events);
+      // if (data->getType() == LISTENING_SOCKET) {
+      //   std::cout << data << "\n";
+      //   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it)
+      //   {
+      //     if (it->getFd() == data->getFd()) {
+      //       it->acceptConnection(events[j].events, data);
+      //     }
+      //   }
+      // }
     }
     //   if (events[j].data.fd == fd) {
     //     std::cout << "Trying to accept new fd\n";

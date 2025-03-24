@@ -1,22 +1,20 @@
 #pragma once
 
-#include "../Connection.hpp"
-
 enum EpollFdTypes {
   LISTENING_SOCKET,
   CLIENT_CONNECTION,
-  LOCAL_FILE,
   CGI_IO
 };
 
 class EpollEventData {
  public:
-  EpollEventData(int fd, EpollFdTypes type, Connection* connection);
-  ~EpollEventData();
+  // EpollEventData(int fd, EpollFdTypes type, Connection* connection);
+  virtual ~EpollEventData();
   EpollFdTypes getType() const;
+  int getFd() const;
+  virtual void callback(int event) const = 0;
 
- private:
+ protected:
   int fd_;
   EpollFdTypes fd_type_;
-  Connection* connection_;
 };

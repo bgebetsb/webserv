@@ -5,6 +5,7 @@
 #include <iostream>
 #include <set>
 #include <stdexcept>
+#include "epoll/EpollConnectionEventData.hpp"
 #include "epoll/EpollEventData.hpp"
 
 Connection::Connection(int socket_fd,
@@ -21,9 +22,8 @@ Connection::Connection(int socket_fd,
 
   ep_event_.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
 
-  EpollEventData* data = new EpollEventData(fd_, CLIENT_CONNECTION, this);
-
-  ep_event_.data.fd = fd_;
+  EpollEventData* data = new EpollConnectionEventData(fd_, *this);
+  ep_event_.data.ptr = data;
 
   if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_, &ep_event_) < 0) {
     close(fd_);

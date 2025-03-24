@@ -5,10 +5,13 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <exception>
 #include <iostream>
+#include <new>
 #include <stdexcept>
 #include "Connection.hpp"
 #include "epoll/EpollEventData.hpp"
+#include "epoll/EpollListenerEventData.hpp"
 #include "ip/IpAddress.hpp"
 
 Listener::Listener(IpAddress* address)
@@ -38,14 +41,16 @@ void Listener::listen() {
 void Listener::setup() {
   socket_fd_ = address_->createSocket();
 
-  ep_event_.events = EPOLLIN | EPOLLRDHUP;
-  EpollEventData* data = new EpollEventData(socket_fd_, LISTENING_SOCKET, NULL);
+  ep_event_ = new struct epoll_event();
+  ep_event_->events = EPOLLIN | EPOLLRDHUP;
+  EpollEventData* data = new EpollListenerEventData(socket_fd_, *this);
+  std::cout << data << "\n";
 
-  ep_event_.data.ptr = data;
+  ep_event_->data.ptr = data;
 }
 
 struct epoll_event* Listener::getEpollEvent() {
-  return &ep_event_;
+  return ep_event_;
 }
 
 // bool Listener::operator<(const Listener& other) const {
@@ -66,12 +71,17 @@ void Listener::setEpollfd(int fd) {
   epoll_fd_ = fd;
 }
 
-void Listener::acceptConnection(int event, EpollEventData* data) {
-  // TODO: Create new Connection()
-  // accept() is called in constructor
-  // afterwards append it to the Connections vector
+void Listener::acceptConnection(int event) {
+  std::cout << "Received event type " << event << "\n";
+  Connection* c = new Connection(socket_fd_, epoll_fd_, servers_);
+  try {
+    connections_.push_back(c);
+    std::cerr << "Successfully accepted connection\n";
+  } catch (std::exception& e) {
+    delete c;
+  }
 }
 
-void acceptConnection(Listener& listener, int event, EpollEventData* data) {
-  listener.acceptConnection(event, data);
+int Listener::getFd() const {
+  return socket_fd_;
 }

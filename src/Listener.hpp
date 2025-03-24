@@ -4,8 +4,8 @@
 #include <sys/types.h>
 #include <set>
 #include <vector>
+#include "Connection.hpp"
 #include "Server.hpp"
-#include "epoll/EpollEventData.hpp"
 #include "ip/IpAddress.hpp"
 
 class Listener {
@@ -20,7 +20,8 @@ class Listener {
   struct epoll_event* getEpollEvent();
   // bool operator<(const Listener& other) const;
   bool operator==(const Listener& other) const;
-  void acceptConnection(int event, EpollEventData* data);
+  void acceptConnection(int event);
+  int getFd() const;
 
  private:
   void setup();
@@ -28,9 +29,7 @@ class Listener {
   const IpAddress* address_;
   int socket_fd_;
   int epoll_fd_;
-  struct epoll_event ep_event_;
+  struct epoll_event* ep_event_;
   std::set< Server > servers_;
-  std::vector< Connection > connections_;
+  std::vector< Connection* > connections_;
 };
-
-void acceptConnection(Listener& listener, int event, EpollEventData* data);
