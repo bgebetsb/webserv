@@ -16,9 +16,11 @@ class Connection : public EpollFd {
  private:
   const std::set< Server >& servers_;
   struct epoll_event ep_event_;
+  char* readbuf_;
   std::string buffer_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
-  void handleConnection(int type);
+  void handleRead(int type);
+  void handleWrite(int type);
 };

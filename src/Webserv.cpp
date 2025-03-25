@@ -88,6 +88,11 @@ void Webserv::startListeners() {
 
     for (int j = 0; j < count; ++j) {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
+      if (events[j].events & EPOLLRDHUP) {
+        delete fd;
+        // TODO: Remove epoll event
+        continue;
+      }
       fd->epollCallback(events[j].events);
       // data->callback(events[j].events);
       // if (data->getType() == LISTENING_SOCKET) {
