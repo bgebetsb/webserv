@@ -7,6 +7,7 @@ class EpollFd {
   EpollFd(Webserv& webserver);
   virtual ~EpollFd();
   virtual void epollCallback(int event) = 0;
+  int getFd() const;
 
  protected:
   int fd_;

@@ -10,3 +10,7 @@ EpollFd::~EpollFd() {
     close(fd_);
   }
 }
+
+int EpollFd::getFd() const {
+  return fd_;
+}

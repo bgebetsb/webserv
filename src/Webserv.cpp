@@ -11,6 +11,7 @@
 #include "Listener.hpp"
 #include "Server.hpp"
 #include "Webserv.hpp"
+#include "epoll/EpollFd.hpp"
 
 #define MAX_EVENTS 1024
 
@@ -88,47 +89,15 @@ void Webserv::startListeners() {
     for (int j = 0; j < count; ++j) {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
       if (events[j].events & EPOLLRDHUP) {
+        fds_.erase(fd->getFd());
         delete fd;
         // TODO: Remove epoll event
         continue;
       }
       fd->epollCallback(events[j].events);
-      // data->callback(events[j].events);
-      // if (data->getType() == LISTENING_SOCKET) {
-      //   std::cout << data << "\n";
-      //   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it)
-      //   {
-      //     if (it->getFd() == data->getFd()) {
-      //       it->acceptConnection(events[j].events, data);
-      //     }
-      //   }
-      // }
     }
-    //   if (events[j].data.fd == fd) {
-    //     std::cout << "Trying to accept new fd\n";
-    //     struct sockaddr_in peer_addr;
-    //     socklen_t peer_addr_size = sizeof(peer_addr);
-    //     int cfd = accept(fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
-    //     if (cfd == -1) {
-    //       std::cerr << "Accept failure\n";
-    //       break;
-    //     }
-    //     std::cout << "Success\n";
-    //     struct epoll_event* ep_event = new struct epoll_event();
-    //     ep_event->data.fd = cfd;
-    //     epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, cfd, ep_event);
-    //     continue;
-    //   }
-    //   // std::cout << "FD: " << events[j].data.fd << "\n";
-    //   // std::cout << "POLLIN: " << (events[j].events & EPOLLIN) << "\n";
-    //   // std::cout << "POLLOUT: " << (events[j].events & EPOLLOUT) << "\n";
-    //   // if (events[j].events & EPOLLRDHUP) {
-    //   //   std::cout << "FD disconnected: " << events[j].data.fd << "\n";
-    //   //   epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[j].data.fd, NULL);
-    //   // }
-    //   // std::cout << "EPOLLRDHUP: " << (events[j].events & EPOLLRDHUP) <<
-    //   // "\n";
-    // }
   }
   delete[] events;
+
+  fds_.clear();
 }
