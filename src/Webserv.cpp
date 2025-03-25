@@ -11,7 +11,6 @@
 #include "Listener.hpp"
 #include "Server.hpp"
 #include "Webserv.hpp"
-#include "epoll/EpollEventData.hpp"
 
 #define MAX_EVENTS 1024
 
@@ -131,4 +130,5 @@ void Webserv::startListeners() {
     //   // "\n";
     // }
   }
+  delete[] events;
 }

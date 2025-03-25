@@ -7,14 +7,15 @@
 #include <unistd.h>
 #include <exception>
 #include <iostream>
-#include <new>
 #include <stdexcept>
 #include "Connection.hpp"
 #include "Webserv.hpp"
 #include "ip/IpAddress.hpp"
 
 Listener::Listener(Webserv& webserver, IpAddress* address)
-    : EpollFd(webserver), address_(address) {}
+    : EpollFd(webserver), address_(address) {
+  ep_event_ = new struct epoll_event();
+}
 
 Listener::~Listener() {}
 
@@ -32,7 +33,6 @@ void Listener::listen() {
 void Listener::setup() {
   fd_ = address_->createSocket();
 
-  ep_event_ = new struct epoll_event();
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
   // EpollEventData* data = new EpollListenerEventData(socket_fd_, *this);
 
