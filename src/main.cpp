@@ -66,7 +66,7 @@ vector< pair< vector< Listener >, Server > > createTestServers(
   // u_int32_t ip = Utils::ipv4ToBigEndian(ar);
 
   IpAddress* ip = new Ipv4Address("127.0.0.1:8080");
-  Listener listener(webserver, ip);
+  Listener listener(ip);
   Server server;
 
   vector< Listener > listeners;

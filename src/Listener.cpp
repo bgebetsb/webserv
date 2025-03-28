@@ -9,17 +9,14 @@
 #include <iostream>
 #include <stdexcept>
 #include "Connection.hpp"
-#include "Webserv.hpp"
+#include "epoll/EpollAction.hpp"
 #include "ip/IpAddress.hpp"
 
-Listener::Listener(Webserv& webserver, IpAddress* address)
-    : EpollFd(webserver), address_(address) {
-  ep_event_ = new struct epoll_event();
-}
+Listener::Listener(IpAddress* address) : address_(address) {}
 
 Listener::~Listener() {}
 
-void Listener::listen() {
+EpollAction Listener::listen() {
   setup();
   if (::listen(fd_, 0) == -1) {
     throw std::runtime_error("Unable to listen");
@@ -27,16 +24,12 @@ void Listener::listen() {
 
   std::cout << "Started listening\n";
 
-  webserver_.addFd(fd_, ep_event_);
+  EpollAction action = {fd_, EPOLL_ACTION_ADD, ep_event_};
+  return action;
 }
 
 void Listener::setup() {
   fd_ = address_->createSocket();
-
-  ep_event_->events = EPOLLIN | EPOLLRDHUP;
-  // EpollEventData* data = new EpollListenerEventData(socket_fd_, *this);
-
-  ep_event_->data.ptr = this;
 }
 
 struct epoll_event* Listener::getEpollEvent() {
@@ -57,22 +50,22 @@ void Listener::addServer(const Server& server) {
   }
 }
 
-void Listener::epollCallback(int event) {
-  acceptConnection(event);
+EpollAction Listener::epollCallback(int event) {
+  return acceptConnection(event);
 }
 
 // void Listener::setEpollfd(int fd) {
 //   epoll_fd_ = fd;
 // }
 //
-void Listener::acceptConnection(int event) {
-  std::cout << "Received event type " << event << "\n";
-  Connection* c = new Connection(webserver_, fd_, servers_);
+EpollAction Listener::acceptConnection(int event) {
   try {
-    // connections_.push_back(c);
+    Connection* c = new Connection(fd_, servers_);
     std::cerr << "Successfully accepted connection\n";
+    EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
+    return action;
   } catch (std::exception& e) {
-    delete c;
+    throw;
   }
 }
 

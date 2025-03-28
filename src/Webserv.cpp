@@ -11,6 +11,7 @@
 #include "Listener.hpp"
 #include "Server.hpp"
 #include "Webserv.hpp"
+#include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
 
 #define MAX_EVENTS 1024
@@ -75,7 +76,9 @@ void Webserv::startListeners() {
   struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
 
   for (iter_type it = listeners_.begin(); it < listeners_.end(); ++it) {
-    it->listen();
+    EpollAction action = it->listen();
+    fds_[action.fd] = static_cast< EpollFd* >(action.event->data.ptr);
+    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, action.fd, action.event);
   }
 
   while (true) {
@@ -91,10 +94,19 @@ void Webserv::startListeners() {
       if (events[j].events & EPOLLRDHUP) {
         fds_.erase(fd->getFd());
         delete fd;
-        // TODO: Remove epoll event
         continue;
       }
-      fd->epollCallback(events[j].events);
+      EpollAction action = fd->epollCallback(events[j].events);
+      if (action.op != EPOLL_ACTION_UNCHANGED) {
+        epoll_ctl(epoll_fd_, action.op, action.fd, action.event);
+        if (action.op == EPOLL_ACTION_ADD) {
+          std::cout << "Added sth for fd " << action.fd << "\n";
+          fds_[action.fd] = static_cast< EpollFd* >(action.event->data.ptr);
+        } else if (action.op == EPOLL_ACTION_DEL) {
+          fds_.erase(action.fd);
+          delete fd;
+        }
+      }
     }
   }
   delete[] events;

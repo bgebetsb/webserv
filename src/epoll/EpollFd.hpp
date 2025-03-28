@@ -1,15 +1,22 @@
 #pragma once
 
-class Webserv;
+#include <sys/epoll.h>
+#include "epoll/EpollAction.hpp"
+// class Webserv;
 
 class EpollFd {
  public:
-  EpollFd(Webserv& webserver);
+  EpollFd();
+  EpollFd(const EpollFd& other);
   virtual ~EpollFd();
-  virtual void epollCallback(int event) = 0;
+  virtual EpollAction epollCallback(int event) = 0;
   int getFd() const;
+  struct epoll_event* getEvent() const;
 
  protected:
   int fd_;
-  Webserv& webserver_;
+  struct epoll_event* ep_event_;
+
+ private:
+  EpollFd& operator=(const EpollFd& other);
 };
