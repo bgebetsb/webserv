@@ -97,4 +97,11 @@ int main(int argc, char* argv[]) {
   } catch (std::exception& e) {
     std::cerr << e.what() << "\n";
   }
+
+  for (it_type it = testData.begin(); it < testData.end(); ++it) {
+    for (vector< IpAddress* >::iterator it2 = it->first.begin();
+         it2 < it->first.end(); ++it2) {
+      delete *it2;
+    }
+  }
 }

@@ -20,7 +20,7 @@ class Webserv {
   void deleteFd(int fd);
 
  private:
-  std::map< IpAddress*, int, IpComparison > listeners_;
+  std::map< const IpAddress*, int, IpComparison > listeners_;
   std::map< const int, EpollFd* > fds_;
   const int epoll_fd_;
 };

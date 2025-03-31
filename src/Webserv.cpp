@@ -28,6 +28,13 @@ Webserv::Webserv() : epoll_fd_(epoll_create(1024)) {
 }
 
 Webserv::~Webserv() {
+  typedef std::map< const int, EpollFd* >::iterator iter_type;
+
+  std::cout << "Size of map: " << fds_.size() << "\n";
+  for (iter_type it = fds_.begin(); it != fds_.end(); ++it) {
+    std::cout << "Deleting sth\n";
+    delete it->second;
+  }
   close(epoll_fd_);
 }
 
@@ -110,7 +117,6 @@ void Webserv::startListeners() {
       if (action.op != EPOLL_ACTION_UNCHANGED) {
         epoll_ctl(epoll_fd_, action.op, action.fd, action.event);
         if (action.op == EPOLL_ACTION_ADD) {
-          std::cout << "Added sth for fd " << action.fd << "\n";
           fds_[action.fd] = static_cast< EpollFd* >(action.event->data.ptr);
         } else if (action.op == EPOLL_ACTION_DEL) {
           fds_.erase(action.fd);
@@ -120,6 +126,4 @@ void Webserv::startListeners() {
     }
   }
   delete[] events;
-
-  fds_.clear();
 }
