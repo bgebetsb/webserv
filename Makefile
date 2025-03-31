@@ -1,12 +1,11 @@
 CXX := c++
-# TODO: Add back -Werror again
-CXXFLAGS := -Wall -Wextra -std=c++98 -pedantic
+CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic
 
 NAME := webserv
 
 UTILS := utils/Endianness.cpp
 
-SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp \
+SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp \
 			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
 
 SRCDIR := src

@@ -9,13 +9,14 @@
 #include <stdexcept>
 #include <string>
 #include "epoll/EpollAction.hpp"
+#include "requests/RequestStatus.hpp"
 
 Connection::Connection(int socket_fd, const std::set< Server >& servers)
     : servers_(servers), polling_write_(false) {
   struct sockaddr_in peer_addr;
   socklen_t peer_addr_size = sizeof(peer_addr);
 
-  readbuf_ = new char[1024];
+  readbuf_ = new char[CHUNK_SIZE];
   fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
   if (fd_ == -1) {
     throw std::runtime_error("Unable to accept client connection");
@@ -24,6 +25,7 @@ Connection::Connection(int socket_fd, const std::set< Server >& servers)
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
   ep_event_->data.ptr = this;
+  requests_.push_back(Request(fd_));
 
   // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_, &ep_event_) < 0) {
   //   close(fd_);
@@ -37,50 +39,65 @@ Connection::~Connection() {
 
 EpollAction Connection::epollCallback(int event) {
   if (event & EPOLLIN) {
-    return handleRead(event);
+    return handleRead();
   } else if (event & EPOLLOUT) {
-    return handleWrite(event);
+    return handleWrite();
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_DEL, NULL};
   return action;
 }
 
-EpollAction Connection::handleRead(int type) {
+EpollAction Connection::handleRead() {
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
 
-  std::cout << "Connection callback received of type " << type << "\n";
   ssize_t ret = recv(fd_, readbuf_, 1024, 0);
   if (ret == -1) {
     throw std::runtime_error("Recv failed");
   }
   buffer_.append(readbuf_, ret);
-  size_t pos = buffer_.find("\n");
-  if (pos != std::string::npos) {
-    std::cout << buffer_;
-    buffer_.clear();
-    // TODO: This should only be called if its currently not polling for write
-    if (!polling_write_) {
-      ep_event_->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
-      action.op = EPOLL_ACTION_MOD;
-      action.event = ep_event_;
+  size_t pos = buffer_.find('\n');
+  while (pos != std::string::npos) {
+    std::string line(buffer_, 0, pos + 1);
+    if (buffer_.size() > pos + 1) {
+      buffer_ = std::string(buffer_, pos + 1);
+    } else {
+      buffer_.clear();
     }
+    requests_.back().addHeaderLine(line);
+
+    if (requests_.back().getStatus() != READING_HEADERS &&
+        requests_.back().getStatus() != READING_BODY) {
+      requests_.push_back(Request(fd_));
+    }
+
+    pos = buffer_.find('\n');
+  }
+
+  if (!polling_write_ && requests_.front().getStatus() == SENDING_RESPONSE) {
+    ep_event_->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    action.event = ep_event_;
+    polling_write_ = true;
   }
 
   return action;
 }
 
-EpollAction Connection::handleWrite(int type) {
-  std::cout << "Connection callback received of type " << type << "\n";
-  std::string response("Full string received oida\r\n");
-  ssize_t ret = send(fd_, response.c_str(),
-                     std::min(static_cast< size_t >(1024), response.size()), 0);
-  if (ret == -1) {
-    throw std::runtime_error("Send failed");
+EpollAction Connection::handleWrite() {
+  requests_.front().sendResponse();
+
+  if (requests_.front().getStatus() == COMPLETED) {
+    requests_.pop_front();
   }
-  // TODO: Store leftover if not everything has been sent yet
-  ep_event_->events = EPOLLIN | EPOLLRDHUP;
-  EpollAction action = {fd_, EPOLL_ACTION_MOD, ep_event_};
+
+  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
+  if (requests_.front().getStatus() == READING_HEADERS ||
+      requests_.front().getStatus() == READING_BODY) {
+    ep_event_->events = EPOLLIN | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    polling_write_ = false;
+  }
 
   return action;
 }

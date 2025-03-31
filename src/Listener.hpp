@@ -21,7 +21,7 @@ class Listener : public EpollFd {
 
  private:
   void setup();
-  EpollAction acceptConnection(int event);
+  EpollAction acceptConnection();
   Listener(const Listener& other);
   Listener& operator=(const Listener& other);
 

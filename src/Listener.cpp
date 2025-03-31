@@ -42,10 +42,15 @@ void Listener::addServer(const Server& server) {
 }
 
 EpollAction Listener::epollCallback(int event) {
-  return acceptConnection(event);
+  if (event & EPOLLRDHUP) {
+    EpollAction action = {getFd(), EPOLL_ACTION_DEL, NULL};
+    return action;
+  }
+
+  return acceptConnection();
 }
 
-EpollAction Listener::acceptConnection(int event) {
+EpollAction Listener::acceptConnection() {
   try {
     Connection* c = new Connection(fd_, servers_);
     std::cerr << "Successfully accepted connection\n";

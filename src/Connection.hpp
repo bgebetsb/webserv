@@ -1,10 +1,14 @@
 #pragma once
 
 #include <sys/epoll.h>
+#include <deque>
 #include <set>
 #include "Server.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
+#include "requests/Request.hpp"
+
+#define CHUNK_SIZE 4096
 
 class Connection : public EpollFd {
  public:
@@ -17,9 +21,10 @@ class Connection : public EpollFd {
   char* readbuf_;
   std::string buffer_;
   bool polling_write_;
+  std::deque< Request > requests_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
-  EpollAction handleRead(int type);
-  EpollAction handleWrite(int type);
+  EpollAction handleRead();
+  EpollAction handleWrite();
 };
