@@ -23,4 +23,7 @@ class Webserv {
   std::map< const IpAddress*, int, IpComparison > listeners_;
   std::map< const int, EpollFd* > fds_;
   const int epoll_fd_;
+
+  Webserv(const Server& other);
+  Webserv& operator=(const Webserv& other);
 };

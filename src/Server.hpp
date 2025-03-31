@@ -9,9 +9,12 @@ using std::string;
 class Server {
  public:
   Server();
-  bool operator<(const Server& other) const;
   ~Server();
+
+  bool operator<(const Server& other) const;
 
  private:
   Option< string > server_name_;
+  Server(const Server& other);
+  Server& operator=(const Server& other);
 };

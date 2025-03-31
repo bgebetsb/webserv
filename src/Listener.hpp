@@ -14,19 +14,17 @@ class Listener : public EpollFd {
   ~Listener();
 
   void addServer(const Server& server);
-  // void setEpollfd(int fd);
 
   struct epoll_event* getEpollEvent();
-  // bool operator<(const Listener& other) const;
   bool operator==(const Listener& other) const;
   EpollAction epollCallback(int event);
-  // int getFd() const;
 
  private:
   void setup();
   EpollAction acceptConnection(int event);
+  Listener(const Listener& other);
+  Listener& operator=(const Listener& other);
 
   const IpAddress* address_;
   std::set< Server > servers_;
-  // std::vector< Connection* > connections_;
 };

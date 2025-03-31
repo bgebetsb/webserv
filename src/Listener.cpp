@@ -31,10 +31,6 @@ struct epoll_event* Listener::getEpollEvent() {
   return ep_event_;
 }
 
-// bool Listener::operator<(const Listener& other) const {
-//   return (ip_ < other.ip_ || (ip_ == other.ip_ && port_ < other.port_));
-// }
-//
 bool Listener::operator==(const Listener& other) const {
   return (address_ == other.address_);
 }
@@ -49,10 +45,6 @@ EpollAction Listener::epollCallback(int event) {
   return acceptConnection(event);
 }
 
-// void Listener::setEpollfd(int fd) {
-//   epoll_fd_ = fd;
-// }
-//
 EpollAction Listener::acceptConnection(int event) {
   try {
     Connection* c = new Connection(fd_, servers_);
@@ -63,7 +55,3 @@ EpollAction Listener::acceptConnection(int event) {
     throw;
   }
 }
-
-// int Listener::getFd() const {
-//   return socket_fd_;
-// }
