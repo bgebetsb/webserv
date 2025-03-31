@@ -12,21 +12,16 @@
 #include "epoll/EpollAction.hpp"
 #include "ip/IpAddress.hpp"
 
-Listener::Listener(IpAddress* address) : address_(address) {}
-
-Listener::~Listener() {}
-
-EpollAction Listener::listen() {
+Listener::Listener(IpAddress* address) : address_(address) {
   setup();
   if (::listen(fd_, 0) == -1) {
     throw std::runtime_error("Unable to listen");
   }
 
   std::cout << "Started listening\n";
-
-  EpollAction action = {fd_, EPOLL_ACTION_ADD, ep_event_};
-  return action;
 }
+
+Listener::~Listener() {}
 
 void Listener::setup() {
   fd_ = address_->createSocket();

@@ -7,3 +7,7 @@ IpTypes detectType(const std::string& input) {
   (void)input;
   return IPv4;
 }
+
+IpTypes IpAddress::getType() const {
+  return type_;
+}

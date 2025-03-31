@@ -7,7 +7,7 @@ NAME := webserv
 UTILS := utils/Endianness.cpp
 
 SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp \
-			 ip/IpAddress.cpp ip/Ipv4Address.cpp Connection.cpp Webserv.cpp main.cpp
+			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
 OBJDIR := obj

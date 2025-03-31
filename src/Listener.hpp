@@ -13,7 +13,6 @@ class Listener : public EpollFd {
   Listener(IpAddress* host);
   ~Listener();
 
-  EpollAction listen();
   void addServer(const Server& server);
   // void setEpollfd(int fd);
 

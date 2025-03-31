@@ -59,21 +59,19 @@ void setup_signals(void) {
   }
 }
 
-vector< pair< vector< Listener >, Server > > createTestServers(
-    Webserv& webserver) {
+vector< pair< vector< IpAddress* >, Server > > createTestServers() {
   // u_int16_t port = htons(8080);
   // u_int8_t ar[4] = {127, 0, 0, 1};
   // u_int32_t ip = Utils::ipv4ToBigEndian(ar);
 
   IpAddress* ip = new Ipv4Address("127.0.0.1:8080");
-  Listener listener(ip);
   Server server;
 
-  vector< Listener > listeners;
-  listeners.push_back(listener);
+  vector< IpAddress* > listeners;
+  listeners.push_back(ip);
 
-  pair< vector< Listener >, Server > pair(listeners, server);
-  vector< ::pair< vector< Listener >, Server > > ret;
+  pair< vector< IpAddress* >, Server > pair(listeners, server);
+  vector< ::pair< vector< IpAddress* >, Server > > ret;
   ret.push_back(pair);
 
   return ret;
@@ -87,9 +85,9 @@ int main(int argc, char* argv[]) {
   setup_signals();
 
   Webserv w;
-  vector< pair< vector< Listener >, Server > > testData = createTestServers(w);
+  vector< pair< vector< IpAddress* >, Server > > testData = createTestServers();
 
-  typedef vector< pair< vector< Listener >, Server > >::iterator it_type;
+  typedef vector< pair< vector< IpAddress* >, Server > >::iterator it_type;
   try {
     for (it_type it = testData.begin(); it < testData.end(); ++it) {
       w.addServer(it->first, it->second);

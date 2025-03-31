@@ -1,5 +1,6 @@
 #include "Ipv4Address.hpp"
 #include <netinet/in.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <stdexcept>
 #include "../utils/Utils.hpp"
@@ -14,6 +15,7 @@ Ipv4Address::Ipv4Address(const std::string& address) {
 
   ip_ = ip;
   port_ = port;
+  type_ = IPv4;
   IpAddress::address_ = address;
 }
 
@@ -43,4 +45,26 @@ int Ipv4Address::createSocket() const {
   }
 
   return fd;
+}
+
+bool Ipv4Address::operator<(const IpAddress& other) const {
+  if (other.getType() == IPv6) {
+    return true;
+  }
+
+  const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
+  if (ip_ < converted.getIp() ||
+      (ip_ == converted.getIp() && port_ < converted.getPort())) {
+    return true;
+  }
+
+  return false;
+}
+
+u_int32_t Ipv4Address::getIp() const {
+  return ip_;
+}
+
+u_int16_t Ipv4Address::getPort() const {
+  return port_;
 }
