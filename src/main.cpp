@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
       w.addServer(it->first, it->second);
     }
 
-    w.startListeners();
+    w.mainLoop();
   } catch (std::exception& e) {
     std::cerr << e.what() << "\n";
   }

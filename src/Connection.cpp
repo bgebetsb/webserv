@@ -3,8 +3,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <algorithm>
-#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -26,11 +24,6 @@ Connection::Connection(int socket_fd, const std::set< Server >& servers)
 
   ep_event_->data.ptr = this;
   requests_.push_back(Request(fd_));
-
-  // if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd_, &ep_event_) < 0) {
-  //   close(fd_);
-  //   throw std::runtime_error("Unable to add fd to epoll fd");
-  // }
 }
 
 Connection::~Connection() {

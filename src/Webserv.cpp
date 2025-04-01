@@ -30,9 +30,7 @@ Webserv::Webserv() : epoll_fd_(epoll_create(1024)) {
 Webserv::~Webserv() {
   typedef std::map< const int, EpollFd* >::iterator iter_type;
 
-  std::cout << "Size of map: " << fds_.size() << "\n";
   for (iter_type it = fds_.begin(); it != fds_.end(); ++it) {
-    std::cout << "Deleting sth\n";
     delete it->second;
   }
   close(epoll_fd_);
@@ -43,19 +41,26 @@ void Webserv::addServer(const std::vector< IpAddress* >& listeners,
   typedef std::vector< IpAddress* >::const_iterator iter_type;
 
   for (iter_type it = listeners.begin(); it < listeners.end(); ++it) {
-    Listener* listener;
-    try {
-      int fd = listeners_.at(*it);
-      listener = static_cast< Listener* >(fds_[fd]);
-    } catch (std::out_of_range& e) {
-      listener = new Listener(*it);
-      int fd = listener->getFd();
-      listeners_[*it] = fd;
-      fds_[fd] = listener;
-    }
-
-    listener->addServer(server);
+    Listener& listener = getListener(*it);
+    listener.addServer(server);
   }
+}
+
+Listener& Webserv::getListener(IpAddress* addr) {
+  Listener* listener;
+
+  std::map< const IpAddress*, int >::iterator fd_it = listeners_.find(addr);
+
+  if (fd_it != listeners_.end()) {
+    listener = static_cast< Listener* >(fds_[fd_it->second]);
+  } else {
+    listener = new Listener(addr);
+    int fd = listener->getFd();
+    listeners_[addr] = fd;
+    fds_[fd] = listener;
+  }
+
+  return *listener;
 }
 
 void Webserv::addFd(int fd, struct epoll_event* event) {
@@ -77,26 +82,23 @@ void Webserv::deleteFd(int fd) {
     throw std::runtime_error("Unable to remove fd from epoll");
   }
 
-  // TODO: Probably I should also delete the data.ptr inside the event here
   delete fds_[fd];
   fds_.erase(fd);
 }
 
-void Webserv::startListeners() {
-  typedef std::map< int, EpollFd* >::iterator iter_type;
+void Webserv::addFdsToEpoll() const {
+  typedef std::map< int, EpollFd* >::const_iterator iter_type;
+
+  for (iter_type it = fds_.begin(); it != fds_.end(); ++it) {
+    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, it->first, it->second->getEvent());
+  }
+}
+
+void Webserv::mainLoop() {
   extern volatile sig_atomic_t g_signal;
   struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
 
-  std::cout << "Map has size " << fds_.size() << "\n";
-  for (iter_type it = fds_.begin(); it != fds_.end(); ++it) {
-    std::cout << "Adding epoll for fd " << it->first << "\n";
-    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, it->first, it->second->getEvent());
-  }
-  // for (iter_type it = fds_.begin(); it < fds_.end(); ++it) {
-  // EpollAction action = it->listen();
-  // fds_[action.fd] = static_cast< EpollFd* >(action.event->data.ptr);
-  // epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, action.fd, action.event);
-  // }
+  addFdsToEpoll();
 
   while (true) {
     int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
@@ -109,21 +111,26 @@ void Webserv::startListeners() {
     for (int j = 0; j < count; ++j) {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
       if (events[j].events & EPOLLRDHUP) {
-        fds_.erase(fd->getFd());
-        delete fd;
+        deleteFd(fd->getFd());
         continue;
       }
+
       EpollAction action = fd->epollCallback(events[j].events);
-      if (action.op != EPOLL_ACTION_UNCHANGED) {
-        epoll_ctl(epoll_fd_, action.op, action.fd, action.event);
-        if (action.op == EPOLL_ACTION_ADD) {
-          fds_[action.fd] = static_cast< EpollFd* >(action.event->data.ptr);
-        } else if (action.op == EPOLL_ACTION_DEL) {
-          fds_.erase(action.fd);
-          delete fd;
-        }
+
+      switch (action.op) {
+        case EPOLL_ACTION_ADD:
+          addFd(action.fd, action.event);
+          break;
+        case EPOLL_ACTION_MOD:
+          modifyFd(action.fd, action.event);
+          break;
+        case EPOLL_ACTION_DEL:
+          deleteFd(action.fd);
+          break;
+        default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
       }
     }
   }
+
   delete[] events;
 }

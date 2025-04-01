@@ -6,7 +6,8 @@
 
 Request::Request(const int fd) : fd_(fd), status_(READING_HEADERS) {}
 
-Request::Request(const Request& other) : fd_(other.fd_) {}
+Request::Request(const Request& other)
+    : fd_(other.fd_), status_(other.status_) {}
 
 Request::~Request() {}
 

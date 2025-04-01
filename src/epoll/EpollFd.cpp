@@ -22,7 +22,6 @@ EpollFd::EpollFd(const EpollFd& other) {
   ep_event_ = new epoll_event();
   ep_event_->events = other.ep_event_->events;
   ep_event_->data.ptr = this;
-  std::cout << "copy constructor\n";
 }
 
 // Dummy because private
@@ -33,10 +32,8 @@ EpollFd& EpollFd::operator=(const EpollFd& other) {
 
 EpollFd::~EpollFd() {
   if (fd_ != -1) {
-    std::cout << "Closing fd\n";
     close(fd_);
   }
-  std::cout << "EpollFD Destructor\n";
   delete ep_event_;
 }
 
