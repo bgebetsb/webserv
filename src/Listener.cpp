@@ -5,7 +5,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <exception>
 #include <iostream>
 #include <stdexcept>
 #include "Connection.hpp"
@@ -18,7 +17,7 @@ Listener::Listener(IpAddress* address) : address_(address) {
     throw std::runtime_error("Unable to listen");
   }
 
-  std::cout << "Started listening\n";
+  std::cerr << "Started listening\n";
 }
 
 Listener::~Listener() {}
@@ -51,12 +50,8 @@ EpollAction Listener::epollCallback(int event) {
 }
 
 EpollAction Listener::acceptConnection() {
-  try {
-    Connection* c = new Connection(fd_, servers_);
-    std::cerr << "Successfully accepted connection\n";
-    EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
-    return action;
-  } catch (std::exception& e) {
-    throw;
-  }
+  Connection* c = new Connection(fd_, servers_);
+  std::cerr << "Successfully accepted connection\n";
+  EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
+  return action;
 }

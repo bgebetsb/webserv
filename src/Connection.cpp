@@ -59,8 +59,8 @@ EpollAction Connection::handleRead() {
     }
     requests_.back().addHeaderLine(line);
 
-    if (requests_.back().getStatus() != READING_HEADERS &&
-        requests_.back().getStatus() != READING_BODY) {
+    if (requests_.back().getStatus() == SENDING_RESPONSE ||
+        requests_.back().getStatus() == COMPLETED) {
       requests_.push_back(Request(fd_));
     }
 
@@ -85,8 +85,7 @@ EpollAction Connection::handleWrite() {
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
-  if (requests_.front().getStatus() == READING_HEADERS ||
-      requests_.front().getStatus() == READING_BODY) {
+  if (requests_.front().getStatus() != SENDING_RESPONSE) {
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     polling_write_ = false;

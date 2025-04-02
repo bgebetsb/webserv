@@ -1,7 +1,9 @@
 #pragma once
 
+#include <sstream>
 #include <string>
 #include "RequestStatus.hpp"
+#include "requests/RequestMethods.hpp"
 
 class Request {
  public:
@@ -14,8 +16,16 @@ class Request {
   RequestStatus getStatus() const;
 
  private:
+  // Unused
   Request& operator=(const Request& other);
 
   const int fd_;
   RequestStatus status_;
+  RequestMethod method_;
+  std::string path_;
+
+  void readStartLine(const std::string& line);
+  void parseMethod(std::istringstream& stream);
+  void parsePath(std::istringstream& stream);
+  void parseHTTPVersion(std::istringstream& stream);
 };
