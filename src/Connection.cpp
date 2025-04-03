@@ -51,7 +51,11 @@ EpollAction Connection::handleRead() {
   buffer_.append(readbuf_, ret);
   size_t pos = buffer_.find('\n');
   while (pos != std::string::npos) {
-    std::string line(buffer_, 0, pos + 1);
+    size_t realpos = pos;
+    if (realpos > 0 && buffer_[realpos - 1] == '\r') {
+      --realpos;
+    }
+    std::string line(buffer_, 0, realpos);
     if (buffer_.size() > pos + 1) {
       buffer_ = std::string(buffer_, pos + 1);
     } else {

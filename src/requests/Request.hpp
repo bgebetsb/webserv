@@ -3,8 +3,9 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
-#include "requests/RequestMethods.hpp"
+#include "Response.hpp"
 
 class Request {
  public:
@@ -15,6 +16,7 @@ class Request {
   void addHeaderLine(const std::string& line);
   void sendResponse();
   RequestStatus getStatus() const;
+  bool closingConnection() const;
 
  private:
   // Unused
@@ -25,6 +27,8 @@ class Request {
   RequestMethod method_;
   std::string path_;
   std::map< std::string, std::string > headers_;
+  Response response_;
+  bool closing_;
 
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
