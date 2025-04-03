@@ -1,10 +1,12 @@
 #include "Request.hpp"
 #include <sys/socket.h>
+#include <cctype>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include "../Connection.hpp"
+#include "../utils/Utils.hpp"
 #include "RequestStatus.hpp"
 
 Request::Request(const int fd) : fd_(fd), status_(READING_START_LINE) {}
@@ -18,6 +20,8 @@ void Request::addHeaderLine(const std::string& line) {
   switch (status_) {
     case READING_START_LINE:
       return readStartLine(line);
+    case READING_HEADERS:
+      return parseHeaderLine(line);
     default:
       std::cout << "Line: " << line;
       status_ = SENDING_RESPONSE;
@@ -84,4 +88,32 @@ void Request::parseHTTPVersion(std::istringstream& stream) {
   if (version != "HTTP/1.1") {
     throw std::runtime_error("Invalid HTTP version");
   }
+}
+
+void Request::parseHeaderLine(const std::string& line) {
+  std::string charset("!#$%&'*+-.^_`|~");
+  typedef std::string::const_iterator iter_type;
+  std::string name;
+  std::string value;
+
+  if (line == "\n" || line == "\r\n") {
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
+  size_t pos = line.find(':');
+  if (pos == std::string::npos) {
+    throw std::runtime_error("Header does not contain a ':' character");
+  }
+  name = line.substr(0, pos);
+  value = Utils::trimString(line.substr(pos + 1));
+
+  for (iter_type it = name.begin(); it < name.end(); ++it) {
+    if (charset.find_first_of(*it) == std::string::npos && !std::isalpha(*it) &&
+        !std::isdigit(*it)) {
+      throw std::runtime_error("Invalid character");
+    }
+  }
+
+  headers_[name] = value;
 }

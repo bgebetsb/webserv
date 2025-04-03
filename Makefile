@@ -3,7 +3,7 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic
 
 NAME := webserv
 
-UTILS := utils/Endianness.cpp
+UTILS := utils/Endianness.cpp utils/string.cpp
 
 SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp \
 			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
