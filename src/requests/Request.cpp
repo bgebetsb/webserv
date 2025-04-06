@@ -45,6 +45,7 @@ void Request::sendResponse() {
     throw std::runtime_error("Send failed");
   }
 
+  closing_ = true;
   status_ = COMPLETED;
 }
 
@@ -72,12 +73,18 @@ void Request::parseHeaderLine(const std::string& line) {
   value = Utils::trimString(line.substr(pos + 1));
 
   for (iter_type it = name.begin(); it < name.end(); ++it) {
-    if (charset.find_first_of(*it) == std::string::npos && !std::isalpha(*it) &&
-        !std::isdigit(*it)) {
+    char c = *it;
+
+    if (charset.find(c) == std::string::npos && !std::isalpha(c) &&
+        !std::isdigit(c)) {
       throw std::runtime_error("Invalid character");
     }
   }
 
-  std::cout << "Key: " << name << ", Value: " << value << "\n";
+  // std::cout << "Key: " << name << ", Value: " << value << "\n";
   headers_[name] = value;
+}
+
+bool Request::closingConnection() const {
+  return closing_;
 }

@@ -1,4 +1,5 @@
 #include "Webserv.hpp"
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>

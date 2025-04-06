@@ -13,7 +13,9 @@
 
 Listener::Listener(IpAddress* address) : address_(address) {
   setup();
-  if (::listen(fd_, 0) == -1) {
+  // Second argument specifies how many pending connections it should keep in
+  // the backlog
+  if (::listen(fd_, SOMAXCONN) == -1) {
     throw std::runtime_error("Unable to listen");
   }
 
@@ -51,7 +53,7 @@ EpollAction Listener::epollCallback(int event) {
 
 EpollAction Listener::acceptConnection() {
   Connection* c = new Connection(fd_, servers_);
-  std::cerr << "Successfully accepted connection\n";
+  // std::cerr << "Successfully accepted connection\n";
   EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
   return action;
 }

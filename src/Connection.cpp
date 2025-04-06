@@ -1,8 +1,10 @@
 #include "Connection.hpp"
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -18,6 +20,10 @@ Connection::Connection(int socket_fd, const std::set< Server >& servers)
   fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
   if (fd_ == -1) {
     throw std::runtime_error("Unable to accept client connection");
+  }
+
+  if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1) {
+    throw std::runtime_error("Unable to set fd to non-blocking");
   }
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
@@ -82,14 +88,19 @@ EpollAction Connection::handleRead() {
 }
 
 EpollAction Connection::handleWrite() {
+  bool closing = false;
+
   requests_.front().sendResponse();
 
   if (requests_.front().getStatus() == COMPLETED) {
+    closing = requests_.front().closingConnection();
     requests_.pop_front();
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
-  if (requests_.front().getStatus() != SENDING_RESPONSE) {
+  if (closing) {
+    action.op = EPOLL_ACTION_DEL;
+  } else if (requests_.front().getStatus() != SENDING_RESPONSE) {
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     polling_write_ = false;
