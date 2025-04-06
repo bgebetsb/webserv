@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <cctype>
 #include <cstddef>
@@ -60,7 +61,13 @@ void Request::parseHeaderLine(const std::string& line) {
   std::string value;
 
   if (line.empty()) {
-    response_ = Response(200, "OK", "YAY\r\n");
+    std::string full_path = "html/" + path_;
+    int fd = open(full_path.c_str(), O_RDONLY);
+    if (fd == -1) {
+      response_ = Response(404, "Not found", "Wappler");
+    } else {
+      response_ = Response(200, "OK", fd);
+    }
     status_ = SENDING_RESPONSE;
     return;
   }
