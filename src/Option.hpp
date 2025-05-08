@@ -1,7 +1,8 @@
 #pragma once
 
 template < typename T >
-class Option {
+class Option
+{
  public:
   Option();
   explicit Option(const T& value);

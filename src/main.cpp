@@ -40,24 +40,29 @@ using std::vector;
 
 volatile sig_atomic_t g_signal = 0;
 
-void handle_signal(int signum) {
+void handle_signal(int signum)
+{
   g_signal = signum;
 }
 
-void setup_signals(void) {
+void setup_signals(void)
+{
   int catch_signals[] = {SIGINT, SIGQUIT, SIGHUP, SIGTERM, 0};
   int ignore_signals[] = {SIGUSR1, SIGUSR2, 0};
 
-  for (size_t i = 0; catch_signals[i]; ++i) {
+  for (size_t i = 0; catch_signals[i]; ++i)
+  {
     signal(catch_signals[i], handle_signal);
   }
 
-  for (size_t i = 0; ignore_signals[i]; ++i) {
+  for (size_t i = 0; ignore_signals[i]; ++i)
+  {
     signal(ignore_signals[i], SIG_IGN);
   }
 }
 
-vector< pair< vector< IpAddress* >, Server > > createTestServers() {
+vector< pair< vector< IpAddress* >, Server > > createTestServers()
+{
   // u_int16_t port = htons(8080);
   // u_int8_t ar[4] = {127, 0, 0, 1};
   // u_int32_t ip = Utils::ipv4ToBigEndian(ar);
@@ -75,7 +80,9 @@ vector< pair< vector< IpAddress* >, Server > > createTestServers() {
   return ret;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+try
+{
   // TODO: Read config file
   (void)argc;
   (void)argv;
@@ -86,20 +93,29 @@ int main(int argc, char* argv[]) {
   vector< pair< vector< IpAddress* >, Server > > testData = createTestServers();
 
   typedef vector< pair< vector< IpAddress* >, Server > >::iterator it_type;
-  try {
-    for (it_type it = testData.begin(); it < testData.end(); ++it) {
+  try
+  {
+    for (it_type it = testData.begin(); it < testData.end(); ++it)
+    {
       w.addServer(it->first, it->second);
     }
 
     w.mainLoop();
-  } catch (std::exception& e) {
+  }
+  catch (std::exception& e)
+  {
     std::cerr << e.what() << "\n";
   }
 
-  for (it_type it = testData.begin(); it < testData.end(); ++it) {
+  for (it_type it = testData.begin(); it < testData.end(); ++it)
+  {
     for (vector< IpAddress* >::iterator it2 = it->first.begin();
-         it2 < it->first.end(); ++it2) {
+         it2 < it->first.end(); ++it2)
+    {
       delete *it2;
     }
   }
+}
+catch (...)
+{
 }

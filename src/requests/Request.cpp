@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 #include <cctype>
 #include <cstddef>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include "../Connection.hpp"

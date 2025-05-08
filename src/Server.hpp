@@ -6,7 +6,8 @@
 
 using std::string;
 
-class Server {
+class Server
+{
  public:
   Server();
   Server(const Server& other);
@@ -17,4 +18,5 @@ class Server {
  private:
   Option< string > server_name_;
   Server& operator=(const Server& other);
+  // ── ◼︎ CONFIG ───────────────────────
 };

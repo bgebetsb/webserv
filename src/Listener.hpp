@@ -12,7 +12,7 @@ class Listener : public EpollFd {
  public:
   Listener(IpAddress* host);
   ~Listener();
-
+  
   void addServer(const Server& server);
 
   struct epoll_event* getEpollEvent();

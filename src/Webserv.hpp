@@ -8,18 +8,23 @@
 #include "ip/IpAddress.hpp"
 #include "ip/IpComparison.hpp"
 
-class Webserv {
+typedef int filedescriptor;
+typedef std::vector< IpAddress* > IpVec;
+typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
+typedef std::map< const filedescriptor, EpollFd* > EpollMap;
+
+class Webserv
+{
  public:
   Webserv();
   ~Webserv();
 
-  void addServer(const std::vector< IpAddress* >& listeners,
-                 const Server& server);
+  void addServer(const IpVec& listeners, const Server& server);
   void mainLoop();
 
  private:
-  std::map< const IpAddress*, int, IpComparison > listeners_;
-  std::map< const int, EpollFd* > fds_;
+  ListenerMap listeners_;
+  EpollMap fds_;
   const int epoll_fd_;
 
   // Copy constructor and copy assignment are unused anyway, thus private
