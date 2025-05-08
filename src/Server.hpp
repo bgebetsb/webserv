@@ -2,10 +2,13 @@
 
 #include <sys/types.h>
 #include <string>
+#include <vector>
+#include "Configs.hpp"
 #include "Option.hpp"
 
-using std::string;
+typedef std::string string;
 
+typedef std::vector< string > host_vec;
 class Server
 {
  public:
@@ -16,7 +19,11 @@ class Server
   bool operator<(const Server& other) const;
 
  private:
-  Option< string > server_name_;
+  // ── ◼︎ disabled ───────────────────────
   Server& operator=(const Server& other);
+
+  Option< string > server_name_;
   // ── ◼︎ CONFIG ───────────────────────
+  serv_config config_;
+  int port_;
 };
