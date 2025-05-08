@@ -1,11 +1,13 @@
 CXX := c++
-CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic
+CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 
 NAME := webserv
 
-UTILS := utils/Endianness.cpp
+UTILS := utils/Endianness.cpp utils/string.cpp
 
-SRC := $(UTILS) main.cpp
+SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp requests/Startline.cpp \
+			 requests/Response.cpp \
+			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
 OBJDIR := obj
@@ -21,7 +23,7 @@ $(NAME): $(OBJ)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	@mkdir -p $(@D)
-	$(CXX) -MMD -MP $(CXXFLAGS) -c $< -o $@
+	$(CXX) -MMD -MP -I$(SRCDIR) $(CXXFLAGS) -c $< -o $@
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)

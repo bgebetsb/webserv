@@ -1,0 +1,9 @@
+#pragma once
+
+enum RequestStatus {
+  READING_START_LINE,
+  READING_HEADERS,
+  READING_BODY,
+  SENDING_RESPONSE,
+  COMPLETED
+};
