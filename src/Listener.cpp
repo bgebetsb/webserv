@@ -11,11 +11,13 @@
 #include "epoll/EpollAction.hpp"
 #include "ip/IpAddress.hpp"
 
-Listener::Listener(IpAddress* address) : address_(address) {
+Listener::Listener(IpAddress* address) : address_(address)
+{
   setup();
   // Second argument specifies how many pending connections it should keep in
   // the backlog
-  if (::listen(fd_, SOMAXCONN) == -1) {
+  if (::listen(fd_, SOMAXCONN) == -1)
+  {
     throw std::runtime_error("Unable to listen");
   }
 
@@ -24,26 +26,33 @@ Listener::Listener(IpAddress* address) : address_(address) {
 
 Listener::~Listener() {}
 
-void Listener::setup() {
+void Listener::setup()
+{
   fd_ = address_->createSocket();
 }
 
-struct epoll_event* Listener::getEpollEvent() {
+struct epoll_event* Listener::getEpollEvent()
+{
   return ep_event_;
 }
 
-bool Listener::operator==(const Listener& other) const {
+bool Listener::operator==(const Listener& other) const
+{
   return (address_ == other.address_);
 }
 
-void Listener::addServer(const Server& server) {
-  if (!servers_.insert(server).second) {
+void Listener::addServer(const Server& server)
+{
+  if (!servers_.insert(server).second)
+  {
     std::cerr << "Server not added due to ip/port/server_name duplicate\n";
   }
 }
 
-EpollAction Listener::epollCallback(int event) {
-  if (event & EPOLLRDHUP) {
+EpollAction Listener::epollCallback(int event)
+{
+  if (event & EPOLLRDHUP)
+  {
     EpollAction action = {getFd(), EPOLL_ACTION_DEL, NULL};
     return action;
   }
@@ -51,7 +60,8 @@ EpollAction Listener::epollCallback(int event) {
   return acceptConnection();
 }
 
-EpollAction Listener::acceptConnection() {
+EpollAction Listener::acceptConnection()
+{
   Connection* c = new Connection(fd_, servers_);
   // std::cerr << "Successfully accepted connection\n";
   EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};

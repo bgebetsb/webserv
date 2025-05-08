@@ -2,12 +2,19 @@
 
 #include <string>
 
-enum IpTypes {
+enum IpTypes
+{
   IPv4,
   IPv6
 };
 
-class IpAddress {
+/*
+  string address;
+  IpTypes type;
+  int port;
+*/
+class IpAddress
+{
  public:
   virtual ~IpAddress();
   virtual int createSocket() const = 0;

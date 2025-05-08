@@ -3,7 +3,8 @@
 
 #include <string>
 
-class Ipv4Address : public IpAddress {
+class Ipv4Address : public IpAddress
+{
  public:
   Ipv4Address(const std::string& address);
   ~Ipv4Address();
