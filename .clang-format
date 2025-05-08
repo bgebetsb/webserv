@@ -8,3 +8,14 @@ AlwaysBreakBeforeMultilineStrings: false
 IndentPPDirectives: AfterHash
 NamespaceIndentation: All
 SpacesInAngles: Always
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterControlStatement: true
+  AfterClass: true
+  AfterStruct: true
+  AfterEnum: true
+  AfterNamespace: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
