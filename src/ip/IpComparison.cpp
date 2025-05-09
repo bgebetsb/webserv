@@ -1,7 +1,7 @@
-#include "ip/IpComparison.hpp"
-#include "ip/IpAddress.hpp"
+#include "IpComparison.hpp"
+#include "IpAddress.hpp"
 
-bool IpComparison::operator()(const IpAddress* lhs,
-                              const IpAddress* rhs) const {
+bool IpComparison::operator()(const IpAddress* lhs, const IpAddress* rhs) const
+{
   return *lhs < *rhs;
 }
