@@ -2,7 +2,7 @@
 
 namespace Utils
 {
-  static bool isBigEndian()
+  bool isBigEndian()
   {
     unsigned int num = 1;
     unsigned char* converted = (unsigned char*)&num;
