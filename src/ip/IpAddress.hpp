@@ -21,6 +21,7 @@ class IpAddress
 
   static IpTypes detectType(const std::string& input);
   virtual bool operator<(const IpAddress& other) const = 0;
+  virtual bool operator==(const IpAddress& other) const = 0;
   IpTypes getType() const;
 
  protected:
