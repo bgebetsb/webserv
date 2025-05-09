@@ -178,20 +178,3 @@ u_int16_t Ipv4Address::getPort() const
 {
   return port_;
 }
-
-#include <iostream>
-int main(int argc, char* argv[])
-{
-  if (argc != 2)
-  {
-    std::cerr << "Usage: " << argv[0] << " <ip_address>" << std::endl;
-    return 1;
-  }
-  try
-  {
-    Ipv4Address addr(argv[1]);
-  } catch (const std::exception& e)
-  {
-    std::cerr << "Error: " << e.what() << std::endl;
-  }
-}
