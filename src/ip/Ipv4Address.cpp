@@ -11,27 +11,9 @@
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
 
-static u_int8_t strtouint8(std::string& str)
-{
-  char* endptr;
-  if (str.empty() || str.length() > 3)
-    throw std::runtime_error("Invalid Ip Address format");
-  long value = strtol(str.c_str(), &endptr, 10);
-  if (*endptr != '\0' || value < 0 || value > 255)
-    throw std::runtime_error("Invalid Ip Address format");
-  return static_cast< u_int8_t >(value);
-}
-
-static u_int16_t strtouint16(std::string& str)
-{
-  char* endptr;
-  if (str.empty() || str.length() > 5)
-    throw std::runtime_error("Invalid Ip Address format");
-  long value = strtol(str.c_str(), &endptr, 10);
-  if (*endptr != '\0' || value < 0 || value > 65535)
-    throw std::runtime_error("Invalid Ip Address format");
-  return static_cast< u_int16_t >(value);
-}
+// ╔══════════════════════════════════════════════╗
+// ║              SECTION: Operators              ║
+// ╚══════════════════════════════════════════════╝
 
 std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
 {
@@ -55,14 +37,83 @@ std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
   return os;
 }
 
+bool Ipv4Address::operator<(const IpAddress& other) const
+{
+  if (other.getType() == IPv6)
+  {
+    return true;
+  }
+
+  const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
+  if (ip_ < converted.getIp() ||
+      (ip_ == converted.getIp() && port_ < converted.getPort()))
+  {
+    return true;
+  }
+
+  return false;
+}
+
+bool Ipv4Address::operator==(const IpAddress& other) const
+{
+  if (other.getType() != IPv4)
+  {
+    return false;
+  }
+  const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
+  if (converted.getIp() == ip_ && converted.getPort() == port_)
+  {
+    return true;
+  }
+  return false;
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              SECTION: helper functios        ║
+// ╚══════════════════════════════════════════════╝
+
+static u_int8_t strtouint8(std::string& str)
+{
+  char* endptr;
+  if (str.empty() || str.length() > 3)
+    throw std::runtime_error("Invalid Ipv4 Address format");
+  long value = strtol(str.c_str(), &endptr, 10);
+  if (*endptr != '\0' || value < 0 || value > 255)
+    throw std::runtime_error("Invalid Ipv4 Address format");
+  return static_cast< u_int8_t >(value);
+}
+
+static u_int16_t strtouint16(std::string& str)
+{
+  char* endptr;
+  if (str.empty() || str.length() > 5)
+    throw std::runtime_error("Invalid Ipv4 Address format");
+  long value = strtol(str.c_str(), &endptr, 10);
+  if (*endptr != '\0' || value < 0 || value > 65535)
+    throw std::runtime_error("Invalid Ipv4 Address format");
+  return static_cast< u_int16_t >(value);
+}
+
+// ╔══════════════════════════════════════════════╗
+// ║              SECTION: Member functions       ║
+// ╚══════════════════════════════════════════════╝
+
+Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port)
+{
+  if (port == 0)
+    throw std::runtime_error("Invalid Ipv4 Address format");
+  ip_ = ip;
+  port_ = port;
+}
+
 Ipv4Address::Ipv4Address(const std::string& address)
 {
   u_int8_t ar[4];
   if (address.find_first_not_of("0123456789.:") != std::string::npos)
-    throw std::runtime_error("Invalid Ip Address format");
+    throw std::runtime_error("Invalid Ipv4 Address format");
   std::string::size_type pos = address.find(':');
   if (pos == std::string::npos)
-    throw std::runtime_error("Invalid Ip Address format");
+    throw std::runtime_error("Invalid Ipv4 Address format");
   std::string ip = address.substr(0, pos);
   std::stringstream ss(ip);
   std::string token;
@@ -70,13 +121,16 @@ Ipv4Address::Ipv4Address(const std::string& address)
   while (std::getline(ss, token, '.'))
   {
     if (i > 3)
-      throw std::runtime_error("Invalid Ip Address format");
+      throw std::runtime_error("Invalid Ipv4 Address format");
     ar[i++] = strtouint8(token);
   }
   if (i != 4)
-    throw std::runtime_error("Invalid Ip Address format");
+    throw std::runtime_error(
+        "Invalid Ipv4 Address format: Invalid octet count");
   std::string port = address.substr(pos + 1);
   port_ = strtouint16(port);
+  if (port_ == 0)
+    throw std::runtime_error("Invalid Ipv4 Address format: port cannot be 0");
   port_ = htons(port_);
   ip_ = Utils::ipv4ToBigEndian(ar);
   type_ = IPv4;
@@ -113,37 +167,6 @@ int Ipv4Address::createSocket() const
   }
 
   return fd;
-}
-
-bool Ipv4Address::operator<(const IpAddress& other) const
-{
-  if (other.getType() == IPv6)
-  {
-    return true;
-  }
-
-  const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
-  if (ip_ < converted.getIp() ||
-      (ip_ == converted.getIp() && port_ < converted.getPort()))
-  {
-    return true;
-  }
-
-  return false;
-}
-
-bool Ipv4Address::operator==(const IpAddress& other) const
-{
-  if (other.getType() != IPv4)
-  {
-    return false;
-  }
-  const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
-  if (converted.getIp() == ip_ && converted.getPort() == port_)
-  {
-    return true;
-  }
-  return false;
 }
 
 u_int32_t Ipv4Address::getIp() const
