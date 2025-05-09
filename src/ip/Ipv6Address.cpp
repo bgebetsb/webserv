@@ -1,4 +1,3 @@
-#include "Ipv4Address.hpp"
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -10,6 +9,7 @@
 #include <stdexcept>
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
+#include "Ipv4Address.hpp"
 
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Operators              ║
