@@ -43,10 +43,7 @@ bool Listener::operator==(const Listener& other) const
 
 void Listener::addServer(const Server& server)
 {
-  if (!servers_.insert(server).second)
-  {
-    std::cerr << "Server not added due to ip/port/server_name duplicate\n";
-  }
+  servers_.push_back(server);
 }
 
 EpollAction Listener::epollCallback(int event)
