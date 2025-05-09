@@ -11,6 +11,7 @@ class Ipv4Address : public IpAddress
 
   int createSocket() const;
   bool operator<(const IpAddress& other) const;
+  bool operator==(const IpAddress& other) const;
   u_int32_t getIp() const;
   u_int16_t getPort() const;
 
