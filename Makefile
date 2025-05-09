@@ -6,7 +6,7 @@ NAME := webserv
 UTILS := utils/Endianness.cpp utils/string.cpp
 
 SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp requests/Startline.cpp \
-			 requests/Response.cpp \
+			 requests/Response.cpp requests/PathValidation/PathValidation.cpp requests/PathValidation/PreventEscape.cpp \
 			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
 
 SRCDIR := src
