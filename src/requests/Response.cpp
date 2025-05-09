@@ -1,12 +1,43 @@
 #include "Response.hpp"
+#include <fcntl.h>
 #include <unistd.h>
 #include <sstream>
+#include "PathValidation/PathInfos.hpp"
+#include "PathValidation/PathValidation.hpp"
 
 Response::Response() : full_response_(""), fd_(-1), mode_(UNINITIALIZED) {}
 
+Response::Response(const std::string& filename) : fd_(-1)
+{
+  PathInfos infos;
+
+  infos = getFileType(filename);
+
+  if (!infos.exists)
+  {
+    response_code_ = 404;
+  } else if (!infos.readable || infos.types == OTHER)
+  {
+    response_code_ = 403;
+  } else
+  {
+    fd_ = open(filename.c_str(), O_RDONLY);
+    if (fd_ == -1)
+      response_code_ = 500;
+    else
+      response_code_ = 200;
+  }
+
+  if (fd_ == -1)
+    mode_ = STATIC_CONTENT;
+  else
+    mode_ = FD;
+}
+
 Response::Response(int code,
                    const std::string& title,
-                   const std::string& content) {
+                   const std::string& content)
+{
   std::ostringstream stream;
 
   stream << "HTTP/1.1 " << code << " " << title
@@ -18,7 +49,8 @@ Response::Response(int code,
   fd_ = -1;
 }
 
-Response::Response(int code, const std::string& title, int fd) {
+Response::Response(int code, const std::string& title, int fd)
+{
   std::ostringstream stream;
 
   stream << "HTTP/1.1 " << code << " " << title << "\r\nConnection: close\r\n";
@@ -27,11 +59,13 @@ Response::Response(int code, const std::string& title, int fd) {
   fd_ = fd;
   char buf[4096];
   int ret = read(fd, buf, 4096);
-  if (ret == -1) {
+  if (ret == -1)
+  {
     full_response_ = stream.str();
     full_response_ += "Content-Length: 5\r\n\r\n";
     full_response_ += "Error";
-  } else {
+  } else
+  {
     stream << "Content-Length: " << ret << "\r\n\r\n";
     full_response_ = stream.str();
     full_response_.append(buf, ret);
@@ -39,12 +73,13 @@ Response::Response(int code, const std::string& title, int fd) {
 }
 
 Response::Response(const Response& other)
-    : full_response_(other.full_response_),
-      fd_(other.fd_),
-      mode_(other.mode_) {}
+    : full_response_(other.full_response_), fd_(other.fd_), mode_(other.mode_)
+{}
 
-Response& Response::operator=(const Response& other) {
-  if (this != &other) {
+Response& Response::operator=(const Response& other)
+{
+  if (this != &other)
+  {
     full_response_ = other.full_response_;
     mode_ = other.mode_;
     fd_ = other.fd_;
@@ -55,6 +90,7 @@ Response& Response::operator=(const Response& other) {
 
 Response::~Response() {}
 
-const std::string& Response::getFullResponse() const {
+const std::string& Response::getFullResponse() const
+{
   return full_response_;
 }
