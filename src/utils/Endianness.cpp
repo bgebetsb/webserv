@@ -22,4 +22,8 @@ namespace Utils
   {
     return (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
   }
+  u_int16_t u16ToBigEndian(u_int16_t value)
+  {
+    return (value << 8) | (value >> 8);
+  }
 }  // namespace Utils

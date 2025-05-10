@@ -77,7 +77,7 @@ Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port)
   if (port == 0)
     throw std::runtime_error("Invalid Ipv4 Address format");
   ip_ = ip;
-  port_ = port;
+  port_ = Utils::u16ToBigEndian(port);
 }
 
 Ipv4Address::Ipv4Address(const std::string& address)
