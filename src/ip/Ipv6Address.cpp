@@ -197,7 +197,6 @@ Ipv6Address::Ipv6Address(const std::string& address) : IpAddress(address, IPv6)
   if (port_ == 0)
     throw std::runtime_error("Invalid Ipv6 Address format");
   readBigEndianIpv6(ip);
-  std::cout << *this << std::endl;
 }
 
 Ipv6Address::~Ipv6Address() {}
