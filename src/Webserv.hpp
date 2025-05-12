@@ -37,4 +37,6 @@ class Webserv
   void addFd(int fd, struct epoll_event* event);
   void modifyFd(int fd, struct epoll_event* event) const;
   void deleteFd(int fd);
+  void pingAllClients();
+  void closeClientConnections(const std::vector< int >& fds);
 };

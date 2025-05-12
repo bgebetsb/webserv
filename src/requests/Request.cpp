@@ -74,9 +74,7 @@ void Request::sendResponse()
   if (response_->isComplete())
   {
     status_ = COMPLETED;
-    // TODO: This should only be set to true if the close_connection_ bool in
-    // the Response is also true
-    closing_ = true;
+    closing_ = response_->getClosing();
   }
 }
 
