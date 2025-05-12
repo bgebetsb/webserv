@@ -72,7 +72,7 @@ bool Ipv4Address::operator==(const IpAddress& other) const
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port)
+Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port) : IpAddress("", IPv4)
 {
   if (port == 0)
     throw std::runtime_error("Invalid Ipv4 Address format");
@@ -80,7 +80,8 @@ Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port)
   port_ = Utils::u16ToBigEndian(port);
 }
 
-Ipv4Address::Ipv4Address(const std::string& address)
+Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
+
 {
   u_int8_t ar[4];
   if (address.find_first_not_of("0123456789.:") != std::string::npos)
