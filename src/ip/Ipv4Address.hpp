@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include "IpAddress.hpp"
 
+#include <ostream>
 #include <string>
 
 class Ipv4Address : public IpAddress
@@ -20,3 +21,5 @@ class Ipv4Address : public IpAddress
   u_int32_t ip_;
   u_int16_t port_;
 };
+
+std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr);
