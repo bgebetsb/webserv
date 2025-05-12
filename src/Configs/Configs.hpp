@@ -23,7 +23,7 @@ typedef std::map< string, string > MRedirects;
 typedef std::vector< filename > VDefaultFiles;
 typedef std::map< string, string > VCgiPaths;
 struct location;
-typedef std::vector< location > VLocations;
+typedef std::map< string, location > MLocations;
 
 /*
  * ── ◼︎ typedefs http methods ────────────────
@@ -72,7 +72,7 @@ struct location
  * server_names <ServerNames;> _____: Vec<string> of server names;
  * ips <IpVec> ________________: Vec<IpAddress*> of IP addresses;
  * error_pages <MErrors> ______: Map<errcode, filename> of error pages;
- * locations <VLocations> ______: Vec<location> of locations;
+ * locations <MLocations> ______: Vec<location> of locations;
  */
 struct serv_config
 {
@@ -81,7 +81,7 @@ struct serv_config
   ServerNames server_names;      // server_name
   IpSet ips;                     // ipv4 or ipv6
   MErrors error_pages;           // error_pages
-  VLocations locations;          // locations
+  MLocations locations;          // locations
 };
 
 typedef std::vector< serv_config > ServerVec;
