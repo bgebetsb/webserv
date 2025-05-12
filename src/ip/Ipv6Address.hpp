@@ -31,3 +31,5 @@ class Ipv6Address : public IpAddress
   u_int16_t ip_[8];
   u_int16_t port_;
 };
+
+std::ostream& operator<<(std::ostream& os, const Ipv6Address& addr);
