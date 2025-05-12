@@ -69,44 +69,19 @@ bool Ipv4Address::operator==(const IpAddress& other) const
 }
 
 // ╔══════════════════════════════════════════════╗
-// ║              SECTION: helper functios        ║
-// ╚══════════════════════════════════════════════╝
-
-static u_int8_t strtouint8(std::string& str)
-{
-  char* endptr;
-  if (str.empty() || str.length() > 3)
-    throw std::runtime_error("Invalid Ipv4 Address format");
-  long value = strtol(str.c_str(), &endptr, 10);
-  if (*endptr != '\0' || value < 0 || value > 255)
-    throw std::runtime_error("Invalid Ipv4 Address format");
-  return static_cast< u_int8_t >(value);
-}
-
-static u_int16_t strtouint16(std::string& str)
-{
-  char* endptr;
-  if (str.empty() || str.length() > 5)
-    throw std::runtime_error("Invalid Ipv4 Address format");
-  long value = strtol(str.c_str(), &endptr, 10);
-  if (*endptr != '\0' || value < 0 || value > 65535)
-    throw std::runtime_error("Invalid Ipv4 Address format");
-  return static_cast< u_int16_t >(value);
-}
-
-// ╔══════════════════════════════════════════════╗
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port)
+Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port) : IpAddress("", IPv4)
 {
   if (port == 0)
     throw std::runtime_error("Invalid Ipv4 Address format");
   ip_ = ip;
-  port_ = port;
+  port_ = Utils::u16ToBigEndian(port);
 }
 
-Ipv4Address::Ipv4Address(const std::string& address)
+Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
+
 {
   u_int8_t ar[4];
   if (address.find_first_not_of("0123456789.:") != std::string::npos)
@@ -122,13 +97,13 @@ Ipv4Address::Ipv4Address(const std::string& address)
   {
     if (i > 3)
       throw std::runtime_error("Invalid Ipv4 Address format");
-    ar[i++] = strtouint8(token);
+    ar[i++] = Utils::strtouint8(token);
   }
   if (i != 4)
     throw std::runtime_error(
         "Invalid Ipv4 Address format: Invalid octet count");
   std::string port = address.substr(pos + 1);
-  port_ = strtouint16(port);
+  port_ = Utils::strtouint16(port);
   if (port_ == 0)
     throw std::runtime_error("Invalid Ipv4 Address format: port cannot be 0");
   port_ = htons(port_);

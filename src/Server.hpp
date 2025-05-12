@@ -3,12 +3,14 @@
 #include <sys/types.h>
 #include <string>
 #include <vector>
-#include "Configs.hpp"
+#include "Configs/Configs.hpp"
 #include "Option.hpp"
 
 typedef std::string string;
 
 typedef std::vector< string > host_vec;
+
+struct serv_config;
 class Server
 {
  public:
