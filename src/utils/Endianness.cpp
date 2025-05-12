@@ -1,5 +1,6 @@
 #include <sys/types.h>
 
+#include <iostream>
 namespace Utils
 {
   bool isBigEndian()
@@ -20,8 +21,13 @@ namespace Utils
   } */
   u_int32_t ipv4ToBigEndian(u_int8_t octets[4])
   {
-    return (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+    u_int32_t result = 0;
+
+    result =
+        (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
+    return result;
   }
+
   u_int16_t u16ToBigEndian(u_int16_t value)
   {
     return (value << 8) | (value >> 8);
