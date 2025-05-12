@@ -54,7 +54,6 @@ void Request::sendResponse()
   {
     throw std::runtime_error("Send failed");
   }
-
   closing_ = true;
   status_ = COMPLETED;
 }

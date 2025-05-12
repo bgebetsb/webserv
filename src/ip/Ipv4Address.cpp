@@ -7,7 +7,7 @@
 #include <iostream>
 #include <ostream>
 #include <sstream>
-#include <stdexcept>
+#include "../exceptions/Fatal.hpp"
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
 
@@ -40,9 +40,7 @@ std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
 bool Ipv4Address::operator<(const IpAddress& other) const
 {
   if (other.getType() == IPv6)
-  {
     return true;
-  }
 
   const Ipv4Address& converted = static_cast< const Ipv4Address& >(other);
   if (ip_ < converted.getIp() ||
@@ -75,7 +73,7 @@ bool Ipv4Address::operator==(const IpAddress& other) const
 Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port) : IpAddress("", IPv4)
 {
   if (port == 0)
-    throw std::runtime_error("Invalid Ipv4 Address format");
+    throw Fatal("Invalid Ipv4 Address format");
   ip_ = ip;
   port_ = Utils::u16ToBigEndian(port);
 }
@@ -85,10 +83,10 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
 {
   u_int8_t ar[4];
   if (address.find_first_not_of("0123456789.:") != std::string::npos)
-    throw std::runtime_error("Invalid Ipv4 Address format");
+    throw Fatal("Invalid Ipv4 Address format");
   std::string::size_type pos = address.find(':');
   if (pos == std::string::npos)
-    throw std::runtime_error("Invalid Ipv4 Address format");
+    throw Fatal("Invalid Ipv4 Address format");
   std::string ip = address.substr(0, pos);
   std::stringstream ss(ip);
   std::string token;
@@ -96,16 +94,15 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
   while (std::getline(ss, token, '.'))
   {
     if (i > 3)
-      throw std::runtime_error("Invalid Ipv4 Address format");
+      throw Fatal("Invalid Ipv4 Address format");
     ar[i++] = Utils::strtouint8(token);
   }
   if (i != 4)
-    throw std::runtime_error(
-        "Invalid Ipv4 Address format: Invalid octet count");
+    throw Fatal("Invalid Ipv4 Address format: Invalid octet count");
   std::string port = address.substr(pos + 1);
   port_ = Utils::strtouint16(port);
   if (port_ == 0)
-    throw std::runtime_error("Invalid Ipv4 Address format: port cannot be 0");
+    throw Fatal("Invalid Ipv4 Address format: port cannot be 0");
   port_ = htons(port_);
   ip_ = Utils::ipv4ToBigEndian(ar);
   type_ = IPv4;
@@ -121,7 +118,7 @@ int Ipv4Address::createSocket() const
   int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
   if (fd == -1)
   {
-    throw std::runtime_error("Unable to create socket");
+    throw Fatal("Unable to create socket");
   }
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = ip_;
@@ -131,13 +128,13 @@ int Ipv4Address::createSocket() const
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
   {
     close(fd);
-    throw std::runtime_error("Unable to set socket options");
+    throw Fatal("Unable to set socket options");
   }
 
   if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
   {
     close(fd);
-    throw std::runtime_error("Unable to bind socket to address");
+    throw Fatal("Unable to bind socket to address");
   }
 
   return fd;

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <ostream>
 #include <sstream>
-#include <stdexcept>
+#include "../exceptions/Fatal.hpp"
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
 
@@ -78,7 +78,7 @@ bool Ipv6Address::operator==(const IpAddress& other) const
 Ipv6Address::Ipv6Address(u_int16_t port) : IpAddress("", IPv6)
 {
   if (port == 0)
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   std::memset(ip_, 0, sizeof(uint16_t) * 8);
   port_ = htons(port);
 }
@@ -108,7 +108,7 @@ PosDoubleColon Ipv6Address::checkDoubleColonPosition(const std::string& ip)
   if (posdoublecolon != std::string::npos)
   {
     if (ip.find("::", posdoublecolon + 2) != std::string::npos)
-      throw std::runtime_error("Invalid Ipv6 Address format");
+      throw Fatal("Invalid Ipv6 Address format");
     else
     {
       std::string before = ip.substr(0, posdoublecolon);
@@ -123,7 +123,7 @@ PosDoubleColon Ipv6Address::checkDoubleColonPosition(const std::string& ip)
       else
         pos.type = POS_MIDDLE;
       if (pos.blocks_before + pos.blocks_after > 7)
-        throw std::runtime_error("Invalid Ipv6 Address format");
+        throw Fatal("Invalid Ipv6 Address format");
       pos.blocks_to_fill = 8 - (pos.blocks_before + pos.blocks_after);
       return pos;
     }
@@ -143,13 +143,13 @@ void Ipv6Address::readBigEndianIpv6(const std::string& ip_string)
   {
     // TODO: std::cout << "item: " << item << std::endl;
     if (i > 7 || item.length() > 4)
-      throw std::runtime_error("Invalid Ipv6 Address format");
+      throw Fatal("Invalid Ipv6 Address format");
     std::stringstream hex(item);
     if (item.length() == 0)
       continue;
     hex >> std::hex >> ip_[i];
     if (hex.fail())
-      throw std::runtime_error("Invalid Ipv6 Address format");
+      throw Fatal("Invalid Ipv6 Address format");
     ip_[i] = htons(ip_[i]);
     ++i;
   }
@@ -174,7 +174,7 @@ void Ipv6Address::readBigEndianIpv6(const std::string& ip_string)
     }
   } else if (i != 8)
   {
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   }
 }
 
@@ -184,18 +184,18 @@ Ipv6Address::Ipv6Address(const std::string& address) : IpAddress(address, IPv6)
   if (address.empty() ||
       address.find_first_not_of("0123456789abcdef:[]") != std::string::npos ||
       address[0] != '[')
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   std::string::size_type pos = address.find(']');
   if (pos == std::string::npos || pos <= 1)
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   std::string ip = address.substr(1, pos - 1);
   std::string port = address.substr(pos + 1);
   if (port[0] != ':' || ip.empty())
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   port_ = Utils::strtouint16(port.substr(1));
   port_ = Utils::u16ToBigEndian(port_);
   if (port_ == 0)
-    throw std::runtime_error("Invalid Ipv6 Address format");
+    throw Fatal("Invalid Ipv6 Address format");
   readBigEndianIpv6(ip);
 }
 
@@ -210,7 +210,7 @@ int Ipv6Address::createSocket() const
   // int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
   // if (fd == -1)
   // {
-  //   throw std::runtime_error("Unable to create socket");
+  //   throw Fatal("Unable to create socket");
   // }
   // addr.sin_family = AF_INET;
   // addr.sin_addr.s_addr = ip_;
@@ -220,13 +220,13 @@ int Ipv6Address::createSocket() const
   // if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
   // {
   //   close(fd);
-  //   throw std::runtime_error("Unable to set socket options");
+  //   throw Fatal("Unable to set socket options");
   // }
 
   // if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
   // {
   //   close(fd);
-  //   throw std::runtime_error("Unable to bind socket to address");
+  //   throw Fatal("Unable to bind socket to address");
   // }
 
   // return fd;

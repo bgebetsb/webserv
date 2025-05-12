@@ -2,11 +2,10 @@
 
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 #include <string>
+#include "../exceptions/Fatal.hpp"
 #include "../ip/Ipv4Address.hpp"
 #include "../utils/Utils.hpp"
-
 Configuration::Configuration(const string& config_file)
 {
   (void)config_file;
@@ -18,7 +17,7 @@ void Configuration::parseConfigFile(const string& config_file)
   (void)config_file;
   std::ifstream file(config_file.c_str());
   if (!file.is_open())
-    throw std::runtime_error("Could not open config file");
+    throw Fatal("Could not open config file");
 
   string line;
   while (1)
@@ -30,12 +29,12 @@ void Configuration::parseConfigFile(const string& config_file)
     std::string token;
     ss >> token;
     if (token != "server")
-      throw std::runtime_error("Ivalid config file format: expected 'server'");
+      throw Fatal("Ivalid config file format: expected 'server'");
     if (ss >> token)
-      throw std::runtime_error("Invalid config file format: expected '{'");
+      throw Fatal("Invalid config file format: expected '{'");
     std::getline(file, line, '}');
     if (file.eof())
-      throw std::runtime_error("Invalid config file format: expected '}'");
+      throw Fatal("Invalid config file format: expected '}'");
     process_server_block(line);
   }
 }
@@ -68,8 +67,7 @@ static void insert_ip(IpSet& ips, const string& token)
     if (!ips.insert(addr).second)
     {
       delete addr;
-      throw std::runtime_error(
-          "Invalid config file format: duplicate IP address");
+      throw Fatal("Invalid config file format: duplicate IP address");
     }
   }
   if (token[0] == '[')
@@ -80,8 +78,7 @@ static void insert_ip(IpSet& ips, const string& token)
     if (!ips.insert(addr).second)
     {
       delete addr;
-      throw std::runtime_error(
-          "Invalid config file format: duplicate IP address");
+      throw Fatal("Invalid config file format: duplicate IP address");
     }
   }
 }
@@ -95,23 +92,19 @@ void Configuration::process_server_item(std::stringstream& item,
   if (token == "server_name")
   {
     if (config.server_names.size() > 0)
-      throw std::runtime_error(
-          "Invalid config file format: server_name already defined");
+      throw Fatal("Invalid config file format: server_name already defined");
     while (item >> token)
       config.server_names.insert(token);
   }
   if (token == "listen")  // no dup
   {
     if (config.ips.size() > 0)
-      throw std::runtime_error(
-          "Invalid config file format: listen already defined");
+      throw Fatal("Invalid config file format: listen already defined");
     if (!(item >> token))
-      throw std::runtime_error(
-          "Invalid config file format: expected ip address");
+      throw Fatal("Invalid config file format: expected ip address");
     insert_ip(config.ips, token);
     if (item >> token)
-      throw std::runtime_error(
-          "Invalid config file format: Token after ip address found");
+      throw Fatal("Invalid config file format: Token after ip address found");
   }
 }
 
