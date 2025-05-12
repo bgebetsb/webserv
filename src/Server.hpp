@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include "Configs/Configs.hpp"
-#include "Option.hpp"
 
 typedef std::string string;
 
@@ -18,13 +17,12 @@ class Server
   Server(const Server& other);
   ~Server();
 
-  bool operator<(const Server& other) const;
+  const serv_config& getServerConfigs() const;
 
  private:
   // ── ◼︎ disabled ───────────────────────
   Server& operator=(const Server& other);
 
-  Option< string > server_name_;
   // ── ◼︎ CONFIG ───────────────────────
   serv_config config_;
   int port_;

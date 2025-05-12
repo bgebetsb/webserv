@@ -3,59 +3,81 @@
 #include <sys/socket.h>
 #include <cctype>
 #include <cstddef>
-#include <stdexcept>
+#include <iostream>
 #include <string>
-#include "../Connection.hpp"
+#include "../Server.hpp"
+#include "../exceptions/ConError.hpp"
+#include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
+#include "Configs/Configs.hpp"
 #include "PathValidation/FileTypes.hpp"
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
 
-Request::Request(const int fd)
-    : fd_(fd), status_(READING_START_LINE), closing_(false)
+Request::Request(const int fd, const std::vector< Server >& servers)
+    : fd_(fd),
+      status_(READING_START_LINE),
+      closing_(false),
+      servers_(servers),
+      response_(NULL)
 {}
 
 Request::Request(const Request& other)
-    : fd_(other.fd_), status_(other.status_), closing_(other.closing_)
+    : fd_(other.fd_),
+      status_(other.status_),
+      closing_(other.closing_),
+      servers_(other.servers_),
+      response_(other.response_)
 {}
 
-Request::~Request() {}
+Request::~Request()
+{
+  delete response_;
+}
 
 void Request::addHeaderLine(const std::string& line)
 {
   size_t pos = line.find('\r');
   if (pos != std::string::npos)
   {
-    response_ = Response(400, "Bad Request", "400 Bad Request");
+    response_ = new StaticResponse(fd_, 400);
     status_ = SENDING_RESPONSE;
     return;
   }
 
-  switch (status_)
+  try
   {
-    case READING_START_LINE:
-      return readStartLine(line);
-    case READING_HEADERS:
-      return parseHeaderLine(line);
-    default:
-      response_ = Response(200, "OK", line);
-      status_ = SENDING_RESPONSE;
+    switch (status_)
+    {
+      case READING_START_LINE:
+        return readStartLine(line);
+      case READING_HEADERS:
+        return parseHeaderLine(line);
+      default:
+        // TODO: Figure out again what I was doing here lol
+        // response_ = Response(200, "OK", line);
+        // status_ = SENDING_RESPONSE;
+        throw;
+    }
+  } catch (ConErr& e)
+  {
+    std::cerr << e.what() << "\n";
+    response_ = new StaticResponse(fd_, 400);
+    status_ = SENDING_RESPONSE;
   }
 }
 
 void Request::sendResponse()
 {
-  const std::string& response = response_.getFullResponse();
-  ssize_t ret =
-      send(fd_, response.c_str(),
-           std::min(static_cast< size_t >(CHUNK_SIZE), response.size()), 0);
-  if (ret == -1)
+  response_->sendResponse();
+  if (response_->isComplete())
   {
-    throw std::runtime_error("Send failed");
+    status_ = COMPLETED;
+    // TODO: This should only be set to true if the close_connection_ bool in
+    // the Response is also true
+    closing_ = true;
   }
-  closing_ = true;
-  status_ = COMPLETED;
 }
 
 RequestStatus Request::getStatus() const
@@ -71,37 +93,12 @@ void Request::parseHeaderLine(const std::string& line)
   std::string value;
 
   if (line.empty())
-  {
-    PathInfos infos;
-    std::string full_path = "html/" + path_;
-
-    infos = getFileType(full_path);
-
-    if (!infos.exists)
-    {
-      response_ = Response(404, "Not found", "Not found");
-    } else if (!infos.readable || infos.types == OTHER)
-    {
-      response_ = Response(403, "Forbidden", "Forbidden");
-    } else
-    {
-      int fd = open(full_path.c_str(), O_RDONLY);
-      if (fd == -1)
-      {
-        response_ = Response(500, "Internal Server Error", "WTF");
-      } else
-      {
-        response_ = Response(200, "OK", fd);
-      }
-    }
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    return processHeaders();
 
   size_t pos = line.find(':');
   if (pos == std::string::npos)
   {
-    throw std::runtime_error("Header does not contain a ':' character");
+    throw ConErr("Header does not contain a ':' character");
   }
   name = line.substr(0, pos);
   value = Utils::trimString(line.substr(pos + 1));
@@ -113,12 +110,73 @@ void Request::parseHeaderLine(const std::string& line)
     if (charset.find(c) == std::string::npos && !std::isalpha(c) &&
         !std::isdigit(c))
     {
-      throw std::runtime_error("Invalid character");
+      throw ConErr("Invalid character");
     }
   }
 
+  // TODO: Special processing if we get the `Host` header, since it has some
+  // extra
+
   // std::cout << "Key: " << name << ", Value: " << value << "\n";
   headers_[name] = value;
+}
+
+void Request::processHeaders(void)
+{
+  mHeader::iterator h_it = headers_.find("Host");
+  if (h_it == headers_.end())
+  {
+    response_ = new StaticResponse(fd_, 400);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
+  const Server* server = &servers_.front();
+  for (size_t i = 0; i < servers_.size(); ++i)
+  {
+    const serv_config& config = servers_[i].getServerConfigs();
+    if (config.server_names.find(h_it->second) != config.server_names.end())
+    {
+      server = &servers_[i];
+      break;
+    }
+  }
+
+  MLocations locations = server->getServerConfigs().locations;
+  MLocations::const_iterator l_it = locations.find(path_);
+
+  PathInfos infos;
+
+  if (l_it == locations.end() || l_it->second.root.empty())
+  {
+    response_ = new StaticResponse(fd_, 404);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+  // TODO: Actually search the correct location
+  std::string full_path = locations[0].root + path_;
+
+  infos = getFileType(full_path);
+
+  if (!infos.exists)
+  {
+    response_ = new StaticResponse(fd_, 404);
+  } else if (!infos.readable || infos.types == OTHER)
+  {
+    response_ = new StaticResponse(fd_, 403);
+  } else
+  {
+    int fd = open(full_path.c_str(), O_RDONLY);
+    if (fd == -1)
+    {
+      response_ = new StaticResponse(fd_, 500);
+    } else
+    {
+      // TODO: Here we should use the upcoming FileResponse class
+      response_ = new StaticResponse(fd_, 200);
+    }
+  }
+  status_ = SENDING_RESPONSE;
 }
 
 bool Request::closingConnection() const

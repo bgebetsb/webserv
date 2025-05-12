@@ -4,10 +4,12 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include "epoll/EpollAction.hpp"
+#include "exceptions/ConError.hpp"
 #include "requests/RequestStatus.hpp"
 
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
@@ -31,7 +33,7 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
   ep_event_->data.ptr = this;
-  requests_.push_back(Request(fd_));
+  requests_.push_back(Request(fd_, servers));
 }
 
 Connection::~Connection()
@@ -57,7 +59,7 @@ EpollAction Connection::handleRead()
 {
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
 
-  ssize_t ret = recv(fd_, readbuf_, 1024, 0);
+  ssize_t ret = recv(fd_, readbuf_, CHUNK_SIZE, 0);
   if (ret == -1)
   {
     throw std::runtime_error("Recv failed");
@@ -84,7 +86,7 @@ EpollAction Connection::handleRead()
     if (requests_.back().getStatus() == SENDING_RESPONSE ||
         requests_.back().getStatus() == COMPLETED)
     {
-      requests_.push_back(Request(fd_));
+      requests_.push_back(Request(fd_, servers_));
     }
 
     pos = buffer_.find('\n');

@@ -2,9 +2,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdexcept>
 #include <string>
 #include "PathInfos.hpp"
+#include "exceptions/ConError.hpp"
 
 static bool fileReadable(const std::string& filename);
 
@@ -20,9 +20,10 @@ PathInfos getFileType(const std::string& filename)
       infos.exists = false;
       infos.types = OTHER;
       infos.readable = false;
+      infos.size = -1;
       return (infos);
     }
-    throw std::runtime_error("Stat failed");
+    throw ConErr("Stat failed");
   }
 
   infos.exists = true;
@@ -39,6 +40,7 @@ PathInfos getFileType(const std::string& filename)
   }
 
   infos.readable = fileReadable(filename);
+  infos.size = statbuf.st_size;
   return (infos);
 }
 
