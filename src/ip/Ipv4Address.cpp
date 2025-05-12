@@ -18,19 +18,13 @@
 std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
 {
   u_int8_t octets[4];
-  if (Utils::isBigEndian())
-  {
-    octets[0] = (addr.getIp() >> 24) & 0xFF;
-    octets[1] = (addr.getIp() >> 16) & 0xFF;
-    octets[2] = (addr.getIp() >> 8) & 0xFF;
-    octets[3] = addr.getIp() & 0xFF;
-  } else
-  {
-    octets[0] = addr.getIp() & 0xFF;
-    octets[1] = (addr.getIp() >> 8) & 0xFF;
-    octets[2] = (addr.getIp() >> 16) & 0xFF;
-    octets[3] = (addr.getIp() >> 24) & 0xFF;
-  }
+  std::cout << "addr: " << addr.getIp() << std::endl;
+  u_int32_t ip = ntohl(addr.getIp());
+  std::cout << "ip: " << ip << std::endl;
+  octets[0] = (ip >> 24) & 0xFF;
+  octets[1] = (ip >> 16) & 0xFF;
+  octets[2] = (ip >> 8) & 0xFF;
+  octets[3] = ip & 0xFF;
   os << static_cast< int >(octets[0]) << "." << static_cast< int >(octets[1])
      << "." << static_cast< int >(octets[2]) << "."
      << static_cast< int >(octets[3]) << ":" << ntohs(addr.getPort());
@@ -104,7 +98,7 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
   if (port_ == 0)
     throw Fatal("Invalid Ipv4 Address format: port cannot be 0");
   port_ = htons(port_);
-  ip_ = Utils::ipv4ToBigEndian(ar);
+  ip_ = htonl(Utils::ipv4ToBigEndian(ar));
   type_ = IPv4;
   IpAddress::address_ = address;
 }
