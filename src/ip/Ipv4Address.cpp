@@ -110,7 +110,6 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
   ip_ = Utils::ipv4ToBigEndian(ar);
   type_ = IPv4;
   IpAddress::address_ = address;
-  std::cout << *this << std::endl;
 }
 
 Ipv4Address::~Ipv4Address() {}
