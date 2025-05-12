@@ -1,12 +1,13 @@
 #include "Server.hpp"
+#include "Configs/Configs.hpp"
 
 Server::Server() {}
 
-Server::Server(const Server& other) : server_name_(other.server_name_) {}
+Server::Server(const Server& other) : config_(other.config_) {}
 
 Server::~Server() {}
 
-bool Server::operator<(const Server& other) const
+const serv_config& Server::getServerConfigs(void) const
 {
-  return server_name_ < other.server_name_;
+  return config_;
 }

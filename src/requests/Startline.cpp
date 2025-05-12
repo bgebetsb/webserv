@@ -1,5 +1,6 @@
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
+#include "exceptions/ConError.hpp"
 
 void Request::readStartLine(const std::string& line)
 {
@@ -18,7 +19,7 @@ void Request::parseMethod(std::istringstream& stream)
 
   if (!(stream >> method))
   {
-    throw std::runtime_error("Unable to parse method");
+    throw ConErr("Unable to parse method");
   }
 
   if (method == "GET")
@@ -42,7 +43,7 @@ void Request::parsePath(std::istringstream& stream)
 
   if (!(stream >> path))
   {
-    throw std::runtime_error("Unable to parse path");
+    throw ConErr("Unable to parse path");
   }
 
   path_ = preventEscaping(path);
@@ -54,11 +55,11 @@ void Request::parseHTTPVersion(std::istringstream& stream)
 
   if (!(stream >> version))
   {
-    throw std::runtime_error("Unable to parse HTTP version");
+    throw ConErr("Unable to parse HTTP version");
   }
 
   if (version != "HTTP/1.1")
   {
-    throw std::runtime_error("Invalid HTTP version");
+    throw ConErr("Invalid HTTP version");
   }
 }

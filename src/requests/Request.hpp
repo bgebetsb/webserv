@@ -3,13 +3,18 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <vector>
+#include "../Server.hpp"
+#include "../responses/Response.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
-#include "Response.hpp"
 
-class Request {
+typedef std::map< std::string, std::string > mHeader;
+
+class Request
+{
  public:
-  Request(const int fd);
+  Request(const int fd, const std::vector< Server >& servers);
   Request(const Request& other);
   ~Request();
 
@@ -26,13 +31,15 @@ class Request {
   RequestStatus status_;
   RequestMethod method_;
   std::string path_;
-  std::map< std::string, std::string > headers_;
-  Response response_;
+  mHeader headers_;
   bool closing_;
+  const std::vector< Server >& servers_;
+  Response* response_;
 
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
   void parsePath(std::istringstream& stream);
   void parseHTTPVersion(std::istringstream& stream);
   void parseHeaderLine(const std::string& line);
+  void processHeaders(void);
 };
