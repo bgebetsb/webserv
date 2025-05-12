@@ -1,6 +1,5 @@
 #include <sys/types.h>
 
-#include <iostream>
 namespace Utils
 {
   bool isBigEndian()
