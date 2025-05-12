@@ -2,6 +2,7 @@
 
 #include "IpAddress.hpp"
 
-struct IpComparison {
+struct IpComparison
+{
   bool operator()(const IpAddress* lhs, const IpAddress* rhs) const;
 };

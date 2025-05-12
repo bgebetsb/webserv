@@ -1,8 +1,7 @@
 #pragma once
 #include <sys/types.h>
-#include "IpAddress.hpp"
-
 #include <string>
+#include "IpAddress.hpp"
 
 struct PosDoubleColon;
 
@@ -20,10 +19,10 @@ class Ipv6Address : public IpAddress
   bool operator<(const IpAddress& other) const;
   bool operator==(const IpAddress& other) const;
 
-  // ── ◼︎ member functions ───────────────────────
+  // ── ◼︎ member functions ─────────────────────────
   int createSocket() const;
 
-  // ── ◼︎ getters ────────────────────────────────
+  // ── ◼︎ getters ──────────────────────────────────
   const u_int16_t* getIp() const;
   u_int16_t getPort() const;
 
