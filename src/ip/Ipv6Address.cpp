@@ -75,7 +75,7 @@ bool Ipv6Address::operator==(const IpAddress& other) const
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv6Address::Ipv6Address(u_int16_t port)
+Ipv6Address::Ipv6Address(u_int16_t port) : IpAddress("", IPv6)
 {
   if (port == 0)
     throw std::runtime_error("Invalid Ipv6 Address format");
@@ -113,8 +113,9 @@ PosDoubleColon Ipv6Address::checkDoubleColonPosition(const std::string& ip)
     {
       std::string before = ip.substr(0, posdoublecolon);
       std::string after = ip.substr(posdoublecolon + 2);
-      pos.blocks_before = Utils::countSubstr(before, ":") + 1;
-      pos.blocks_after = Utils::countSubstr(after, ":") + 1;
+      pos.blocks_before =
+          before.empty() ? 0 : Utils::countSubstr(before, ":") + 1;
+      pos.blocks_after = after.empty() ? 0 : Utils::countSubstr(after, ":") + 1;
       if (pos.blocks_before == 0)
         pos.type = POS_BEFORE;
       else if (pos.blocks_after == 0)
@@ -131,36 +132,33 @@ PosDoubleColon Ipv6Address::checkDoubleColonPosition(const std::string& ip)
   return pos;
 }
 
-void Ipv6Address::readBigEndianIpv6(const std::string& ip)
+void Ipv6Address::readBigEndianIpv6(const std::string& ip_string)
 {
-  std::cout << "readBigEndianIpv6: " << ip << std::endl;
-  std::stringstream ss(ip);
+  // TODO: std::cout << "readBigEndianIpv6: " << ip_string << std::endl;
+  std::stringstream ss(ip_string);
   std::string item;
-  PosDoubleColon DCPos = checkDoubleColonPosition(ip);
+  PosDoubleColon DCPos = checkDoubleColonPosition(ip_string);
   int i = 0;
   while (std::getline(ss, item, ':'))
   {
-    std::cout << "item: " << item << std::endl;
+    // TODO: std::cout << "item: " << item << std::endl;
     if (i > 7 || item.length() > 4)
       throw std::runtime_error("Invalid Ipv6 Address format");
     std::stringstream hex(item);
     if (item.length() == 0)
-    {
-      ++i;
       continue;
-    }
     hex >> std::hex >> ip_[i];
     if (hex.fail())
       throw std::runtime_error("Invalid Ipv6 Address format");
     ip_[i] = htons(ip_[i]);
     ++i;
   }
-  int missing = 8 - (i + 1);
-  if (missing && DCPos.type != POS_NONE)
+  if (DCPos.type != POS_NONE)
   {
     if (DCPos.type == POS_BEFORE)
     {
-      std::memmove(ip_ + missing, ip_, (8 - missing) * sizeof(u_int16_t));
+      std::memmove(ip_ + DCPos.blocks_before, ip_,
+                   DCPos.blocks_to_fill * sizeof(u_int16_t));
       std::memset(ip_, 0, DCPos.blocks_to_fill * sizeof(u_int16_t));
     } else if (DCPos.type == POS_AFTER)
       std::memset(ip_ + DCPos.blocks_before, 0,
@@ -174,15 +172,17 @@ void Ipv6Address::readBigEndianIpv6(const std::string& ip)
       std::memset(ip_ + DCPos.blocks_before, 0,
                   DCPos.blocks_to_fill * sizeof(u_int16_t));
     }
-  } else if (missing)
+  } else if (i != 8)
   {
     throw std::runtime_error("Invalid Ipv6 Address format");
   }
 }
 
-Ipv6Address::Ipv6Address(const std::string& address)
+Ipv6Address::Ipv6Address(const std::string& address) : IpAddress(address, IPv6)
 {
-  if (address.find_first_not_of("0123456789abcdef:[]") != std::string::npos ||
+  std::memset(ip_, 0, sizeof(uint16_t) * 8);
+  if (address.empty() ||
+      address.find_first_not_of("0123456789abcdef:[]") != std::string::npos ||
       address[0] != '[')
     throw std::runtime_error("Invalid Ipv6 Address format");
   std::string::size_type pos = address.find(']');
@@ -190,10 +190,12 @@ Ipv6Address::Ipv6Address(const std::string& address)
     throw std::runtime_error("Invalid Ipv6 Address format");
   std::string ip = address.substr(1, pos - 1);
   std::string port = address.substr(pos + 1);
-  if (port[0] != ':')
+  if (port[0] != ':' || ip.empty())
     throw std::runtime_error("Invalid Ipv6 Address format");
   port_ = Utils::strtouint16(port.substr(1));
   port_ = Utils::u16ToBigEndian(port_);
+  if (port_ == 0)
+    throw std::runtime_error("Invalid Ipv6 Address format");
   readBigEndianIpv6(ip);
   std::cout << *this << std::endl;
 }
@@ -244,75 +246,4 @@ const u_int16_t* Ipv6Address::getIp() const
 u_int16_t Ipv6Address::getPort() const
 {
   return port_;
-}
-
-#include <iostream>
-#include <stdexcept>
-#include <vector>
-#include "Ipv6Address.hpp"
-
-int main()
-{
-  try
-  {
-    std::cout << "=== Gültige Adressen ===" << std::endl;
-
-    Ipv6Address addr1("[2001:0db8::1]:8080");
-    Ipv6Address addr2("[2001:0db8::1]:8080");
-    Ipv6Address addr3("[2001:0db8:0000:0000:0000:0000:0000:0002]:8080");
-    Ipv6Address addr4("[::1]:80");
-    Ipv6Address addr5("[::]:443");
-    Ipv6Address addr6(12345);  // default-IP (::) mit nur Port
-
-    std::cout << "addr1: " << addr1 << std::endl;
-    std::cout << "addr2: " << addr2 << std::endl;
-    std::cout << "addr3: " << addr3 << std::endl;
-    std::cout << "addr4: " << addr4 << std::endl;
-    std::cout << "addr5: " << addr5 << std::endl;
-    std::cout << "addr6: " << addr6 << std::endl;
-
-    std::cout << "\n=== Vergleiche ===" << std::endl;
-
-    std::cout << "addr1 == addr2: " << (addr1 == addr2 ? "true" : "false")
-              << std::endl;
-    std::cout << "addr1 == addr3: " << (addr1 == addr3 ? "true" : "false")
-              << std::endl;
-    std::cout << "addr1 < addr3 : " << (addr1 < addr3 ? "true" : "false")
-              << std::endl;
-    std::cout << "addr3 < addr1 : " << (addr3 < addr1 ? "true" : "false")
-              << std::endl;
-
-    std::cout << "\n=== Ungültige Adressen ===" << std::endl;
-
-    std::vector< std::string > invalid_inputs;
-    invalid_inputs.push_back("2001::1:8080");        // fehlt [ ]
-    invalid_inputs.push_back("[2001::1]8080");       // fehlt :
-    invalid_inputs.push_back("[2001::1]:");          // kein Port
-    invalid_inputs.push_back("[2001::1]:0");         // Port = 0
-    invalid_inputs.push_back("[2001::1::abcd]:80");  // doppeltes ::
-    invalid_inputs.push_back("[2001:zzz::1]:80");    // ungültiges Hex
-
-    for (size_t i = 0; i < invalid_inputs.size(); ++i)
-    {
-      try
-      {
-        Ipv6Address failtest(invalid_inputs[i]);
-        std::cerr
-            << "❌ Fehler: Eingabe akzeptiert, sollte aber ungültig sein: "
-            << invalid_inputs[i] << std::endl;
-      } catch (const std::exception& e)
-      {
-        std::cout << "✅ Ausnahme korrekt geworfen für '" << invalid_inputs[i]
-                  << "': " << e.what() << std::endl;
-      }
-    }
-
-  } catch (const std::exception& ex)
-  {
-    std::cerr << "❌ Unerwarteter Fehler: " << ex.what() << std::endl;
-    return 1;
-  }
-
-  std::cout << "\n✅ Alle Tests abgeschlossen.\n";
-  return 0;
 }
