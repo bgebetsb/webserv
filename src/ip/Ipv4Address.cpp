@@ -18,9 +18,7 @@
 std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
 {
   u_int8_t octets[4];
-  std::cout << "addr: " << addr.getIp() << std::endl;
   u_int32_t ip = ntohl(addr.getIp());
-  std::cout << "ip: " << ip << std::endl;
   octets[0] = (ip >> 24) & 0xFF;
   octets[1] = (ip >> 16) & 0xFF;
   octets[2] = (ip >> 8) & 0xFF;
