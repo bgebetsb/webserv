@@ -12,6 +12,7 @@ class Response
   void setCloseConnectionHeader(void);
   virtual void sendResponse(void) = 0;
   bool isComplete(void) const;
+  bool getClosing() const;
 
  protected:
   std::string full_response_;

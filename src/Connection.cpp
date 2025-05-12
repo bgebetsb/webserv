@@ -4,16 +4,16 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "requests/RequestStatus.hpp"
+#include "utils/Utils.hpp"
 
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
-    : servers_(servers), polling_write_(false)
+    : servers_(servers), polling_write_(false), keepalive_last_ping_(0)
 {
   struct sockaddr_in peer_addr;
   socklen_t peer_addr_size = sizeof(peer_addr);
@@ -22,12 +22,13 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
   if (fd_ == -1)
   {
-    throw std::runtime_error("Unable to accept client connection");
+    throw ConErr("Unable to accept client connection");
   }
 
   if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
   {
-    throw std::runtime_error("Unable to set fd to non-blocking");
+    close(fd_);
+    throw ConErr("Unable to set fd to non-blocking");
   }
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
@@ -59,6 +60,7 @@ EpollAction Connection::handleRead()
 {
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
 
+  keepalive_last_ping_ = 0;
   ssize_t ret = recv(fd_, readbuf_, CHUNK_SIZE, 0);
   if (ret == -1)
   {
@@ -94,7 +96,7 @@ EpollAction Connection::handleRead()
 
   if (!polling_write_ && requests_.front().getStatus() == SENDING_RESPONSE)
   {
-    ep_event_->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
+    ep_event_->events = EPOLLOUT | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     action.event = ep_event_;
     polling_write_ = true;
@@ -124,6 +126,28 @@ EpollAction Connection::handleWrite()
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     polling_write_ = false;
+    keepalive_last_ping_ = Utils::getCurrentTime();
+  }
+
+  return action;
+}
+
+EpollAction Connection::ping() const
+{
+  EpollAction action;
+  size_t current_time;
+
+  action.event = getEvent();
+  action.fd = fd_;
+
+  current_time = Utils::getCurrentTime();
+  // TODO: Use the value from the config rather than hard-coding 30 seconds
+  if (keepalive_last_ping_ > 0 && current_time >= keepalive_last_ping_ + 30)
+  {
+    action.op = EPOLL_ACTION_DEL;
+  } else
+  {
+    action.op = EPOLL_ACTION_UNCHANGED;
   }
 
   return action;

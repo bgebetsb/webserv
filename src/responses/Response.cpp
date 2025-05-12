@@ -63,6 +63,11 @@ std::string Response::createResponseHeaderLine(void) const
   return stream.str();
 }
 
+bool Response::getClosing() const
+{
+  return close_connection_;
+}
+
 // Response::Response() : client_fd_(-1), file_fd_(-1), mode_(UNINITIALIZED) {}
 //
 // Response::Response(int client_fd, const std::string& filename)

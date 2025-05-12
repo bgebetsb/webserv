@@ -3,7 +3,7 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 
 NAME := webserv
 
-UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp
+UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
 
 SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp requests/Startline.cpp \
 			 responses/Response.cpp responses/FileResponse.cpp responses/StaticResponse.cpp \

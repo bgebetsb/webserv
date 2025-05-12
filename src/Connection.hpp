@@ -16,6 +16,7 @@ class Connection : public EpollFd
   Connection(int socket_fd, const std::vector< Server >& servers);
   ~Connection();
   EpollAction epollCallback(int event);
+  EpollAction ping() const;
 
  private:
   const std::vector< Server >& servers_;
@@ -23,6 +24,7 @@ class Connection : public EpollFd
   std::string buffer_;
   bool polling_write_;
   std::deque< Request > requests_;
+  size_t keepalive_last_ping_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);

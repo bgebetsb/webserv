@@ -8,6 +8,7 @@
 #include <csignal>
 #include <iostream>
 #include <stdexcept>
+#include "Connection.hpp"
 #include "Listener.hpp"
 #include "Server.hpp"
 #include "Webserv.hpp"
@@ -98,6 +99,7 @@ void Webserv::deleteFd(int fd)
   {
     throw std::runtime_error("Unable to remove fd from epoll");
   }
+  close(fd);
 
   delete fds_[fd];
   fds_.erase(fd);
@@ -122,7 +124,7 @@ void Webserv::mainLoop()
 
   while (true)
   {
-    int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+    int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, 1000);
 
     if (g_signal || count == -1)
     {
@@ -155,7 +157,45 @@ void Webserv::mainLoop()
         default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
       }
     }
+
+    pingAllClients();
   }
 
   delete[] events;
+}
+
+/*
+ * The reason why this is pushing onto a vector and then deleting it in a
+ * separate function is that deleting here immediately would fuck up the
+ * iterator when deleting the fd from the map.
+ */
+void Webserv::pingAllClients()
+{
+  EpollMap::iterator it;
+  std::vector< int > close_fds;
+
+  for (it = fds_.begin(); it != fds_.end(); ++it)
+  {
+    Connection* c = dynamic_cast< Connection* >(it->second);
+    if (c)
+    {
+      EpollAction action = c->ping();
+      if (action.op == EPOLL_ACTION_DEL)
+      {
+        close_fds.push_back(action.fd);
+      }
+    }
+  }
+
+  closeClientConnections(close_fds);
+}
+
+void Webserv::closeClientConnections(const std::vector< int >& fds)
+{
+  std::vector< int >::const_iterator it;
+
+  for (it = fds.begin(); it != fds.end(); ++it)
+  {
+    deleteFd(*it);
+  }
 }
