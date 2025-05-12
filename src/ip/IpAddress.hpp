@@ -16,6 +16,9 @@ enum IpTypes
 class IpAddress
 {
  public:
+  IpAddress(const std::string& address, IpTypes type)
+      : address_(address), type_(type)
+  {}
   virtual ~IpAddress();
   virtual int createSocket() const = 0;
 
