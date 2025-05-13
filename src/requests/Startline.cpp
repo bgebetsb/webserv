@@ -1,6 +1,8 @@
+#include "../responses/StaticResponse.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
 #include "exceptions/ConError.hpp"
+#include "requests/RequestStatus.hpp"
 
 void Request::readStartLine(const std::string& line)
 {
@@ -10,7 +12,10 @@ void Request::readStartLine(const std::string& line)
   parsePath(stream);
   parseHTTPVersion(stream);
 
-  status_ = READING_HEADERS;
+  if (status_ == READING_START_LINE)
+  {
+    status_ = READING_HEADERS;
+  }
 }
 
 void Request::parseMethod(std::istringstream& stream)
@@ -58,8 +63,16 @@ void Request::parseHTTPVersion(std::istringstream& stream)
     throw ConErr("Unable to parse HTTP version");
   }
 
+  if (version.length() != 8 || version.substr(0, 5) != "HTTP/" ||
+      version[6] != '.' || !std::isdigit(version[5]) ||
+      !std::isdigit(version[7]))
+  {
+    throw ConErr("Malformed HTTP version");
+  }
+
   if (version != "HTTP/1.1")
   {
-    throw ConErr("Invalid HTTP version");
+    response_ = new StaticResponse(fd_, 505);
+    status_ = SENDING_RESPONSE;
   }
 }
