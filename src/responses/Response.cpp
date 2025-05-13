@@ -41,6 +41,10 @@ Response::Response(int client_fd, int response_code)
     case 500:
       response_title_ = "Internal Server Error";
       break;
+    case 505:
+      response_title_ = "HTTP Version Not Supported";
+      close_connection_ = true;
+      break;
     // TODO: If I add new error here, also add them to Configs.hpp
     default:
       response_title_ = "Not implemented";
