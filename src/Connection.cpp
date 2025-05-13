@@ -4,7 +4,6 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <stdexcept>
 #include <string>
 #include <vector>
 #include "epoll/EpollAction.hpp"
@@ -13,7 +12,10 @@
 #include "utils/Utils.hpp"
 
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
-    : servers_(servers), polling_write_(false), keepalive_last_ping_(0)
+    : servers_(servers),
+      polling_write_(false),
+      request_timeout_ping_(Utils::getCurrentTime()),
+      keepalive_last_ping_(0)
 {
   struct sockaddr_in peer_addr;
   socklen_t peer_addr_size = sizeof(peer_addr);
@@ -58,15 +60,21 @@ EpollAction Connection::epollCallback(int event)
 
 EpollAction Connection::handleRead()
 {
-  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
-
   keepalive_last_ping_ = 0;
   ssize_t ret = recv(fd_, readbuf_, CHUNK_SIZE, 0);
   if (ret == -1)
   {
-    throw std::runtime_error("Recv failed");
+    throw ConErr("Recv failed");
   }
   buffer_.append(readbuf_, ret);
+
+  return processBuffer();
+}
+
+EpollAction Connection::processBuffer()
+{
+  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
+
   size_t pos = buffer_.find('\n');
   while (pos != std::string::npos)
   {
@@ -88,6 +96,7 @@ EpollAction Connection::handleRead()
     if (requests_.back().getStatus() == SENDING_RESPONSE ||
         requests_.back().getStatus() == COMPLETED)
     {
+      request_timeout_ping_ = 0;
       requests_.push_back(Request(fd_, servers_));
     }
 
@@ -126,13 +135,21 @@ EpollAction Connection::handleWrite()
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     polling_write_ = false;
-    keepalive_last_ping_ = Utils::getCurrentTime();
+    if (requests_.front().getStatus() == READING_START_LINE)
+    {
+      keepalive_last_ping_ = Utils::getCurrentTime();
+      request_timeout_ping_ = 0;
+    } else if (requests_.front().getStatus() == READING_HEADERS)
+    {
+      keepalive_last_ping_ = 0;
+      request_timeout_ping_ = Utils::getCurrentTime();
+    }
   }
 
   return action;
 }
 
-EpollAction Connection::ping() const
+EpollAction Connection::ping()
 {
   EpollAction action;
   size_t current_time;
@@ -142,9 +159,16 @@ EpollAction Connection::ping() const
 
   current_time = Utils::getCurrentTime();
   // TODO: Use the value from the config rather than hard-coding 30 seconds
-  if (keepalive_last_ping_ > 0 && current_time >= keepalive_last_ping_ + 30)
+  if ((keepalive_last_ping_ > 0 && current_time >= keepalive_last_ping_ + 30))
   {
     action.op = EPOLL_ACTION_DEL;
+  } else if (request_timeout_ping_ > 0 &&
+             current_time >= request_timeout_ping_ + 30)
+  {
+    requests_.front().timeout();
+    action.event->events = EPOLLOUT | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    request_timeout_ping_ = 0;
   } else
   {
     action.op = EPOLL_ACTION_UNCHANGED;

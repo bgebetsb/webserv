@@ -33,6 +33,7 @@ Response::Response(int client_fd, int response_code)
       break;
     case 408:
       response_title_ = "Request Timeout";
+      close_connection_ = true;
       break;
     case 500:
       response_title_ = "Internal Server Error";

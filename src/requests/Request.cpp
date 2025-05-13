@@ -181,3 +181,9 @@ bool Request::closingConnection() const
 {
   return closing_;
 }
+
+void Request::timeout()
+{
+  response_ = new StaticResponse(fd_, 408);
+  status_ = SENDING_RESPONSE;
+}

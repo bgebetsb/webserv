@@ -22,6 +22,7 @@ class Request
   void sendResponse();
   RequestStatus getStatus() const;
   bool closingConnection() const;
+  void timeout();
 
  private:
   // Unused

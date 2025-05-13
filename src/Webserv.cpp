@@ -180,9 +180,15 @@ void Webserv::pingAllClients()
     if (c)
     {
       EpollAction action = c->ping();
-      if (action.op == EPOLL_ACTION_DEL)
+      switch (action.op)
       {
-        close_fds.push_back(action.fd);
+        case EPOLL_ACTION_DEL:
+          close_fds.push_back(action.fd);
+          break;
+        case EPOLL_ACTION_MOD:
+          modifyFd(action.fd, action.event);
+          break;
+        default:;
       }
     }
   }
