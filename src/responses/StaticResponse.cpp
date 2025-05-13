@@ -2,8 +2,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sstream>
-#include "../exceptions/ConError.hpp"
-#include "Connection.hpp"
 #include "responses/Response.hpp"
 
 StaticResponse::StaticResponse(int client_fd, int response_code)
@@ -26,21 +24,3 @@ StaticResponse::StaticResponse(int client_fd, int response_code)
 }
 
 StaticResponse::~StaticResponse() {}
-
-void StaticResponse::sendResponse(void)
-{
-  const char* buf;
-  size_t amount;
-  ssize_t ret;
-
-  buf = full_response_.c_str();
-  amount = std::min(static_cast< size_t >(CHUNK_SIZE), full_response_.length());
-
-  ret = send(client_fd_, buf, amount, 0);
-  if (ret == -1)
-    throw ConErr("Send failed");
-
-  full_response_ = full_response_.substr(ret);
-  if (full_response_.empty())
-    complete_ = true;
-}

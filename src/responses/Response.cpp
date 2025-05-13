@@ -1,8 +1,11 @@
 #include "Response.hpp"
 #include <fcntl.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <ostream>
 #include <sstream>
+#include "../Connection.hpp"
+#include "exceptions/ConError.hpp"
 
 Response::Response(int client_fd, int response_code)
     : client_fd_(client_fd),
@@ -67,6 +70,24 @@ std::string Response::createResponseHeaderLine(void) const
 bool Response::getClosing() const
 {
   return close_connection_;
+}
+
+void Response::sendResponse()
+{
+  const char* buf;
+  size_t amount;
+  ssize_t ret;
+
+  buf = full_response_.c_str();
+  amount = std::min(static_cast< size_t >(CHUNK_SIZE), full_response_.length());
+
+  ret = send(client_fd_, buf, amount, 0);
+  if (ret == -1)
+    throw ConErr("Send failed");
+
+  full_response_ = full_response_.substr(ret);
+  if (full_response_.empty())
+    complete_ = true;
 }
 
 // Response::Response() : client_fd_(-1), file_fd_(-1), mode_(UNINITIALIZED) {}

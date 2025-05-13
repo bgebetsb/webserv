@@ -10,7 +10,7 @@ class Response
   virtual ~Response();
 
   void setCloseConnectionHeader(void);
-  virtual void sendResponse(void) = 0;
+  virtual void sendResponse(void);
   bool isComplete(void) const;
   bool getClosing() const;
 

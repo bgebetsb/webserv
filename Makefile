@@ -7,6 +7,7 @@ UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
 
 SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp requests/Startline.cpp \
 			 responses/Response.cpp responses/FileResponse.cpp responses/StaticResponse.cpp \
+			 responses/RedirectResponse.cpp \
 			 requests/PathValidation/PathValidation.cpp requests/PathValidation/PreventEscape.cpp \
 			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
 
