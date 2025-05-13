@@ -7,6 +7,7 @@
 #include <string>
 #include "../Server.hpp"
 #include "../exceptions/ConError.hpp"
+#include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
 #include "Configs/Configs.hpp"
@@ -151,6 +152,22 @@ void Request::processHeaders(void)
     status_ = SENDING_RESPONSE;
     return;
   }
+
+  MRedirects::const_iterator redirect = l_it->second.redirects.find(path_);
+  if (redirect != l_it->second.redirects.end())
+  {
+    response_ = new RedirectResponse(fd_, redirect->second);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
+  if (l_it->second.root.empty())
+  {
+    response_ = new StaticResponse(fd_, 404);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
   // TODO: Actually search the correct location
   std::string full_path = locations[0].root + path_;
 

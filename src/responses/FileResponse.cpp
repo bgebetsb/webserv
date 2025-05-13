@@ -3,7 +3,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sstream>
-#include <stdexcept>
 #include "Connection.hpp"
 #include "exceptions/ConError.hpp"
 
