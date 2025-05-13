@@ -10,7 +10,7 @@ typedef std::string string;
 
 typedef std::vector< string > host_vec;
 
-struct serv_config;
+// struct serv_config;
 class Server
 {
  public:
@@ -26,6 +26,6 @@ class Server
 
   Option< string > server_name_;
   // ── ◼︎ CONFIG ───────────────────────
-  serv_config config_;
+  // serv_config config_;
   int port_;
 };

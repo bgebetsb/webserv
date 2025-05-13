@@ -4,3 +4,5 @@ webserv
 .cache/
 vgcore.*
 a.out
+test
+Doxyfile

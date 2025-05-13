@@ -13,12 +13,14 @@ typedef std::vector< IpAddress* > IpVec;
 typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
 typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;
+
 class Webserv
 {
  public:
   Webserv(std::string config_file = "webserv.conf");
   ~Webserv();
 
+  void initialize_servas();
   void addServer(const IpVec& listeners, const Server& server);
   void mainLoop();
 
@@ -27,6 +29,7 @@ class Webserv
   EpollMap fds_;
   const int epoll_fd_;
   VServers servers_;
+  Configuration config_;
 
   // Copy constructor and copy assignment are unused anyway, thus private
   Webserv(const Server& other);
