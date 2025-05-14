@@ -19,3 +19,5 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
+  BeforeCatch: true
+  BeforeElse: true
