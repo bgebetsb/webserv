@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/epoll.h>
+#include <sys/types.h>
 #include <deque>
 #include <vector>
 #include "Server.hpp"
@@ -16,7 +17,7 @@ class Connection : public EpollFd
   Connection(int socket_fd, const std::vector< Server >& servers);
   ~Connection();
   EpollAction epollCallback(int event);
-  EpollAction ping();
+  std::pair< EpollAction, u_int64_t > ping();
 
  private:
   const std::vector< Server >& servers_;

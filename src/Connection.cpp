@@ -3,11 +3,14 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <cerrno>
 #include <string>
 #include <vector>
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
+#include "exceptions/FdLimitReached.hpp"
 #include "requests/RequestStatus.hpp"
 #include "utils/Utils.hpp"
 
@@ -23,7 +26,12 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   readbuf_ = new char[CHUNK_SIZE];
   fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
   if (fd_ == -1)
-    throw ConErr("Unable to accept client connection");
+  {
+    if (errno == EMFILE || errno == ENFILE)
+      throw FdLimitReached("Unable to accept client connection");
+    else
+      throw ConErr("Unable to accept client connection");
+  }
 
   if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
     throw ConErr("Unable to set fd to non-blocking");
@@ -148,22 +156,18 @@ EpollAction Connection::handleWrite()
   return action;
 }
 
-EpollAction Connection::ping()
+std::pair< EpollAction, u_int64_t > Connection::ping()
 {
   EpollAction action;
-  size_t current_time;
+  u_int64_t current_time;
+  u_int64_t time_diff = 0;
 
   action.event = getEvent();
   action.fd = fd_;
 
   current_time = Utils::getCurrentTime();
-  // TODO: Use the value from the config rather than hard-coding 30 seconds
-  if ((keepalive_last_ping_ > 0 && current_time >= keepalive_last_ping_ + 30))
-  {
-    action.op = EPOLL_ACTION_DEL;
-  }
-  else if (request_timeout_ping_ > 0 &&
-           current_time >= request_timeout_ping_ + 30)
+  if (request_timeout_ping_ > 0 &&
+      current_time >= request_timeout_ping_ + 30000)
   {
     requests_.front().timeout();
     action.event->events = EPOLLOUT | EPOLLRDHUP;
@@ -173,7 +177,9 @@ EpollAction Connection::ping()
   else
   {
     action.op = EPOLL_ACTION_UNCHANGED;
+    if (keepalive_last_ping_ > 0)
+      time_diff = current_time - keepalive_last_ping_;
   }
 
-  return action;
+  return std::make_pair(action, time_diff);
 }
