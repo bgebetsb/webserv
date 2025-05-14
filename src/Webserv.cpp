@@ -6,14 +6,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <csignal>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 #include "Connection.hpp"
 #include "Listener.hpp"
 #include "Server.hpp"
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
+#include "exceptions/FdLimitReached.hpp"
 #include "ip/IpAddress.hpp"
 
 #define MAX_EVENTS 1024
@@ -100,7 +103,6 @@ void Webserv::deleteFd(int fd)
   {
     throw std::runtime_error("Unable to remove fd from epoll");
   }
-  close(fd);
 
   delete fds_[fd];
   fds_.erase(fd);
@@ -133,6 +135,8 @@ void Webserv::mainLoop()
       break;
     }
 
+    size_t needed_fds = 0;
+
     for (int j = 0; j < count; ++j)
     {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
@@ -142,67 +146,90 @@ void Webserv::mainLoop()
         continue;
       }
 
-      EpollAction action = fd->epollCallback(events[j].events);
-
-      switch (action.op)
+      try
       {
-        case EPOLL_ACTION_ADD:
-          addFd(action.fd, action.event);
-          break;
-        case EPOLL_ACTION_MOD:
-          modifyFd(action.fd, action.event);
-          break;
-        case EPOLL_ACTION_DEL:
-          deleteFd(action.fd);
-          break;
-        default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
+        EpollAction action = fd->epollCallback(events[j].events);
+
+        switch (action.op)
+        {
+          case EPOLL_ACTION_ADD:
+            addFd(action.fd, action.event);
+            break;
+          case EPOLL_ACTION_MOD:
+            modifyFd(action.fd, action.event);
+            break;
+          case EPOLL_ACTION_DEL:
+            deleteFd(action.fd);
+            break;
+          default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
+        }
+      }
+      catch (FdLimitReached& e)
+      {
+        std::cerr << e.what() << "\n";
+        needed_fds++;
       }
     }
 
-    pingAllClients();
+    pingAllClients(needed_fds);
   }
 
   delete[] events;
 }
 
 /*
- * The reason why this is pushing onto a vector and then deleting it in a
- * separate function is that deleting here immediately would fuck up the
- * iterator when deleting the fd from the map.
+ * Sends a ping to every connected client, sets responses to timeout messages if
+ * needed (if it takes too long to send the headers). If a client is currently
+ * in keep-alive state, it will be pushed onto a multimap, and it will be closed
+ * if a) it is in keep-alive state for too long, or b) the server needs more fds
+ * (it will close the fds who are in keepalive state the longest first).
  */
-void Webserv::pingAllClients()
+void Webserv::pingAllClients(size_t needed_fds)
 {
   EpollMap::iterator it;
-  std::vector< int > close_fds;
+  MMKeepAlive keepalive_fds;
 
   for (it = fds_.begin(); it != fds_.end(); ++it)
   {
     Connection* c = dynamic_cast< Connection* >(it->second);
     if (c)
     {
-      EpollAction action = c->ping();
-      switch (action.op)
+      std::pair< EpollAction, u_int64_t > action_time = c->ping();
+      if (action_time.first.op == EPOLL_ACTION_MOD)
       {
-        case EPOLL_ACTION_DEL:
-          close_fds.push_back(action.fd);
-          break;
-        case EPOLL_ACTION_MOD:
-          modifyFd(action.fd, action.event);
-          break;
-        default:;
+        modifyFd(action_time.first.fd, action_time.first.event);
+        continue;
+      }
+
+      if (action_time.second > 0)
+      {
+        keepalive_fds.insert(
+            MMKeepAlive::value_type(action_time.second, action_time.first.fd));
       }
     }
   }
 
-  closeClientConnections(close_fds);
+  closeClientConnections(keepalive_fds, needed_fds);
 }
 
-void Webserv::closeClientConnections(const std::vector< int >& fds)
+void Webserv::closeClientConnections(const MMKeepAlive& keepalive_fds,
+                                     size_t needed_fds)
 {
-  std::vector< int >::const_iterator it;
+  MMKeepAlive::const_iterator it = keepalive_fds.begin();
+  size_t total_closed = 0;
+  // TODO: set this to the number from the config
+  size_t time_limit = 30000;
 
-  for (it = fds.begin(); it != fds.end(); ++it)
+  while (it != keepalive_fds.end() &&
+         (it->first > time_limit || total_closed < needed_fds))
   {
-    deleteFd(*it);
+    std::cerr << "Closing fd " << it->second;
+    if (it->first > time_limit)
+      std::cerr << "(Keepalive timeout reached)\n";
+    else
+      std::cerr << "(Keepalive state and more fds needed)\n";
+    deleteFd(it->second);
+    total_closed++;
+    ++it;
   }
 }
