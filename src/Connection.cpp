@@ -23,15 +23,10 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   readbuf_ = new char[CHUNK_SIZE];
   fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
   if (fd_ == -1)
-  {
     throw ConErr("Unable to accept client connection");
-  }
 
   if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
-  {
-    close(fd_);
     throw ConErr("Unable to set fd to non-blocking");
-  }
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
@@ -64,9 +59,9 @@ EpollAction Connection::handleRead()
   keepalive_last_ping_ = 0;
   ssize_t ret = recv(fd_, readbuf_, CHUNK_SIZE, 0);
   if (ret == -1)
-  {
     throw ConErr("Recv failed");
-  }
+  else if (ret == 0)
+    throw ConErr("Peer closed connection");
   buffer_.append(readbuf_, ret);
 
   return processBuffer();

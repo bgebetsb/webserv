@@ -184,7 +184,7 @@ void Request::processHeaders(void)
   }
   else
   {
-    int fd = open(full_path.c_str(), O_RDONLY);
+    int fd = open(full_path.c_str(), O_RDONLY | O_NOFOLLOW);
     if (fd == -1)
     {
       response_ = new StaticResponse(fd_, 500);
