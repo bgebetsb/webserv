@@ -15,6 +15,7 @@
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
+#include "responses/FileResponse.hpp"
 
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
@@ -191,8 +192,7 @@ void Request::processHeaders(void)
     }
     else
     {
-      // TODO: Here we should use the upcoming FileResponse class
-      response_ = new StaticResponse(fd_, 200);
+      response_ = new FileResponse(fd_, fd, infos.size);
     }
   }
   status_ = SENDING_RESPONSE;
