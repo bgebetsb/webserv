@@ -78,7 +78,10 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
     throw Fatal("Invalid Ipv4 Address format");
   std::string::size_type pos = address.find(':');
   if (pos == std::string::npos)
+  {
     throw Fatal("Invalid Ipv4 Address format");
+  }
+
   std::string ip = address.substr(0, pos);
   std::stringstream ss(ip);
   std::string token;

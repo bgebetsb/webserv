@@ -133,6 +133,7 @@ class Configuration
   void process_location_block(std::stringstream& item, serv_config& loc);
   void process_location_item(std::stringstream& item, location& loc);
   void addServer(const std::string& server_name, int port);
+  void printConfigurations() const;
 
   // ── ◼︎ Config file getters ─────────────────
   ServerVec getServerConfigs() const
@@ -180,6 +181,18 @@ class Configuration
     return false;
   }
 };
+
+// ── ◼︎ operator overloads ───────────────────────
+std::ostream& operator<<(std::ostream& os, const serv_config& config);
+std::ostream& operator<<(std::ostream& os, const location& loc);
+std::ostream& operator<<(std::ostream& os, const rediection& redirect);
+std::ostream& operator<<(std::ostream& os,
+                         const std::vector< string >& default_files);
+std::ostream& operator<<(std::ostream& os,
+                         const std::map< int, string >& error_pages);
+std::ostream& operator<<(std::ostream& os,
+                         const std::set< string >& server_names);
+std::ostream& operator<<(std::ostream& os, const IpSet& ips);
 
 #define YELLOW "\033[33m"
 #define RESET "\033[0m"

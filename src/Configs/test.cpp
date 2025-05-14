@@ -84,10 +84,23 @@ void test_server_name()
   std::cout << "=== TEST ENDE ===" << std::endl << std::endl;
 }
 
-int main()
+int main(int argc, char* argv[])
+
 {
-  test_error_page();
-  test_server_name();
+  (void)argc;
+  try
+  {
+    Configuration config(argv[1]);
+    config.printConfigurations();
+  } catch (const Fatal& e)
+  {
+    std::cerr << "Error: " << e.what() << std::endl;
+  } catch (const std::exception& e)
+  {
+    std::cerr << "Error: " << e.what() << std::endl;
+  }
+  // test_error_page();
+  // test_server_name();
   // test_ipv4Address(); // In ip directory are tests for ipv4
   // test_ipv6Address(); // In ip directory are tests for ipv6
   return 0;
