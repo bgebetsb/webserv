@@ -61,7 +61,8 @@ void Request::addHeaderLine(const std::string& line)
         // status_ = SENDING_RESPONSE;
         throw;
     }
-  } catch (ConErr& e)
+  }
+  catch (ConErr& e)
   {
     std::cerr << e.what() << "\n";
     response_ = new StaticResponse(fd_, 400);
@@ -176,16 +177,19 @@ void Request::processHeaders(void)
   if (!infos.exists)
   {
     response_ = new StaticResponse(fd_, 404);
-  } else if (!infos.readable || infos.types == OTHER)
+  }
+  else if (!infos.readable || infos.types == OTHER)
   {
     response_ = new StaticResponse(fd_, 403);
-  } else
+  }
+  else
   {
     int fd = open(full_path.c_str(), O_RDONLY);
     if (fd == -1)
     {
       response_ = new StaticResponse(fd_, 500);
-    } else
+    }
+    else
     {
       // TODO: Here we should use the upcoming FileResponse class
       response_ = new StaticResponse(fd_, 200);

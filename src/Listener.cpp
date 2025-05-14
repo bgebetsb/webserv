@@ -65,7 +65,8 @@ EpollAction Listener::acceptConnection()
     Connection* c = new Connection(fd_, servers_);
     EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
     return action;
-  } catch (ConErr& e)
+  }
+  catch (ConErr& e)
   {
     std::cerr << e.what() << "\n";
     EpollAction action = {getFd(), EPOLL_ACTION_UNCHANGED, getEvent()};

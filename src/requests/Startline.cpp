@@ -30,13 +30,16 @@ void Request::parseMethod(std::istringstream& stream)
   if (method == "GET")
   {
     method_ = GET;
-  } else if (method == "POST")
+  }
+  else if (method == "POST")
   {
     method_ = POST;
-  } else if (method == "DELETE")
+  }
+  else if (method == "DELETE")
   {
     method_ = DELETE;
-  } else
+  }
+  else
   {
     method_ = INVALID;
   }

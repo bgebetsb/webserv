@@ -49,7 +49,8 @@ EpollAction Connection::epollCallback(int event)
   if (event & EPOLLIN)
   {
     return handleRead();
-  } else if (event & EPOLLOUT)
+  }
+  else if (event & EPOLLOUT)
   {
     return handleWrite();
   }
@@ -87,7 +88,8 @@ EpollAction Connection::processBuffer()
     if (buffer_.size() > pos + 1)
     {
       buffer_ = std::string(buffer_, pos + 1);
-    } else
+    }
+    else
     {
       buffer_.clear();
     }
@@ -130,7 +132,8 @@ EpollAction Connection::handleWrite()
   if (closing)
   {
     action.op = EPOLL_ACTION_DEL;
-  } else if (requests_.front().getStatus() != SENDING_RESPONSE)
+  }
+  else if (requests_.front().getStatus() != SENDING_RESPONSE)
   {
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
@@ -139,7 +142,8 @@ EpollAction Connection::handleWrite()
     {
       keepalive_last_ping_ = Utils::getCurrentTime();
       request_timeout_ping_ = 0;
-    } else if (requests_.front().getStatus() == READING_HEADERS)
+    }
+    else if (requests_.front().getStatus() == READING_HEADERS)
     {
       keepalive_last_ping_ = 0;
       request_timeout_ping_ = Utils::getCurrentTime();
@@ -162,14 +166,16 @@ EpollAction Connection::ping()
   if ((keepalive_last_ping_ > 0 && current_time >= keepalive_last_ping_ + 30))
   {
     action.op = EPOLL_ACTION_DEL;
-  } else if (request_timeout_ping_ > 0 &&
-             current_time >= request_timeout_ping_ + 30)
+  }
+  else if (request_timeout_ping_ > 0 &&
+           current_time >= request_timeout_ping_ + 30)
   {
     requests_.front().timeout();
     action.event->events = EPOLLOUT | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     request_timeout_ping_ = 0;
-  } else
+  }
+  else
   {
     action.op = EPOLL_ACTION_UNCHANGED;
   }
