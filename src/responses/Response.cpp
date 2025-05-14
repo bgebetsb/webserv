@@ -87,7 +87,9 @@ void Response::sendResponse()
 
   ret = send(client_fd_, buf, amount, 0);
   if (ret == -1)
-    throw ConErr("Send failed");
+    throw ConErr("Peer closed connection");
+  else if (ret == 0)
+    throw ConErr("Send returned 0?!");
 
   full_response_ = full_response_.substr(ret);
   if (full_response_.empty())
