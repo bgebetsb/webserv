@@ -101,7 +101,8 @@ try
     }
 
     w.mainLoop();
-  } catch (std::exception& e)
+  }
+  catch (std::exception& e)
   {
     std::cerr << e.what() << "\n";
   }
@@ -114,5 +115,6 @@ try
       delete *it2;
     }
   }
-} catch (...)
+}
+catch (...)
 {}

@@ -16,10 +16,12 @@ std::string preventEscaping(const std::string& path)
     if (part.empty())
     {
       continue;
-    } else if (part != "..")
+    }
+    else if (part != "..")
     {
       parts.push_back(part);
-    } else if (!parts.empty())
+    }
+    else if (!parts.empty())
     {
       parts.pop_back();
     }

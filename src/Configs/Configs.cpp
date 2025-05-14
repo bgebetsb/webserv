@@ -53,7 +53,8 @@ void Configuration::process_server_block(const string& line)
     {
       std::stringstream ss(line.substr(0, pos));
       process_server_item(ss, config);
-    } else if (line[pos] == '{')
+    }
+    else if (line[pos] == '{')
     {}
   }
 }
@@ -115,8 +116,8 @@ int main()
   string::size_type pos = test.find_first_of(";{");
 
   if (pos != string::npos)
-  {
-  } else
+  {}
+  else
   {
     std::cout << "Not found" << std::endl;
   }

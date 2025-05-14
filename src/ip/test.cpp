@@ -40,7 +40,8 @@ void testIpv4Address()
       Ipv4Address invalid(invalid_ipv4[i]);
       std::cerr << "❌ Fehler: Ungültige Eingabe akzeptiert: "
                 << invalid_ipv4[i] << std::endl;
-    } catch (const std::exception& e)
+    }
+    catch (const std::exception& e)
     {
       std::cout << "✅ Ausnahme korrekt geworfen für '" << invalid_ipv4[i]
                 << "': " << e.what() << std::endl;
@@ -86,7 +87,8 @@ void testIpv6Address()
       Ipv6Address fail(invalid_ipv6[i]);
       std::cerr << "❌ Fehler: Ungültige Eingabe akzeptiert: "
                 << invalid_ipv6[i] << std::endl;
-    } catch (const std::exception& e)
+    }
+    catch (const std::exception& e)
     {
       std::cout << "✅ Ausnahme korrekt geworfen für '" << invalid_ipv6[i]
                 << "': " << e.what() << std::endl;
@@ -124,7 +126,8 @@ int main()
     testIpv6Address();
     std::cout << std::endl;
     testMixedComparisons();
-  } catch (const std::exception& e)
+  }
+  catch (const std::exception& e)
   {
     std::cerr << "❌ Fehler: " << e.what() << std::endl;
     return 1;

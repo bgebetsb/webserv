@@ -64,7 +64,8 @@ Listener& Webserv::getListener(IpAddress* addr)
   if (fd_it != listeners_.end())
   {
     listener = static_cast< Listener* >(fds_[fd_it->second]);
-  } else
+  }
+  else
   {
     listener = new Listener(addr);
     int fd = listener->getFd();
