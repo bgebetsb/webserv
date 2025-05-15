@@ -11,6 +11,9 @@
 #include "../Server.hpp"
 #include "../ip/IpAddress.hpp"
 
+#define CGI_TIMEOUT_MAX 300
+#define KEEP_ALIVE_TIMEOUT_MAX 60
+
 // ── ◼︎ errorcodes     ───────────────────────
 static const u_int16_t error_codes[] = {400, 403, 404, 405, 408, 500};
 static const char invalid_server_name_chars[] = {
@@ -80,6 +83,19 @@ struct rediection
 /// `____upload_dir` upload directory
 struct location
 {
+  location()
+      : http_methods_set(false),
+        GET(false),
+        POST(false),
+        DELETE(false),
+        DIR_LISTING(false, false),
+        max_body_size(0, false),
+        cgi_extensions(),
+        default_files(),
+        redirect(),
+        root(),
+        upload_dir()
+  {}
   bool http_methods_set;
   bool GET;                       // http methods
   bool POST;                      // http methods
@@ -103,12 +119,10 @@ struct location
 /// `_________locations` locations
 struct serv_config
 {
-  size_pair cgi_timeout;         // cgi_timeout //TODO: default config
-  size_pair keep_alive_timeout;  // keep_alive_timeout //TODO: default config
-  ServerNames server_names;      // server_name
-  IpSet ips;                     // ipv4 or ipv6
-  MErrors error_pages;           // error_pages
-  MLocations locations;          // locations
+  ServerNames server_names;  // server_name
+  IpSet ips;                 // ipv4 or ipv6
+  MErrors error_pages;       // error_pages
+  MLocations locations;      // locations
 };
 
 typedef std::vector< serv_config > ServerVec;
@@ -119,6 +133,8 @@ class Configuration
 {
  private:
   ServerVec server_configs_;
+  size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
+  size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
 
  public:
   // ── ◼︎ Constructors / Destructor ───────────

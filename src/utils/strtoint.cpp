@@ -15,8 +15,9 @@ namespace Utils
     char* endptr;
     if (str.empty() || str.length() > 3)
       throw Fatal("Invalid Ipv4 Address format");
+    errno = 0;
     long value = strtol(str.c_str(), &endptr, 10);
-    if (*endptr != '\0' || value < 0 || value > 255)
+    if (*endptr != '\0' || value < 0 || value > 255 || errno == ERANGE)
       throw Fatal("Invalid Ipv4 Address format");
     return static_cast< u_int8_t >(value);
   }
@@ -26,18 +27,20 @@ namespace Utils
     char* endptr;
     if (str.empty() || str.length() > 5)
       throw Fatal("Invalid Ipv4 Address format");
+    errno = 0;
     long value = strtol(str.c_str(), &endptr, 10);
-    if (*endptr != '\0' || value < 0 || value > 65535)
+    if (*endptr != '\0' || value < 0 || value > 65535 || errno == ERANGE)
       throw Fatal("Invalid Ipv4 Address format");
     return static_cast< u_int16_t >(value);
   }
+
   size_t strToMaxBodySize(const std::string& str)
   {
     if (str.empty())
       throw Fatal("Empty max body size");
     char* endptr = NULL;
-    errno = 0;
     size_t multiplier = 1;
+    errno = 0;
     u_int64_t num_part = strtol(str.c_str(), &endptr, 10);
     if (errno == ERANGE || num_part > MAX_BODY_SIZE)
       throw Fatal("Invalid max body size");
@@ -61,10 +64,11 @@ namespace Utils
   u_int16_t errStrToUint16(const std::string& token)
   {
     char* endptr;
+    errno = 0;
     if (token.empty() || token.length() > 5)
       throw Fatal("Invalid config file format: expected error code");
     long value = strtol(token.c_str(), &endptr, 10);
-    if (*endptr != '\0' || value < 0 || value > 65535)
+    if (*endptr != '\0' || value < 0 || value > 65535 || errno == ERANGE)
       throw Fatal("Invalid config file format: expected error code");
     return static_cast< u_int16_t >(value);
   }

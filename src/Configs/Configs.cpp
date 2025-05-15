@@ -10,9 +10,11 @@
 #include <string>
 #include <vector>
 #include "../exceptions/Fatal.hpp"
+#include "../ip/IpAddress.hpp"
 #include "../ip/Ipv4Address.hpp"
 #include "../ip/Ipv6Address.hpp"
 #include "../utils/Utils.hpp"
+#include "configUtils.hpp"
 
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Con. / Destructors     ║
@@ -21,16 +23,16 @@
 Configuration::Configuration(const string& config_file)
 {
   (void)config_file;
+  cgi_timeout_ = std::make_pair(0, false);
+  keep_alive_timeout_ = std::make_pair(0, false);
   parseConfigFile(config_file);
 }
 
 // Default constructor only enabled for testing purposes
 Configuration::Configuration()
 {
-  serv_config config;
-  config.cgi_timeout = std::make_pair(0, false);
-  config.keep_alive_timeout = std::make_pair(0, false);
-  server_configs_.push_back(config);
+  cgi_timeout_ = std::make_pair(0, false);
+  keep_alive_timeout_ = std::make_pair(0, false);
 }
 
 Configuration::~Configuration()
@@ -94,7 +96,60 @@ void Configuration::parseConfigFile(const string& config_file)
       cursor = end + 1;
     } else if (file_str[pos] == ';')
     {
-      ;
+      std::stringstream ss(identifier);
+      std::string identifier_token;
+      ss >> identifier_token;
+      if (identifier_token == "cgi_timeout")
+      {
+        if (cgi_timeout_.second)
+          throw Fatal(
+              "Invalid config file format: cgi_timeout already defined");
+        std::string token;
+        if (!(ss >> token))
+          throw Fatal("Invalid config file format: expected cgi_timeout value");
+        if (token.find_first_not_of("0123456789") != string::npos)
+          throw Fatal(
+              "Invalid config file format: invalid cgi_timeout value => " +
+              token);
+        try
+        {
+          cgi_timeout_.first = Utils::ipStrToUint32Max(token, CGI_TIMEOUT_MAX);
+        } catch (const Fatal& e)
+        {
+          throw Fatal(
+              "Invalid config file format: invalid cgi_timeout value => " +
+              token);
+        }
+        cgi_timeout_.second = true;
+      } else if (identifier_token == "keep_alive_timeout")
+      {
+        if (keep_alive_timeout_.second)
+          throw Fatal(
+              "Invalid config file format: keep_alive_timeout already defined");
+        std::string token;
+        if (!(ss >> token))
+          throw Fatal("Invalid config file format: expected "
+                      "keep_alive_timeout value");
+        if (token.find_first_not_of("0123456789") != string::npos)
+          throw Fatal("Invalid config file format: invalid "
+                      "keep_alive_timeout value => " +
+                      token);
+        try
+        {
+          keep_alive_timeout_.first =
+              Utils::ipStrToUint32Max(token, KEEP_ALIVE_TIMEOUT_MAX);
+        } catch (const Fatal& e)
+        {
+          throw Fatal("Invalid config file format: invalid keep_alive_timeout "
+                      "value => " +
+                      token);
+        }
+        keep_alive_timeout_.second = true;
+      } else
+      {
+        throw Fatal("Invalid config file format: unknown global token => " +
+                    identifier_token);
+      }
     }
   }
 }
@@ -117,7 +172,6 @@ void Configuration::process_server_block(const std::string& block)
       cursor = pos + 1;  // weiter hinter dem Semikolon
     } else if (block[pos] == '{')
     {
-      std::cout << block.substr(pos) << std::endl;
       std::size_t end = block.find('}', pos);
       if (end == std::string::npos)
         throw Fatal("Invalid config file format: expected '}'");
@@ -127,6 +181,8 @@ void Configuration::process_server_block(const std::string& block)
       cursor = end + 1;  // weiter hinter der schließenden Klammer
     }
   }
+  // TODO: check here if configs are valid
+  server_configs_.push_back(config);
 }
 
 void Configuration::process_location_block(std::stringstream& item,
@@ -150,18 +206,18 @@ void Configuration::process_location_block(std::stringstream& item,
     throw Fatal("Invalid config file format: duplicate location path");
 
   location new_location;
+  if (config.locations.find(token) != config.locations.end())
+    throw Fatal("Invalid config file format: duplicate location path");
   config.locations[token] = new_location;
-  std::getline(item, line, '}');
-  std::cout << line << std::endl;
+  std::string location_path = token;
   if (line.empty())
     throw Fatal("Ivalid config file format: empty location block");
-  std::stringstream ss2(line);
-  while (std::getline(ss2, token, ';'))
+  while (std::getline(item, token, ';'))
   {
     if (token.empty() || token[0] == '}')
       break;
     std::stringstream ss3(token);
-    process_location_item(ss3, config.locations[token]);
+    process_location_item(ss3, config.locations[location_path]);
   }
 }
 
@@ -176,7 +232,6 @@ void Configuration::process_location_item(std::stringstream& item,
   {
     tokens.push_back(token);
   }
-  std::cout << "identifier: " << identifier << std::endl;
   // ── ◼︎ http_methods  ──────────────────────────────────────────────────────
   if (identifier == "http_methods")
   {
@@ -288,31 +343,29 @@ void Configuration::process_location_item(std::stringstream& item,
           "Invalid config file format: return requires 1 or 2 arguments");
     if (loc.redirect.has_been_set)
       throw Fatal("Invalid config file format: return already defined");
-    if (tokens.size() == 1)
+
+    if (tokens[0].find_first_not_of("0123456789") != string::npos)
+      throw Fatal("Invalid config file format: invalid return code => " +
+                  tokens[0]);
+    u_int16_t code = Utils::errStrToUint16(tokens[0]);
+    if (found_code(code) && tokens.size() == 2)
+      throw Fatal("Invalid config file format: return code => " + tokens[0] +
+                  " should not have a URI");
+    else if (found_code(code) && tokens.size() == 1)
     {
-      if (tokens[0].find_first_not_of("0123456789") != string::npos)
-        throw Fatal("Invalid config file format: invalid return code => " +
-                    tokens[0]);
-      u_int16_t code = Utils::errStrToUint16(tokens[0]);
-      if (found_code(code) && tokens.size() == 2)
-        throw Fatal("Invalid config file format: return code => " + tokens[0] +
-                    " should not have a URI");
-      else if (found_code(code) && tokens.size() == 1)
-      {
-        loc.redirect.code = code;
-        loc.redirect.has_been_set = true;
-      } else if (is_valid_redirection_code(code) && tokens.size() == 1)
-        throw Fatal("Invalid config file format: return code => " + tokens[0] +
-                    " should have a URI");
-      else if (is_valid_redirection_code(code) && tokens.size() == 2)
-      {
-        loc.redirect.code = code;
-        if (tokens[1][0] != '/')
-          throw Fatal("Invalid config file format: return URI => " + tokens[1] +
-                      " should start with '/'");
-        loc.redirect.uri = tokens[1];
-        loc.redirect.has_been_set = true;
-      }
+      loc.redirect.code = code;
+      loc.redirect.has_been_set = true;
+    } else if (is_valid_redirection_code(code) && tokens.size() == 1)
+      throw Fatal("Invalid config file format: return code => " + tokens[0] +
+                  " should have a URI");
+    else if (is_valid_redirection_code(code) && tokens.size() == 2)
+    {
+      loc.redirect.code = code;
+      if (!Utils::isValidUri(tokens[1]))
+        throw Fatal("Invalid config file format: return URI => " + tokens[1] +
+                    " should start with '/'");
+      loc.redirect.uri = tokens[1];
+      loc.redirect.has_been_set = true;
     }
   }
 
@@ -475,6 +528,12 @@ void Configuration::process_server_item(std::stringstream& item,
 
 void Configuration::printConfigurations() const
 {
+  std::cout << "=== Configuration ===" << std::endl;
+  std::cout << "Global settings:" << std::endl;
+  std::cout << "-->Cgi timeout: " << cgi_timeout_.first << std::endl;
+  std::cout << "-->Keep alive timeout: " << keep_alive_timeout_.first
+            << std::endl;
+  std::cout << "server configs: " << std::endl;
   for (size_t i = 0; i < server_configs_.size(); ++i)
   {
     std::cout << server_configs_[i];
@@ -486,7 +545,15 @@ std::ostream& operator<<(std::ostream& os, const IpSet& ips)
 {
   for (IpSet::const_iterator it = ips.begin(); it != ips.end(); ++it)
   {
-    os << "-->" << *it << std::endl;
+    IpAddress* addr = *it;
+    if (addr->getType() == IPv4)
+      os << *static_cast< Ipv4Address* >(addr);
+    else
+      os << *static_cast< Ipv6Address* >(addr);
+    IpSet::const_iterator next = it;
+    ++next;
+    if (next != ips.end())
+      os << ", ";
   }
   os << std::endl;
   return os;
@@ -498,7 +565,11 @@ std::ostream& operator<<(std::ostream& os,
   for (ServerNames::const_iterator it = server_names.begin();
        it != server_names.end(); ++it)
   {
-    os << "-->" << *it << std::endl;
+    os << *it;
+    ServerNames::const_iterator next = it;
+    ++next;
+    if (next != server_names.end())
+      os << ", ";
   }
   os << std::endl;
   return os;
@@ -539,7 +610,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, const rediection& redirect)
 {
-  os << "---->Redirection: " << std::endl;
   os << "------->Code: " << redirect.code << std::endl;
   os << "------->URI: " << redirect.uri << std::endl;
   return os;
@@ -547,7 +617,7 @@ std::ostream& operator<<(std::ostream& os, const rediection& redirect)
 
 std::ostream& operator<<(std::ostream& os, const location& loc)
 {
-  os << "-->Location: " << std::endl;
+  os << std::endl;
   os << "---->Allowed http methods: " << (loc.GET ? "GET " : "")
      << (loc.POST ? "POST " : "") << (loc.DELETE ? "DELETE " : "") << std::endl;
 
@@ -565,16 +635,13 @@ std::ostream& operator<<(std::ostream& os, const location& loc)
 
 std::ostream& operator<<(std::ostream& os, const serv_config& config)
 {
-  os << "---->Server config: " << std::endl;
-  os << "---->CGI timeout: " << config.cgi_timeout.first << std::endl;
-  os << "---->Keep alive timeout: " << config.keep_alive_timeout.first
-     << std::endl;
-  os << "---->Server names: " << config.server_names << std::endl;
-  os << "---->IPs: " << config.ips << std::endl;
-  os << "---->Error pages: " << config.error_pages << std::endl;
-  os << "---->Locations: " << std::endl;
+  os << ">Server config: " << std::endl;
+  os << "-->Server names: " << config.server_names;
+  os << "-->IPs: " << config.ips;
+  os << "-->Error pages: " << config.error_pages;
+  os << "-->All Locations: " << std::endl;
   for (MLocations::const_iterator it = config.locations.begin();
        it != config.locations.end(); ++it)
-    os << it->first << it->second;
+    os << "---> Locations " << it->first << it->second;
   return os;
 }
