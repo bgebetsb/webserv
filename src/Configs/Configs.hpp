@@ -135,6 +135,7 @@ class Configuration
   ServerVec server_configs_;
   size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
   size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  const string config_file_;
 
  public:
   // ── ◼︎ Constructors / Destructor ───────────
@@ -166,17 +167,6 @@ class Configuration
         return true;
     }
     return false;
-  }
-  static bool is_valid_server_name(const string& server_name)
-  {
-    for (size_t i = 0; i < sizeof(invalid_server_name_chars) /
-                               sizeof(invalid_server_name_chars[0]);
-         ++i)
-    {
-      if (server_name.find(invalid_server_name_chars[i]) != string::npos)
-        return false;
-    }
-    return true;
   }
   static bool is_valid_cgi(const string& cgi_path)
   {

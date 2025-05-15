@@ -21,11 +21,12 @@
 // ╚══════════════════════════════════════════════╝
 
 Configuration::Configuration(const string& config_file)
+    : config_file_(config_file)
+
 {
   (void)config_file;
-  cgi_timeout_ = std::make_pair(0, false);
-  keep_alive_timeout_ = std::make_pair(0, false);
-  parseConfigFile(config_file);
+  cgi_timeout_ = std::make_pair(CGI_TIMEOUT_MAX, false);
+  keep_alive_timeout_ = std::make_pair(KEEP_ALIVE_TIMEOUT_MAX, false);
 }
 
 // Default constructor only enabled for testing purposes
@@ -150,6 +151,7 @@ void Configuration::parseConfigFile(const string& config_file)
         throw Fatal("Invalid config file format: unknown global token => " +
                     identifier_token);
       }
+      cursor = pos + 1;  // weiter hinter dem Semikolon
     }
   }
 }
@@ -458,7 +460,7 @@ void Configuration::process_server_item(std::stringstream& item,
                   "argument");
     for (size_t i = 0; i < tokens.size(); ++i)
     {
-      if (is_valid_server_name(tokens[i]))
+      if (Utils::isValidHostname(tokens[i]))
       {
         if (config.server_names.insert(tokens[i]).second == false)
         {
@@ -471,7 +473,6 @@ void Configuration::process_server_item(std::stringstream& item,
                     tokens[i]);
     }
   }
-
   // ── ◼︎ listen ─────────────────────────────────────────────────────────────
   else if (token == "listen")
   {
