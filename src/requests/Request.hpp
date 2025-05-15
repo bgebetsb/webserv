@@ -32,6 +32,7 @@ class Request
   int fd_;
   RequestStatus status_;
   RequestMethod method_;
+  std::string host_;
   std::string path_;
   mHeader headers_;
   bool closing_;
@@ -47,4 +48,6 @@ class Request
   void processHeaders(void);
   Option< std::string > getHeader(const std::string& name) const;
   const Server& getServer(const std::string& host) const;
+  bool parseAbsoluteForm(const std::string& path);
+  bool validateScheme(const std::string& scheme) const;
 };
