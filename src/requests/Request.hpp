@@ -53,4 +53,5 @@ class Request
   void replaceString(std::string& str,
                      const std::string& search,
                      const std::string& replace) const;
+  bool methodAllowed(const location& location) const;
 };
