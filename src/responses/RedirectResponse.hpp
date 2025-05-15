@@ -3,7 +3,9 @@
 class RedirectResponse : public Response
 {
  public:
-  RedirectResponse(int client_fd, const std::string& redirect_location);
+  RedirectResponse(int client_fd,
+                   int response_code,
+                   const std::string& redirect_location);
   ~RedirectResponse();
 
  private:

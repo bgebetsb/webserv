@@ -50,4 +50,7 @@ class Request
   const Server& getServer(const std::string& host) const;
   bool parseAbsoluteForm(const std::string& path);
   bool validateScheme(const std::string& scheme) const;
+  void replaceString(std::string& str,
+                     const std::string& search,
+                     const std::string& replace) const;
 };
