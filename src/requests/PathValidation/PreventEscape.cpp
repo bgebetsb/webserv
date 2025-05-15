@@ -27,6 +27,11 @@ std::string preventEscaping(const std::string& path)
     }
   }
 
+  if (parts.empty())
+  {
+    return "/";
+  }
+
   return (joinStrings(parts, '/'));
 }
 
