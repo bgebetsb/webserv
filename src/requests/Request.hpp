@@ -23,6 +23,7 @@ class Request
   RequestStatus getStatus() const;
   bool closingConnection() const;
   void timeout();
+  void setResponse(Response* response);
 
  private:
   // Unused
@@ -35,6 +36,7 @@ class Request
   mHeader headers_;
   bool closing_;
   const std::vector< Server >& servers_;
+  size_t total_header_size_;
   Response* response_;
 
   void readStartLine(const std::string& line);

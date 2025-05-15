@@ -11,7 +11,9 @@
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
+#include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
+#include "responses/StaticResponse.hpp"
 #include "utils/Utils.hpp"
 
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
@@ -103,9 +105,19 @@ EpollAction Connection::processBuffer()
     {
       request_timeout_ping_ = 0;
       requests_.push_back(Request(fd_, servers_));
+      break;
     }
 
     pos = buffer_.find('\n');
+  }
+
+  Request& request = requests_.front();
+  if (buffer_.size() > 8192)
+  {
+    if (request.getStatus() == READING_START_LINE)
+      request.setResponse(new StaticResponse(fd_, 414));
+    else if (request.getStatus() == READING_HEADERS)
+      request.setResponse(new StaticResponse(fd_, 400));
   }
 
   if (!polling_write_ && requests_.front().getStatus() == SENDING_RESPONSE)

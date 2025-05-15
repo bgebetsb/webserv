@@ -16,12 +16,14 @@
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
 #include "responses/FileResponse.hpp"
+#include "responses/Response.hpp"
 
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
       status_(READING_START_LINE),
       closing_(false),
       servers_(servers),
+      total_header_size_(0),
       response_(NULL)
 {}
 
@@ -30,6 +32,7 @@ Request::Request(const Request& other)
       status_(other.status_),
       closing_(other.closing_),
       servers_(other.servers_),
+      total_header_size_(other.total_header_size_),
       response_(other.response_)
 {}
 
@@ -42,6 +45,14 @@ void Request::addHeaderLine(const std::string& line)
 {
   size_t pos = line.find('\r');
   if (pos != std::string::npos)
+  {
+    response_ = new StaticResponse(fd_, 400);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
+  total_header_size_ += line.size();
+  if (total_header_size_ > 32768)
   {
     response_ = new StaticResponse(fd_, 400);
     status_ = SENDING_RESPONSE;
@@ -206,5 +217,11 @@ bool Request::closingConnection() const
 void Request::timeout()
 {
   response_ = new StaticResponse(fd_, 408);
+  status_ = SENDING_RESPONSE;
+}
+
+void Request::setResponse(Response* response)
+{
+  response_ = response;
   status_ = SENDING_RESPONSE;
 }

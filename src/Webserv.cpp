@@ -16,6 +16,7 @@
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
+#include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
 #include "ip/IpAddress.hpp"
 
@@ -140,11 +141,6 @@ void Webserv::mainLoop()
     for (int j = 0; j < count; ++j)
     {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
-      if (events[j].events & EPOLLRDHUP)
-      {
-        deleteFd(fd->getFd());
-        continue;
-      }
 
       try
       {
@@ -168,6 +164,10 @@ void Webserv::mainLoop()
       {
         std::cerr << e.what() << "\n";
         needed_fds++;
+      }
+      catch (ConErr& e)
+      {
+        deleteFd(fd->getFd());
       }
     }
 
