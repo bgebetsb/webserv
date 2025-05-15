@@ -2,14 +2,14 @@
 
 #include <map>
 #include <vector>
+#include "Configs/Configs.hpp"
 #include "Listener.hpp"
-#include "Server.hpp"
 #include "epoll/EpollFd.hpp"
 #include "ip/IpAddress.hpp"
 #include "ip/IpComparison.hpp"
 
 typedef int filedescriptor;
-typedef std::vector< IpAddress* > IpVec;
+typedef std::set< IpAddress* > IpSet;
 typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
 typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;
@@ -21,7 +21,7 @@ class Webserv
   ~Webserv();
 
   void initialize_servas();
-  void addServer(const IpVec& listeners, const Server& server);
+  void addServer(const IpSet& listeners, const Server& server);
   void mainLoop();
 
  private:

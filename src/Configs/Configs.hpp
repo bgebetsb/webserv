@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "../Server.hpp"
 #include "../ip/IpAddress.hpp"
 
 #define CGI_TIMEOUT_MAX 300
@@ -117,7 +116,7 @@ struct location
 /// `_______________ips` ip addresses
 /// `_______error_pages` error pages
 /// `_________locations` locations
-struct serv_config
+struct Server
 {
   ServerNames server_names;  // server_name
   IpSet ips;                 // ipv4 or ipv6
@@ -125,7 +124,7 @@ struct serv_config
   MLocations locations;      // locations
 };
 
-typedef std::vector< serv_config > ServerVec;
+typedef std::vector< Server > ServerVec;
 
 // TODO: Defend for config file dev/random dev/urandom
 
@@ -146,14 +145,14 @@ class Configuration
   // ── ◼︎ Config file parsing ─────────────────
   void parseConfigFile(const std::string& config_file);
   void process_server_block(const std::string& line);
-  void process_server_item(std::stringstream& item, serv_config& config);
-  void process_location_block(std::stringstream& item, serv_config& loc);
+  void process_server_item(std::stringstream& item, Server& config);
+  void process_location_block(std::stringstream& item, Server& loc);
   void process_location_item(std::stringstream& item, location& loc);
   void addServer(const std::string& server_name, int port);
   void printConfigurations() const;
 
   // ── ◼︎ Config file getters ─────────────────
-  ServerVec getServerConfigs() const
+  const ServerVec& getServerConfigs() const
   {
     return server_configs_;
   }
@@ -189,7 +188,7 @@ class Configuration
 };
 
 // ── ◼︎ operator overloads ───────────────────────
-std::ostream& operator<<(std::ostream& os, const serv_config& config);
+std::ostream& operator<<(std::ostream& os, const Server& config);
 std::ostream& operator<<(std::ostream& os, const location& loc);
 std::ostream& operator<<(std::ostream& os, const rediection& redirect);
 std::ostream& operator<<(std::ostream& os,

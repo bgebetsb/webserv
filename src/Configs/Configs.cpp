@@ -158,7 +158,7 @@ void Configuration::parseConfigFile(const string& config_file)
 
 void Configuration::process_server_block(const std::string& block)
 {
-  serv_config config;
+  Server config;
   std::size_t cursor = 0;
 
   // std::cout << block << std::endl;
@@ -188,7 +188,7 @@ void Configuration::process_server_block(const std::string& block)
 }
 
 void Configuration::process_location_block(std::stringstream& item,
-                                           serv_config& config)
+                                           Server& config)
 {
   std::string line;
   std::getline(item, line, '{');
@@ -442,8 +442,7 @@ static void insert_ip(IpSet& ips, const string& token)
   }
 }
 
-void Configuration::process_server_item(std::stringstream& item,
-                                        serv_config& config)
+void Configuration::process_server_item(std::stringstream& item, Server& config)
 {
   (void)item;
   std::string token;
@@ -634,7 +633,7 @@ std::ostream& operator<<(std::ostream& os, const location& loc)
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const serv_config& config)
+std::ostream& operator<<(std::ostream& os, const Server& config)
 {
   os << ">Server config: " << std::endl;
   os << "-->Server names: " << config.server_names;

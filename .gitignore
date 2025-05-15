@@ -4,6 +4,6 @@ webserv
 .cache/
 vgcore.*
 a.out
-test
+test*
 Doxyfile
 *.o
