@@ -194,8 +194,8 @@ Ipv6Address::Ipv6Address(const std::string& address) : IpAddress(address, IPv6)
   std::string port = address.substr(pos + 1);
   if (port[0] != ':' || ip.empty())
     throw Fatal("Invalid Ipv6 Address format");
-  port_ = Utils::strtouint16(port.substr(1));
-  port_ = Utils::u16ToBigEndian(port_);
+  port_ = Utils::ipStrToUint16(port.substr(1));
+  port_ = htonl(port_);
   if (port_ == 0)
     throw Fatal("Invalid Ipv6 Address format");
   readBigEndianIpv6(ip);

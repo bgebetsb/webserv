@@ -3,7 +3,7 @@
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <vector>
-#include "Server.hpp"
+#include "Configs/Configs.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
 #include "requests/Request.hpp"

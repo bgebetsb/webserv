@@ -4,13 +4,20 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 NAME := webserv
 
 UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
-
-SRC := $(UTILS) Listener.cpp Server.cpp epoll/EpollFd.cpp requests/Request.cpp requests/Startline.cpp \
-			 responses/Response.cpp responses/FileResponse.cpp responses/StaticResponse.cpp \
-			 responses/RedirectResponse.cpp \
-			 requests/PathValidation/PathValidation.cpp requests/PathValidation/PreventEscape.cpp \
-			 ip/IpAddress.cpp ip/Ipv4Address.cpp ip/IpComparison.cpp Connection.cpp Webserv.cpp main.cpp
-
+CONFIGS:= Configs/Configs.cpp Configs/configUtils.cpp
+REQUESTS:= 		requests/Request.cpp \
+							requests/Startline.cpp \
+							requests/PathValidation/PathValidation.cpp \
+							requests/PathValidation/PreventEscape.cpp
+RESPONSES:=		responses/FileResponse.cpp \
+							responses/RedirectResponse.cpp \
+							responses/Response.cpp \
+							responses/StaticResponse.cpp \
+							
+GLOBALS:=	main.cpp Connection.cpp Listener.cpp Webserv.cpp
+EPOLL:= epoll/EpollFd.cpp
+IP:= ip/IpAddress.cpp ip/Ipv4Address.cpp ip/Ipv6Address.cpp ip/IpComparison.cpp
+SRC := $(UTILS) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES)
 SRCDIR := src
 OBJDIR := obj
 OBJ := $(patsubst %.cpp, $(OBJDIR)/%.o, $(SRC))

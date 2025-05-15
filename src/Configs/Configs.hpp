@@ -1,6 +1,7 @@
 #pragma once
 
 // ── ◼︎ includes ─────────────────────────────
+#include <sys/types.h>
 #include <cstddef>
 #include <map>
 #include <set>
@@ -9,10 +10,29 @@
 
 #include "../ip/IpAddress.hpp"
 
+#define CGI_TIMEOUT_MAX 300
+#define KEEP_ALIVE_TIMEOUT_MAX 60
+
+// ── ◼︎ errorcodes     ───────────────────────
+static const u_int16_t error_codes[] = {400, 403, 404, 405, 408, 500};
+static const char invalid_server_name_chars[] = {
+    '=', '{', '}', '[', ']', '\\', '|', ';', ':', '\'', '"', '`', '!', '@', '#',
+    '$', '%', '^', '&', '*', '(',  ')', '+', ',', '<',  '>', '/', '?', '~'};
+static const std::string cgis[] = {".py", ".php"};
+static const u_int16_t redirection_codes[] = {301, 302, 303, 307,
+                                              308};  // redirection codes
+
 // ── ◼︎ typedefs names ───────────────────────
 typedef int port;
 typedef int errcode;
 typedef std::string filename;
+
+enum eCGI
+{
+  CGI_PHP,
+  CGI_PYTHON,
+  CGI_NONE
+};
 
 // ── ◼︎ typedefs utils ───────────────────────
 typedef std::string string;
@@ -21,86 +41,164 @@ typedef std::set< string > ServerNames;
 typedef std::map< errcode, filename > MErrors;
 typedef std::map< string, string > MRedirects;
 typedef std::vector< filename > VDefaultFiles;
-typedef std::map< string, string > VCgiPaths;
+typedef std::set< string > SCgiExtensions;
 struct location;
 typedef std::map< string, location > MLocations;
 
-/*
- * ── ◼︎ typedefs http methods ────────────────
- <bool, has_been_set> __: true if the method has been set;
-*/
+/// @brief `Pair of bools to indicate if a value has been set`
+///
+/// `<bool>` -> `value` , `<bool>` -> `has_been_set`
+/// set;
 typedef std::pair< bool, bool > bool_pair;
 
-/*
- * ── ◼︎ typedefs size_t ________________
- * <size_t, has_been_set> __: true if the size has been set;
- */
+/// @brief `Pair of size_t and bool to indicate if a value has been set`
+///
+/// `<size_t>` `value` , `<bool>` `has_been_set`
 typedef std::pair< size_t, bool > size_pair;
-// ── ◼︎ structs ──────────────────────────────
 
-/*
- * ── ◼︎ struct location ──────────────────────
- *
- * This struct represents a location block in the configuration file.
- * GET, POST, DELETE <bool> ___: Allowed HTTP methods;
- * DIR_LISTING <bool> _________: Directory listing enabled or not;
- * max_body_size <size_t> ______: Maximum body size for requests;
- * cgi_paths <VCgiPaths> _______: Vec<string> of cgi paths;
- * default_files <VDefaultFiles>__: Vec<string> of default files to serve;
- * redirects <MRedirects> _______: Map<string, string> of redirects;
- * root <string> ________________: Root directory for the location;
- */
+// ╔══════════════════════════════════════════════╗
+// ║              SECTION: Your Section           ║
+// ╚══════════════════════════════════════════════╝
+
+struct redirection
+{
+  bool has_been_set;
+  u_int16_t code;
+  string uri;
+};
+
+/// @brief Location configuration
+///
+/// Booleans for HTTP methods:
+/// - `GET`
+/// - `POST`
+/// - `DELETE`
+/// `___DIR_LISTING` if directory listing is allowed
+/// `_max_body_size` maximum body size
+/// `cgi_extensions` cgi extensions
+/// `_default_files` default files
+/// `_____redirects` redirections
+/// `__________root` root directory
+/// `____upload_dir` upload directory
 struct location
 {
-  bool_pair GET;                // http methods
-  bool_pair POST;               // http methods
-  bool_pair DELETE;             // http methods
-  bool_pair DIR_LISTING;        // dir_listing active or not
-  size_pair max_body_size;      // in bytes
-  VCgiPaths cgi_paths;          // cgi_paths
-  VDefaultFiles default_files;  // default_files
-  MRedirects redirects;         // redirections
-  string root;                  // root
+  location()
+      : http_methods_set(false),
+        GET(false),
+        POST(false),
+        DELETE(false),
+        DIR_LISTING(false, false),
+        max_body_size(0, false),
+        cgi_extensions(),
+        default_files(),
+        redirect(),
+        root(),
+        upload_dir()
+  {}
+  bool http_methods_set;
+  bool GET;                       // http methods
+  bool POST;                      // http methods
+  bool DELETE;                    // http methods
+  bool_pair DIR_LISTING;          // dir_listing active or not
+  size_pair max_body_size;        // in bytes
+  SCgiExtensions cgi_extensions;  // cgi_extensions
+  VDefaultFiles default_files;    // default_files
+  redirection redirect;           // redirections
+  string root;                    // root
+  string upload_dir;              // upload_dir
 };
 
-/*
- * ── ◼︎ struct serv_config ────────────────────
- *
- * This struct represents a server block in the configuration file.
- * cgi_timeout <size_t> ________: Timeout for CGI scripts;
- * keep_alive_timeout <size_t>__: Timeout for keep-alive connections;
- * server_names <ServerNames;> _____: Vec<string> of server names;
- * ips <IpVec> ________________: Vec<IpAddress*> of IP addresses;
- * error_pages <MErrors> ______: Map<errcode, filename> of error pages;
- * locations <MLocations> ______: Vec<location> of locations;
- */
-struct serv_config
+/// @brief `Server configuration`
+///
+/// `_______cgi_timeout` timeout for cgi
+/// `keep_alive_timeout` timeout for keep alive
+/// `______server_names` server names
+/// `_______________ips` ip addresses
+/// `_______error_pages` error pages
+/// `_________locations` locations
+struct Server
 {
-  size_pair cgi_timeout;         // cgi_timeout //TODO: default config
-  size_pair keep_alive_timeout;  // keep_alive_timeout //TODO: default config
-  ServerNames server_names;      // server_name
-  IpSet ips;                     // ipv4 or ipv6
-  MErrors error_pages;           // error_pages
-  MLocations locations;          // locations
+  ServerNames server_names;  // server_name
+  IpSet ips;                 // ipv4 or ipv6
+  MErrors error_pages;       // error_pages
+  MLocations locations;      // locations
 };
 
-typedef std::vector< serv_config > ServerVec;
+typedef std::vector< Server > ServerVec;
 
 // TODO: Defend for config file dev/random dev/urandom
 
 class Configuration
 {
+ private:
+  ServerVec server_configs_;
+  size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
+  size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  const string config_file_;
+
  public:
+  // ── ◼︎ Constructors / Destructor ───────────
+  Configuration();
   Configuration(const std::string& config_file);
   ~Configuration();
 
+  // ── ◼︎ Config file parsing ─────────────────
   void parseConfigFile(const std::string& config_file);
   void process_server_block(const std::string& line);
-  void process_server_item(std::stringstream& item, serv_config& config);
+  void process_server_item(std::stringstream& item, Server& config);
+  void process_location_block(std::stringstream& item, Server& loc);
+  void process_location_item(std::stringstream& item, location& loc);
   void addServer(const std::string& server_name, int port);
+  void printConfigurations() const;
 
- private:
-  ServerVec server_configs_;
+  // ── ◼︎ Config file getters ─────────────────
+  const ServerVec& getServerConfigs() const
+  {
+    return server_configs_;
+  }
 
-  Configuration();
+  // ── ◼︎ Utilities  ───────────────────────
+  static bool found_code(int code)
+  {
+    for (size_t i = 0; i < sizeof(error_codes) / sizeof(u_int16_t); ++i)
+    {
+      if (error_codes[i] == code)
+        return true;
+    }
+    return false;
+  }
+  static bool is_valid_cgi(const string& cgi_path)
+  {
+    for (size_t i = 0; i < sizeof(cgis) / sizeof(string); ++i)
+    {
+      if (cgi_path.find(cgis[i]) != string::npos)
+        return true;
+    }
+    return false;
+  }
+  static bool is_valid_redirection_code(int code)
+  {
+    for (size_t i = 0; i < sizeof(redirection_codes) / sizeof(u_int16_t); ++i)
+    {
+      if (redirection_codes[i] == code)
+        return true;
+    }
+    return false;
+  }
 };
+
+// ── ◼︎ operator overloads ───────────────────────
+std::ostream& operator<<(std::ostream& os, const Server& config);
+std::ostream& operator<<(std::ostream& os, const location& loc);
+std::ostream& operator<<(std::ostream& os, const redirection& redirect);
+std::ostream& operator<<(std::ostream& os,
+                         const std::vector< string >& default_files);
+std::ostream& operator<<(std::ostream& os,
+                         const std::map< int, string >& error_pages);
+std::ostream& operator<<(std::ostream& os,
+                         const std::set< string >& server_names);
+std::ostream& operator<<(std::ostream& os, const IpSet& ips);
+
+#define YELLOW "\033[33m"
+#define RESET "\033[0m"
+#define WARNING YELLOW "[Warning]: " RESET

@@ -12,11 +12,11 @@
 #include <utility>
 #include "Connection.hpp"
 #include "Listener.hpp"
-#include "Server.hpp"
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
 #include "exceptions/ConError.hpp"
+#include "exceptions/Fatal.hpp"
 #include "exceptions/FdLimitReached.hpp"
 #include "ip/IpAddress.hpp"
 
@@ -34,6 +34,22 @@ Webserv::Webserv(std::string config_file) : epoll_fd_(epoll_create(1024))
   {
     throw std::runtime_error("Unable to create epoll fd");
   }
+  try
+  {
+    config_.parseConfigFile(config_file);
+  }
+  catch (const Fatal& e)
+  {
+    close(epoll_fd_);
+    throw;
+  }
+  servers_ = config_.getServerConfigs();
+  for (size_t i = 0; i < servers_.size(); ++i)  // TODO: extract this
+  {
+    std::cout << "Server " << i << ": " << servers_[i] << std::endl;
+    const Server& server = servers_[i];
+    addServer(server.ips, server);
+  }
 }
 
 Webserv::~Webserv()
@@ -47,12 +63,12 @@ Webserv::~Webserv()
   close(epoll_fd_);
 }
 
-void Webserv::addServer(const std::vector< IpAddress* >& listeners,
+void Webserv::addServer(const std::set< IpAddress* >& listeners,
                         const Server& server)
 {
-  typedef std::vector< IpAddress* >::const_iterator iter_type;
+  typedef std::set< IpAddress* >::const_iterator iter_type;
 
-  for (iter_type it = listeners.begin(); it < listeners.end(); ++it)
+  for (iter_type it = listeners.begin(); it != listeners.end(); ++it)
   {
     Listener& listener = getListener(*it);
     listener.addServer(server);
@@ -173,7 +189,6 @@ void Webserv::mainLoop()
 
     pingAllClients(needed_fds);
   }
-
   delete[] events;
 }
 

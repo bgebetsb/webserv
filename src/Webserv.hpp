@@ -3,14 +3,14 @@
 #include <sys/types.h>
 #include <map>
 #include <vector>
+#include "Configs/Configs.hpp"
 #include "Listener.hpp"
-#include "Server.hpp"
 #include "epoll/EpollFd.hpp"
 #include "ip/IpAddress.hpp"
 #include "ip/IpComparison.hpp"
 
 typedef int filedescriptor;
-typedef std::vector< IpAddress* > IpVec;
+typedef std::set< IpAddress* > IpSet;
 typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
 typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;
@@ -22,7 +22,8 @@ class Webserv
   Webserv(std::string config_file = "webserv.conf");
   ~Webserv();
 
-  void addServer(const IpVec& listeners, const Server& server);
+  void initialize_servas();
+  void addServer(const IpSet& listeners, const Server& server);
   void mainLoop();
 
  private:
@@ -30,6 +31,7 @@ class Webserv
   EpollMap fds_;
   const int epoll_fd_;
   VServers servers_;
+  Configuration config_;
 
   // Copy constructor and copy assignment are unused anyway, thus private
   Webserv(const Server& other);

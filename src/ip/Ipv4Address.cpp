@@ -78,7 +78,10 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
     throw Fatal("Invalid Ipv4 Address format");
   std::string::size_type pos = address.find(':');
   if (pos == std::string::npos)
+  {
     throw Fatal("Invalid Ipv4 Address format");
+  }
+
   std::string ip = address.substr(0, pos);
   std::stringstream ss(ip);
   std::string token;
@@ -87,12 +90,12 @@ Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
   {
     if (i > 3)
       throw Fatal("Invalid Ipv4 Address format");
-    ar[i++] = Utils::strtouint8(token);
+    ar[i++] = Utils::ipStrToUint8(token);
   }
   if (i != 4)
     throw Fatal("Invalid Ipv4 Address format: Invalid octet count");
   std::string port = address.substr(pos + 1);
-  port_ = Utils::strtouint16(port);
+  port_ = Utils::ipStrToUint16(port);
   if (port_ == 0)
     throw Fatal("Invalid Ipv4 Address format: port cannot be 0");
   port_ = htons(port_);

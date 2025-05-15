@@ -8,6 +8,7 @@
 #include <exception>
 #include <iostream>
 #include "Webserv.hpp"
+#include "exceptions/Fatal.hpp"
 #include "ip/IpAddress.hpp"
 #include "ip/Ipv4Address.hpp"
 
@@ -83,37 +84,29 @@ vector< pair< vector< IpAddress* >, Server > > createTestServers()
 int main(int argc, char* argv[])
 try
 {
-  // TODO: Read config file
-  (void)argc;
-  (void)argv;
-
   setup_signals();
-
-  Webserv w;
-  vector< pair< vector< IpAddress* >, Server > > testData = createTestServers();
-
-  typedef vector< pair< vector< IpAddress* >, Server > >::iterator it_type;
+  // TODO: Read config file
   try
   {
-    for (it_type it = testData.begin(); it < testData.end(); ++it)
+    if (argc > 2)
     {
-      w.addServer(it->first, it->second);
+      std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
+      return 1;
     }
-
-    w.mainLoop();
+    else if (argc == 2)
+    {
+      Webserv w(argv[1]);
+      w.mainLoop();
+    }
+    else
+    {
+      Webserv w;
+      w.mainLoop();
+    }
   }
   catch (std::exception& e)
   {
-    std::cerr << e.what() << "\n";
-  }
-
-  for (it_type it = testData.begin(); it < testData.end(); ++it)
-  {
-    for (vector< IpAddress* >::iterator it2 = it->first.begin();
-         it2 < it->first.end(); ++it2)
-    {
-      delete *it2;
-    }
+    std::cerr << "Error: " << e.what() << std::endl;
   }
 }
 catch (...)

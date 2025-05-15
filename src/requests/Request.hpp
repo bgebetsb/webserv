@@ -4,8 +4,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "../Configs/Configs.hpp"
 #include "../Option.hpp"
-#include "../Server.hpp"
 #include "../responses/Response.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"

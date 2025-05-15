@@ -11,8 +11,10 @@ namespace Utils
   u_int32_t ipv4ToBigEndian(u_int8_t octets[4]);
 
   // ── ◼︎ String to int ──────────────────────────────
-  u_int8_t strtouint8(const std::string& str);
-  u_int16_t strtouint16(const std::string& str);
+  u_int8_t ipStrToUint8(const std::string& str);
+  u_int16_t ipStrToUint16(const std::string& str);
+  u_int64_t strToMaxBodySize(const std::string& str);
+  u_int16_t errStrToUint16(const std::string& str);
 
   // ── ◼︎ String utils ───────────────────────────────
   std::string trimString(const std::string& input);

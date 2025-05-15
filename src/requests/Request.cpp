@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
-#include "../Server.hpp"
 #include "../exceptions/ConError.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
@@ -171,7 +170,7 @@ void Request::processHeaders(void)
 
   const Server& server = getServer(host.unwrap());
 
-  MLocations locations = server.getServerConfigs().locations;
+  MLocations locations = server.locations;
   MLocations::const_iterator l_it = locations.find(path_);
 
   PathInfos infos;
@@ -183,13 +182,15 @@ void Request::processHeaders(void)
     return;
   }
 
-  MRedirects::const_iterator redirect = l_it->second.redirects.find(path_);
+  /* MRedirects::const_iterator redirect =
+  l_it->second.redirect.find(path_);TODO: new redirect struct
+
   if (redirect != l_it->second.redirects.end())
   {
     response_ = new RedirectResponse(fd_, redirect->second);
     status_ = SENDING_RESPONSE;
     return;
-  }
+  } */
 
   if (l_it->second.root.empty())
   {
@@ -263,8 +264,7 @@ const Server& Request::getServer(const std::string& host) const
 
   for (server = servers_.begin(); server != servers_.end(); ++server)
   {
-    const serv_config& config = server->getServerConfigs();
-    if (config.server_names.find(host) != config.server_names.end())
+    if (server->server_names.find(host) != server->server_names.end())
       return *server;
   }
 
