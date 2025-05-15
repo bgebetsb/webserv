@@ -160,7 +160,8 @@ void Ipv6Address::readBigEndianIpv6(const std::string& ip_string)
       std::memmove(ip_ + DCPos.blocks_before, ip_,
                    DCPos.blocks_to_fill * sizeof(u_int16_t));
       std::memset(ip_, 0, DCPos.blocks_to_fill * sizeof(u_int16_t));
-    } else if (DCPos.type == POS_AFTER)
+    }
+    else if (DCPos.type == POS_AFTER)
       std::memset(ip_ + DCPos.blocks_before, 0,
                   DCPos.blocks_to_fill * sizeof(u_int16_t));
     else if (DCPos.type == POS_MIDDLE)
@@ -172,7 +173,8 @@ void Ipv6Address::readBigEndianIpv6(const std::string& ip_string)
       std::memset(ip_ + DCPos.blocks_before, 0,
                   DCPos.blocks_to_fill * sizeof(u_int16_t));
     }
-  } else if (i != 8)
+  }
+  else if (i != 8)
   {
     throw Fatal("Invalid Ipv6 Address format");
   }

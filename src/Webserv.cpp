@@ -6,13 +6,18 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <csignal>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
+#include "Connection.hpp"
 #include "Listener.hpp"
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
+#include "exceptions/ConError.hpp"
 #include "exceptions/Fatal.hpp"
+#include "exceptions/FdLimitReached.hpp"
 #include "ip/IpAddress.hpp"
 
 #define MAX_EVENTS 1024
@@ -32,7 +37,8 @@ Webserv::Webserv(std::string config_file) : epoll_fd_(epoll_create(1024))
   try
   {
     config_.parseConfigFile(config_file);
-  } catch (const Fatal& e)
+  }
+  catch (const Fatal& e)
   {
     close(epoll_fd_);
     throw;
@@ -78,7 +84,8 @@ Listener& Webserv::getListener(IpAddress* addr)
   if (fd_it != listeners_.end())
   {
     listener = static_cast< Listener* >(fds_[fd_it->second]);
-  } else
+  }
+  else
   {
     listener = new Listener(addr);
     int fd = listener->getFd();
@@ -137,7 +144,7 @@ void Webserv::mainLoop()
 
   while (true)
   {
-    int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+    int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, 1000);
 
     if (g_signal || count == -1)
     {
@@ -145,31 +152,99 @@ void Webserv::mainLoop()
       break;
     }
 
+    size_t needed_fds = 0;
+
     for (int j = 0; j < count; ++j)
     {
       EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
-      if (events[j].events & EPOLLRDHUP)
+
+      try
+      {
+        EpollAction action = fd->epollCallback(events[j].events);
+
+        switch (action.op)
+        {
+          case EPOLL_ACTION_ADD:
+            addFd(action.fd, action.event);
+            break;
+          case EPOLL_ACTION_MOD:
+            modifyFd(action.fd, action.event);
+            break;
+          case EPOLL_ACTION_DEL:
+            deleteFd(action.fd);
+            break;
+          default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
+        }
+      }
+      catch (FdLimitReached& e)
+      {
+        std::cerr << e.what() << "\n";
+        needed_fds++;
+      }
+      catch (ConErr& e)
       {
         deleteFd(fd->getFd());
+      }
+    }
+
+    pingAllClients(needed_fds);
+  }
+  delete[] events;
+}
+
+/*
+ * Sends a ping to every connected client, sets responses to timeout messages if
+ * needed (if it takes too long to send the headers). If a client is currently
+ * in keep-alive state, it will be pushed onto a multimap, and it will be closed
+ * if a) it is in keep-alive state for too long, or b) the server needs more fds
+ * (it will close the fds who are in keepalive state the longest first).
+ */
+void Webserv::pingAllClients(size_t needed_fds)
+{
+  EpollMap::iterator it;
+  MMKeepAlive keepalive_fds;
+
+  for (it = fds_.begin(); it != fds_.end(); ++it)
+  {
+    Connection* c = dynamic_cast< Connection* >(it->second);
+    if (c)
+    {
+      std::pair< EpollAction, u_int64_t > action_time = c->ping();
+      if (action_time.first.op == EPOLL_ACTION_MOD)
+      {
+        modifyFd(action_time.first.fd, action_time.first.event);
         continue;
       }
 
-      EpollAction action = fd->epollCallback(events[j].events);
-
-      switch (action.op)
+      if (action_time.second > 0)
       {
-        case EPOLL_ACTION_ADD:
-          addFd(action.fd, action.event);
-          break;
-        case EPOLL_ACTION_MOD:
-          modifyFd(action.fd, action.event);
-          break;
-        case EPOLL_ACTION_DEL:
-          deleteFd(action.fd);
-          break;
-        default:;  // Do nothing on EPOLL_ACTION_UNCHANGED
+        keepalive_fds.insert(
+            MMKeepAlive::value_type(action_time.second, action_time.first.fd));
       }
     }
   }
-  delete[] events;
+
+  closeClientConnections(keepalive_fds, needed_fds);
+}
+
+void Webserv::closeClientConnections(const MMKeepAlive& keepalive_fds,
+                                     size_t needed_fds)
+{
+  MMKeepAlive::const_iterator it = keepalive_fds.begin();
+  size_t total_closed = 0;
+  // TODO: set this to the number from the config
+  size_t time_limit = 30000;
+
+  while (it != keepalive_fds.end() &&
+         (it->first > time_limit || total_closed < needed_fds))
+  {
+    std::cerr << "Closing fd " << it->second;
+    if (it->first > time_limit)
+      std::cerr << "(Keepalive timeout reached)\n";
+    else
+      std::cerr << "(Keepalive state and more fds needed)\n";
+    deleteFd(it->second);
+    total_closed++;
+    ++it;
+  }
 }

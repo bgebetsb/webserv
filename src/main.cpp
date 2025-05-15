@@ -92,18 +92,22 @@ try
     {
       std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
       return 1;
-    } else if (argc == 2)
+    }
+    else if (argc == 2)
     {
       Webserv w(argv[1]);
       w.mainLoop();
-    } else
+    }
+    else
     {
       Webserv w;
       w.mainLoop();
     }
-  } catch (std::exception& e)
+  }
+  catch (std::exception& e)
   {
     std::cerr << "Error: " << e.what() << std::endl;
   }
-} catch (...)
+}
+catch (...)
 {}

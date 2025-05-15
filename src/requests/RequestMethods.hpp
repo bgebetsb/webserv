@@ -1,6 +1,7 @@
 #pragma once
 
-enum RequestMethod {
+enum RequestMethod
+{
   GET,
   POST,
   DELETE,

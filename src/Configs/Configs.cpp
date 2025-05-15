@@ -95,7 +95,8 @@ void Configuration::parseConfigFile(const string& config_file)
       std::string block = file_str.substr(pos + 1, end - pos + 1);
       process_server_block(block);
       cursor = end + 1;
-    } else if (file_str[pos] == ';')
+    }
+    else if (file_str[pos] == ';')
     {
       std::stringstream ss(identifier);
       std::string identifier_token;
@@ -115,14 +116,16 @@ void Configuration::parseConfigFile(const string& config_file)
         try
         {
           cgi_timeout_.first = Utils::ipStrToUint32Max(token, CGI_TIMEOUT_MAX);
-        } catch (const Fatal& e)
+        }
+        catch (const Fatal& e)
         {
           throw Fatal(
               "Invalid config file format: invalid cgi_timeout value => " +
               token);
         }
         cgi_timeout_.second = true;
-      } else if (identifier_token == "keep_alive_timeout")
+      }
+      else if (identifier_token == "keep_alive_timeout")
       {
         if (keep_alive_timeout_.second)
           throw Fatal(
@@ -139,14 +142,16 @@ void Configuration::parseConfigFile(const string& config_file)
         {
           keep_alive_timeout_.first =
               Utils::ipStrToUint32Max(token, KEEP_ALIVE_TIMEOUT_MAX);
-        } catch (const Fatal& e)
+        }
+        catch (const Fatal& e)
         {
           throw Fatal("Invalid config file format: invalid keep_alive_timeout "
                       "value => " +
                       token);
         }
         keep_alive_timeout_.second = true;
-      } else
+      }
+      else
       {
         throw Fatal("Invalid config file format: unknown global token => " +
                     identifier_token);
@@ -172,7 +177,8 @@ void Configuration::process_server_block(const std::string& block)
       std::stringstream ss(block.substr(cursor, pos - cursor));
       process_server_item(ss, config);
       cursor = pos + 1;  // weiter hinter dem Semikolon
-    } else if (block[pos] == '{')
+    }
+    else if (block[pos] == '{')
     {
       std::size_t end = block.find('}', pos);
       if (end == std::string::npos)
@@ -357,7 +363,8 @@ void Configuration::process_location_item(std::stringstream& item,
     {
       loc.redirect.code = code;
       loc.redirect.has_been_set = true;
-    } else if (is_valid_redirection_code(code) && tokens.size() == 1)
+    }
+    else if (is_valid_redirection_code(code) && tokens.size() == 1)
       throw Fatal("Invalid config file format: return code => " + tokens[0] +
                   " should have a URI");
     else if (is_valid_redirection_code(code) && tokens.size() == 2)
@@ -407,7 +414,8 @@ static void insert_ip(IpSet& ips, const string& token)
       delete addr;
       throw Fatal("Invalid config file format: duplicate IP address");
     }
-  } else if (token.find("[::]:") != string::npos)
+  }
+  else if (token.find("[::]:") != string::npos)
   {
     string::size_type pos = token.find("[::]:");
     if (pos != 0)
@@ -423,7 +431,8 @@ static void insert_ip(IpSet& ips, const string& token)
       delete addr;
       throw Fatal("Invalid config file format: duplicate IP address");
     }
-  } else if (token[0] == '[')
+  }
+  else if (token[0] == '[')
   {
     Ipv6Address* addr = new Ipv6Address(token);
     if (!ips.insert(addr).second)
@@ -431,7 +440,8 @@ static void insert_ip(IpSet& ips, const string& token)
       delete addr;
       throw Fatal("Invalid config file format: duplicate IP address");
     }
-  } else
+  }
+  else
   {
     Ipv4Address* addr = new Ipv4Address(token);
     if (!ips.insert(addr).second)
@@ -467,7 +477,8 @@ void Configuration::process_server_item(std::stringstream& item, Server& config)
                     << tokens[i] << std::endl;
           continue;
         }
-      } else
+      }
+      else
         throw Fatal("Invalid config file format: invalid server name => " +
                     tokens[i]);
     }
@@ -518,7 +529,8 @@ void Configuration::process_server_item(std::stringstream& item, Server& config)
       }
       config.error_pages[errcode] = filename;
     }
-  } else
+  }
+  else
     throw Fatal("Invalid config file format: unknown token");
 }
 
@@ -608,7 +620,7 @@ std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const rediection& redirect)
+std::ostream& operator<<(std::ostream& os, const redirection& redirect)
 {
   os << "------->Code: " << redirect.code << std::endl;
   os << "------->URI: " << redirect.uri << std::endl;

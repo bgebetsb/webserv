@@ -24,6 +24,7 @@ namespace Utils
 
     return (input.substr(start, end - start));
   }
+
   size_t countSubstr(const std::string& str, const std::string& substr)
   {
     size_t count = 0;
@@ -34,5 +35,10 @@ namespace Utils
       pos = str.find(substr, pos + substr.length());
     }
     return count;
+  }
+
+  void toLower(char& c)
+  {
+    c = static_cast< char >(std::tolower(static_cast< unsigned char >(c)));
   }
 }  // namespace Utils

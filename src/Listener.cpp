@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include "Connection.hpp"
 #include "epoll/EpollAction.hpp"
+#include "exceptions/ConError.hpp"
 #include "ip/IpAddress.hpp"
 
 Listener::Listener(IpAddress* address) : address_(address)
@@ -59,8 +60,16 @@ EpollAction Listener::epollCallback(int event)
 
 EpollAction Listener::acceptConnection()
 {
-  Connection* c = new Connection(fd_, servers_);
-  // std::cerr << "Successfully accepted connection\n";
-  EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
-  return action;
+  try
+  {
+    Connection* c = new Connection(fd_, servers_);
+    EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
+    return action;
+  }
+  catch (ConErr& e)
+  {
+    std::cerr << e.what() << "\n";
+    EpollAction action = {getFd(), EPOLL_ACTION_UNCHANGED, getEvent()};
+    return action;
+  }
 }
