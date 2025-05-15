@@ -4,12 +4,14 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "../Option.hpp"
 #include "../Server.hpp"
 #include "../responses/Response.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
 
 typedef std::map< std::string, std::string > mHeader;
+typedef std::vector< Server > vServer;
 
 class Request
 {
@@ -35,7 +37,7 @@ class Request
   std::string path_;
   mHeader headers_;
   bool closing_;
-  const std::vector< Server >& servers_;
+  const vServer& servers_;
   size_t total_header_size_;
   Response* response_;
 
@@ -45,4 +47,6 @@ class Request
   void parseHTTPVersion(std::istringstream& stream);
   void parseHeaderLine(const std::string& line);
   void processHeaders(void);
+  Option< const std::string& > getHeader(const std::string& name) const;
+  const Server& getServer(const std::string& host) const;
 };

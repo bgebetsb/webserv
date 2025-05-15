@@ -17,6 +17,7 @@ namespace Utils
   // ── ◼︎ String utils ───────────────────────────────
   std::string trimString(const std::string& input);
   size_t countSubstr(const std::string& str, const std::string& substr);
+  void toLower(char& c);
 
   // Time utils
   size_t getCurrentTime();

@@ -1,6 +1,7 @@
 #include "Request.hpp"
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <algorithm>
 #include <cctype>
 #include <cstddef>
 #include <iostream>
@@ -11,6 +12,7 @@
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
 #include "Configs/Configs.hpp"
+#include "Option.hpp"
 #include "PathValidation/FileTypes.hpp"
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
@@ -115,6 +117,8 @@ void Request::parseHeaderLine(const std::string& line)
   name = line.substr(0, pos);
   value = Utils::trimString(line.substr(pos + 1));
 
+  std::for_each(name.begin(), name.end(), Utils::toLower);
+
   for (iter_type it = name.begin(); it < name.end(); ++it)
   {
     char c = *it;
@@ -135,26 +139,18 @@ void Request::parseHeaderLine(const std::string& line)
 
 void Request::processHeaders(void)
 {
-  mHeader::iterator h_it = headers_.find("Host");
-  if (h_it == headers_.end())
+  Option< const std::string& > host = getHeader("Host");
+
+  if (host.is_none())
   {
     response_ = new StaticResponse(fd_, 400);
     status_ = SENDING_RESPONSE;
     return;
   }
 
-  const Server* server = &servers_.front();
-  for (size_t i = 0; i < servers_.size(); ++i)
-  {
-    const serv_config& config = servers_[i].getServerConfigs();
-    if (config.server_names.find(h_it->second) != config.server_names.end())
-    {
-      server = &servers_[i];
-      break;
-    }
-  }
+  const Server& server = getServer(host.unwrap());
 
-  MLocations locations = server->getServerConfigs().locations;
+  MLocations locations = server.getServerConfigs().locations;
   MLocations::const_iterator l_it = locations.find(path_);
 
   PathInfos infos;
@@ -224,4 +220,32 @@ void Request::setResponse(Response* response)
 {
   response_ = response;
   status_ = SENDING_RESPONSE;
+}
+
+Option< const std::string& > Request::getHeader(const std::string& name) const
+{
+  std::string lower(name);
+  std::for_each(lower.begin(), lower.end(), Utils::toLower);
+
+  mHeader::const_iterator it = headers_.find(lower);
+  if (it == headers_.end())
+  {
+    return Option< const std::string& >();
+  }
+
+  return Option< const std::string& >(it->second);
+}
+
+const Server& Request::getServer(const std::string& host) const
+{
+  vServer::const_iterator server;
+
+  for (server = servers_.begin(); server != servers_.end(); ++server)
+  {
+    const serv_config& config = server->getServerConfigs();
+    if (config.server_names.find(host) != config.server_names.end())
+      return *server;
+  }
+
+  return servers_.front();
 }
