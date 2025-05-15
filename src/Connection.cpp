@@ -19,6 +19,7 @@
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
     : servers_(servers),
       polling_write_(false),
+      request_(Request(-1, servers)),
       request_timeout_ping_(Utils::getCurrentTime()),
       keepalive_last_ping_(0)
 {
@@ -41,7 +42,7 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
   ep_event_->data.ptr = this;
-  requests_.push_back(Request(fd_, servers));
+  request_ = Request(fd_, servers);
 }
 
 Connection::~Connection()
@@ -98,29 +99,26 @@ EpollAction Connection::processBuffer()
     {
       buffer_.clear();
     }
-    requests_.back().addHeaderLine(line);
+    request_.addHeaderLine(line);
 
-    if (requests_.back().getStatus() == SENDING_RESPONSE ||
-        requests_.back().getStatus() == COMPLETED)
+    if (request_.getStatus() == SENDING_RESPONSE)
     {
       request_timeout_ping_ = 0;
-      requests_.push_back(Request(fd_, servers_));
       break;
     }
 
     pos = buffer_.find('\n');
   }
 
-  Request& request = requests_.front();
   if (buffer_.size() > 8192)
   {
-    if (request.getStatus() == READING_START_LINE)
-      request.setResponse(new StaticResponse(fd_, 414));
-    else if (request.getStatus() == READING_HEADERS)
-      request.setResponse(new StaticResponse(fd_, 400));
+    if (request_.getStatus() == READING_START_LINE)
+      request_.setResponse(new StaticResponse(fd_, 414));
+    else if (request_.getStatus() == READING_HEADERS)
+      request_.setResponse(new StaticResponse(fd_, 400));
   }
 
-  if (!polling_write_ && requests_.front().getStatus() == SENDING_RESPONSE)
+  if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
   {
     ep_event_->events = EPOLLOUT | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
@@ -135,12 +133,12 @@ EpollAction Connection::handleWrite()
 {
   bool closing = false;
 
-  requests_.front().sendResponse();
+  request_.sendResponse();
 
-  if (requests_.front().getStatus() == COMPLETED)
+  if (request_.getStatus() == COMPLETED)
   {
-    closing = requests_.front().closingConnection();
-    requests_.pop_front();
+    closing = request_.closingConnection();
+    request_ = Request(fd_, servers_);
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
@@ -148,17 +146,17 @@ EpollAction Connection::handleWrite()
   {
     action.op = EPOLL_ACTION_DEL;
   }
-  else if (requests_.front().getStatus() != SENDING_RESPONSE)
+  else if (request_.getStatus() != SENDING_RESPONSE)
   {
     ep_event_->events = EPOLLIN | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     polling_write_ = false;
-    if (requests_.front().getStatus() == READING_START_LINE)
+    if (request_.getStatus() == READING_START_LINE)
     {
       keepalive_last_ping_ = Utils::getCurrentTime();
       request_timeout_ping_ = 0;
     }
-    else if (requests_.front().getStatus() == READING_HEADERS)
+    else if (request_.getStatus() == READING_HEADERS)
     {
       keepalive_last_ping_ = 0;
       request_timeout_ping_ = Utils::getCurrentTime();
@@ -181,7 +179,7 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
   if (request_timeout_ping_ > 0 &&
       current_time >= request_timeout_ping_ + 30000)
   {
-    requests_.front().timeout();
+    request_.timeout();
     action.event->events = EPOLLOUT | EPOLLRDHUP;
     action.op = EPOLL_ACTION_MOD;
     request_timeout_ping_ = 0;
