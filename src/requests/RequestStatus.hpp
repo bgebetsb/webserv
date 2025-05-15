@@ -1,6 +1,7 @@
 #pragma once
 
-enum RequestStatus {
+enum RequestStatus
+{
   READING_START_LINE,
   READING_HEADERS,
   READING_BODY,

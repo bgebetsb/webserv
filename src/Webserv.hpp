@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/types.h>
 #include <map>
 #include <vector>
 #include "Listener.hpp"
@@ -13,6 +14,7 @@ typedef std::vector< IpAddress* > IpVec;
 typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
 typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;
+typedef std::multimap< u_int64_t, int, std::greater< u_int64_t > > MMKeepAlive;
 
 class Webserv
 {
@@ -40,4 +42,6 @@ class Webserv
   void addFd(int fd, struct epoll_event* event);
   void modifyFd(int fd, struct epoll_event* event) const;
   void deleteFd(int fd);
+  void pingAllClients(size_t needed_fds);
+  void closeClientConnections(const MMKeepAlive& fds, size_t needed_fds);
 };

@@ -1,5 +1,8 @@
+#include "../responses/StaticResponse.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
+#include "exceptions/ConError.hpp"
+#include "requests/RequestStatus.hpp"
 
 void Request::readStartLine(const std::string& line)
 {
@@ -9,7 +12,10 @@ void Request::readStartLine(const std::string& line)
   parsePath(stream);
   parseHTTPVersion(stream);
 
-  status_ = READING_HEADERS;
+  if (status_ == READING_START_LINE)
+  {
+    status_ = READING_HEADERS;
+  }
 }
 
 void Request::parseMethod(std::istringstream& stream)
@@ -18,19 +24,22 @@ void Request::parseMethod(std::istringstream& stream)
 
   if (!(stream >> method))
   {
-    throw std::runtime_error("Unable to parse method");
+    throw ConErr("Unable to parse method");
   }
 
   if (method == "GET")
   {
     method_ = GET;
-  } else if (method == "POST")
+  }
+  else if (method == "POST")
   {
     method_ = POST;
-  } else if (method == "DELETE")
+  }
+  else if (method == "DELETE")
   {
     method_ = DELETE;
-  } else
+  }
+  else
   {
     method_ = INVALID;
   }
@@ -42,7 +51,7 @@ void Request::parsePath(std::istringstream& stream)
 
   if (!(stream >> path))
   {
-    throw std::runtime_error("Unable to parse path");
+    throw ConErr("Unable to parse path");
   }
 
   path_ = preventEscaping(path);
@@ -54,11 +63,19 @@ void Request::parseHTTPVersion(std::istringstream& stream)
 
   if (!(stream >> version))
   {
-    throw std::runtime_error("Unable to parse HTTP version");
+    throw ConErr("Unable to parse HTTP version");
+  }
+
+  if (version.length() != 8 || version.substr(0, 5) != "HTTP/" ||
+      version[6] != '.' || !std::isdigit(version[5]) ||
+      !std::isdigit(version[7]))
+  {
+    throw ConErr("Malformed HTTP version");
   }
 
   if (version != "HTTP/1.1")
   {
-    throw std::runtime_error("Invalid HTTP version");
+    response_ = new StaticResponse(fd_, 505);
+    status_ = SENDING_RESPONSE;
   }
 }

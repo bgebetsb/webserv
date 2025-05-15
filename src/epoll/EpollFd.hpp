@@ -4,7 +4,8 @@
 #include "EpollAction.hpp"
 // class Webserv;
 
-class EpollFd {
+class EpollFd
+{
  public:
   EpollFd();
   EpollFd(const EpollFd& other);
