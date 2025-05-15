@@ -168,7 +168,10 @@ void Request::processHeaders(void)
     return;
   }
 
-  const Server& server = getServer(host.unwrap());
+  if (host_.empty())
+    host_ = host.unwrap();
+
+  const Server& server = getServer(host_);
 
   MLocations locations = server.locations;
   MLocations::const_iterator l_it = locations.find(path_);
@@ -182,15 +185,16 @@ void Request::processHeaders(void)
     return;
   }
 
-  /* MRedirects::const_iterator redirect =
-  l_it->second.redirect.find(path_);TODO: new redirect struct
-
-  if (redirect != l_it->second.redirects.end())
+  redirection redir = l_it->second.redirect;
+  if (redir.has_been_set)
   {
-    response_ = new RedirectResponse(fd_, redirect->second);
+    std::string location = redir.uri;
+    replaceString(location, "$host", host_);
+    replaceString(location, "$request_uri", path_);
+    response_ = new RedirectResponse(fd_, redir.code, location);
     status_ = SENDING_RESPONSE;
     return;
-  } */
+  }
 
   if (l_it->second.root.empty())
   {
@@ -269,4 +273,13 @@ const Server& Request::getServer(const std::string& host) const
   }
 
   return servers_.front();
+}
+
+void Request::replaceString(std::string& str,
+                            const std::string& search,
+                            const std::string& replace) const
+{
+  std::string::size_type pos = str.find(search);
+  if (pos != std::string::npos)
+    str = str.replace(pos, search.length(), replace);
 }
