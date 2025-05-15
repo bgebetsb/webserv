@@ -38,9 +38,30 @@ Request::Request(const Request& other)
       response_(other.response_)
 {}
 
+Request& Request::operator=(const Request& other)
+{
+  if (this != &other)
+  {
+    fd_ = other.fd_;
+    status_ = other.status_;
+    closing_ = other.closing_;
+    total_header_size_ = other.total_header_size_;
+    if (response_)
+    {
+      delete response_;
+    }
+    response_ = other.response_;
+  }
+
+  return *this;
+}
+
 Request::~Request()
 {
-  delete response_;
+  if (response_)
+  {
+    delete response_;
+  }
 }
 
 void Request::addHeaderLine(const std::string& line)

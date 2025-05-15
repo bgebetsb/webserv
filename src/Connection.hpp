@@ -2,7 +2,6 @@
 
 #include <sys/epoll.h>
 #include <sys/types.h>
-#include <deque>
 #include <vector>
 #include "Server.hpp"
 #include "epoll/EpollAction.hpp"
@@ -24,7 +23,7 @@ class Connection : public EpollFd
   char* readbuf_;
   std::string buffer_;
   bool polling_write_;
-  std::deque< Request > requests_;
+  Request request_;
   size_t request_timeout_ping_;
   size_t keepalive_last_ping_;
 

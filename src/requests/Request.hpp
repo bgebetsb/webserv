@@ -16,8 +16,9 @@ typedef std::vector< Server > vServer;
 class Request
 {
  public:
-  Request(const int fd, const std::vector< Server >& servers);
+  Request(int fd, const std::vector< Server >& servers);
   Request(const Request& other);
+  Request& operator=(const Request& other);
   ~Request();
 
   void addHeaderLine(const std::string& line);
@@ -28,10 +29,7 @@ class Request
   void setResponse(Response* response);
 
  private:
-  // Unused
-  Request& operator=(const Request& other);
-
-  const int fd_;
+  int fd_;
   RequestStatus status_;
   RequestMethod method_;
   std::string path_;
