@@ -47,6 +47,6 @@ class Request
   void parseHTTPVersion(std::istringstream& stream);
   void parseHeaderLine(const std::string& line);
   void processHeaders(void);
-  Option< const std::string& > getHeader(const std::string& name) const;
+  Option< std::string > getHeader(const std::string& name) const;
   const Server& getServer(const std::string& host) const;
 };

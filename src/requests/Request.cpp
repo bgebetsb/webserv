@@ -139,7 +139,7 @@ void Request::parseHeaderLine(const std::string& line)
 
 void Request::processHeaders(void)
 {
-  Option< const std::string& > host = getHeader("Host");
+  Option< std::string > host = getHeader("Host");
 
   if (host.is_none())
   {
@@ -222,7 +222,7 @@ void Request::setResponse(Response* response)
   status_ = SENDING_RESPONSE;
 }
 
-Option< const std::string& > Request::getHeader(const std::string& name) const
+Option< std::string > Request::getHeader(const std::string& name) const
 {
   std::string lower(name);
   std::for_each(lower.begin(), lower.end(), Utils::toLower);
@@ -230,10 +230,10 @@ Option< const std::string& > Request::getHeader(const std::string& name) const
   mHeader::const_iterator it = headers_.find(lower);
   if (it == headers_.end())
   {
-    return Option< const std::string& >();
+    return Option< std::string >();
   }
 
-  return Option< const std::string& >(it->second);
+  return Option< std::string >(it->second);
 }
 
 const Server& Request::getServer(const std::string& host) const
