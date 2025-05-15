@@ -16,6 +16,7 @@
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
+#include "requests/RequestMethods.hpp"
 #include "responses/FileResponse.hpp"
 #include "responses/Response.hpp"
 
@@ -178,7 +179,14 @@ void Request::processHeaders(void)
 
   PathInfos infos;
 
-  if (l_it == locations.end() || l_it->second.root.empty())
+  if (!methodAllowed(l_it->second))
+  {
+    response_ = new StaticResponse(fd_, 405);
+    status_ = SENDING_RESPONSE;
+    return;
+  }
+
+  if (l_it == locations.end())
   {
     response_ = new StaticResponse(fd_, 404);
     status_ = SENDING_RESPONSE;
@@ -282,4 +290,19 @@ void Request::replaceString(std::string& str,
   std::string::size_type pos = str.find(search);
   if (pos != std::string::npos)
     str = str.replace(pos, search.length(), replace);
+}
+
+bool Request::methodAllowed(const location& location) const
+{
+  switch (method_)
+  {
+    case GET:
+      return location.GET;
+    case POST:
+      return location.POST;
+    case DELETE:
+      return location.DELETE;
+    default:
+      return false;
+  }
 }
