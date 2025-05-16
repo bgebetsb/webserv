@@ -62,5 +62,10 @@ class Request
   void insertHeader(const std::string& key, const std::string& value);
   bool isStandardHeader(const std::string& key) const;
   void validateTransferEncoding(const std::string& value);
+<<<<<<< Updated upstream
   void validateContentLength(const std::string& value);
+=======
+  const location& findMatchingLocationBlock(const MLocations& locations,
+                                            const std::string& path) const;
+>>>>>>> Stashed changes
 };

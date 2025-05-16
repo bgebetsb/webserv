@@ -167,19 +167,14 @@ void Request::processHeaders(void)
     host_ = host.unwrap();
 
   const Server& server = getServer(host_);
-
-  MLocations locations = server.locations;
-  MLocations::const_iterator l_it = locations.find(path_);
+  const location& location = findMatchingLocationBlock(server.locations, path_);
 
   PathInfos infos;
 
-  if (!methodAllowed(l_it->second))
+  if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
 
-  if (l_it == locations.end())
-    throw RequestError(404, "No matching location block");
-
-  redirection redir = l_it->second.redirect;
+  redirection redir = location.redirect;
   if (redir.has_been_set)
   {
     std::string location = redir.uri;
@@ -190,11 +185,10 @@ void Request::processHeaders(void)
     return;
   }
 
-  if (l_it->second.root.empty())
+  if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
 
-  // TODO: Actually search the correct location
-  std::string full_path = locations[0].root + path_;
+  std::string full_path = location.root + path_;
 
   infos = getFileType(full_path);
 
@@ -343,6 +337,7 @@ void Request::validateTransferEncoding(const std::string& value)
   }
 }
 
+<<<<<<< Updated upstream
 void Request::validateContentLength(const std::string& value)
 {
   std::istringstream stream(value);
@@ -351,4 +346,26 @@ void Request::validateContentLength(const std::string& value)
   if (!(stream >> number) || number < 0 || !stream.eof())
     throw RequestError(400, "Invalid Content-Length header");
   content_length_ = Option< long >(number);
+=======
+const location& Request::findMatchingLocationBlock(
+    const MLocations& locations,
+    const std::string& path) const
+{
+  MLocations::const_iterator it;
+
+  it = locations.find(path);
+  if (it != locations.end())
+    return it->second;
+
+  for (it = locations.begin(); it != locations.end(); ++it)
+  {
+    if (*it->first.rbegin() == '/' &&
+        path.substr(0, it->first.length()) == it->first)
+    {
+      return it->second;
+    }
+  }
+
+  throw RequestError(404, "No matching location found");
+>>>>>>> Stashed changes
 }
