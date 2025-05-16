@@ -39,6 +39,7 @@ class Request
   std::string path_;
   mHeader headers_;
   bool chunked_;
+  Option< long > content_length_;
   bool closing_;
   const vServer& servers_;
   size_t total_header_size_;
@@ -61,4 +62,5 @@ class Request
   void insertHeader(const std::string& key, const std::string& value);
   bool isStandardHeader(const std::string& key) const;
   void validateTransferEncoding(const std::string& value);
+  void validateContentLength(const std::string& value);
 };
