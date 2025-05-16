@@ -24,6 +24,7 @@ Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
       status_(READING_START_LINE),
       chunked_(false),
+      content_length_(Option< long >()),
       closing_(false),
       servers_(servers),
       total_header_size_(0),
@@ -34,6 +35,7 @@ Request::Request(const Request& other)
     : fd_(other.fd_),
       status_(other.status_),
       chunked_(other.chunked_),
+      content_length_(other.content_length_),
       closing_(other.closing_),
       servers_(other.servers_),
       total_header_size_(other.total_header_size_),
@@ -46,6 +48,8 @@ Request& Request::operator=(const Request& other)
   {
     fd_ = other.fd_;
     status_ = other.status_;
+    chunked_ = other.chunked_;
+    content_length_ = other.content_length_;
     closing_ = other.closing_;
     total_header_size_ = other.total_header_size_;
     if (response_)
@@ -146,12 +150,17 @@ void Request::processHeaders(void)
     throw RequestError(400, "Missing Host header");
 
   Option< std::string > transfer_encoding = getHeader("Transfer-Encoding");
+  Option< std::string > content_length = getHeader("Content-Length");
   if (transfer_encoding.is_some())
   {
     validateTransferEncoding(transfer_encoding.unwrap());
-    if (getHeader("Content-Length").is_some())
+    if (content_length.is_some())
       throw RequestError(400,
                          "Both Content-Length and Transfer-Encoding present");
+  }
+  else if (content_length.is_some())
+  {
+    validateContentLength(content_length.unwrap());
   }
 
   if (host_.empty())
@@ -332,4 +341,14 @@ void Request::validateTransferEncoding(const std::string& value)
       throw RequestError(400, "Chunked header defined multiple times");
     chunked_ = true;
   }
+}
+
+void Request::validateContentLength(const std::string& value)
+{
+  std::istringstream stream(value);
+  long number;
+
+  if (!(stream >> number) || number < 0 || !stream.eof())
+    throw RequestError(400, "Invalid Content-Length header");
+  content_length_ = Option< long >(number);
 }
