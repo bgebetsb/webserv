@@ -38,6 +38,7 @@ class Request
   std::string host_;
   std::string path_;
   mHeader headers_;
+  bool chunked_;
   bool closing_;
   const vServer& servers_;
   size_t total_header_size_;
@@ -59,4 +60,5 @@ class Request
   bool methodAllowed(const location& location) const;
   void insertHeader(const std::string& key, const std::string& value);
   bool isStandardHeader(const std::string& key) const;
+  void validateTransferEncoding(const std::string& value);
 };
