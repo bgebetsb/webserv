@@ -4,9 +4,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
-#include <iostream>
+#include <sstream>
 #include <string>
-#include "../exceptions/ConError.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
@@ -24,6 +23,7 @@
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
       status_(READING_START_LINE),
+      chunked_(false),
       closing_(false),
       servers_(servers),
       total_header_size_(0),
@@ -33,6 +33,7 @@ Request::Request(const int fd, const std::vector< Server >& servers)
 Request::Request(const Request& other)
     : fd_(other.fd_),
       status_(other.status_),
+      chunked_(other.chunked_),
       closing_(other.closing_),
       servers_(other.servers_),
       total_header_size_(other.total_header_size_),
@@ -143,6 +144,15 @@ void Request::processHeaders(void)
 
   if (host.is_none())
     throw RequestError(400, "Missing Host header");
+
+  Option< std::string > transfer_encoding = getHeader("Transfer-Encoding");
+  if (transfer_encoding.is_some())
+  {
+    validateTransferEncoding(transfer_encoding.unwrap());
+    if (getHeader("Content-Length").is_some())
+      throw RequestError(400,
+                         "Both Content-Length and Transfer-Encoding present");
+  }
 
   if (host_.empty())
     host_ = host.unwrap();
@@ -303,4 +313,23 @@ bool Request::isStandardHeader(const std::string& key) const
   }
 
   return (false);
+}
+
+void Request::validateTransferEncoding(const std::string& value)
+{
+  std::istringstream stream(value);
+  std::string part;
+
+  while (std::getline(stream, part, ','))
+  {
+    std::string trimmed = Utils::trimString(part);
+    if (trimmed.empty())
+      throw RequestError(400, "Empty part in transfer encoding");
+    std::for_each(trimmed.begin(), trimmed.end(), Utils::toLower);
+    if (trimmed != "chunked")
+      throw RequestError(501, "Invalid Transfer-Encoding");
+    if (chunked_)
+      throw RequestError(400, "Chunked header defined multiple times");
+    chunked_ = true;
+  }
 }
