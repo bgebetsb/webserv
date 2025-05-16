@@ -13,6 +13,9 @@
 typedef std::map< std::string, std::string > mHeader;
 typedef std::vector< Server > vServer;
 
+const static std::string STANDARD_HEADERS[] = {"host", "content-length",
+                                               "transfer-encoding"};
+
 class Request
 {
  public:
@@ -54,4 +57,6 @@ class Request
                      const std::string& search,
                      const std::string& replace) const;
   bool methodAllowed(const location& location) const;
+  void insertHeader(const std::string& key, const std::string& value);
+  bool isStandardHeader(const std::string& key) const;
 };

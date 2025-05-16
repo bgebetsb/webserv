@@ -134,11 +134,7 @@ void Request::parseHeaderLine(const std::string& line)
     }
   }
 
-  // TODO: Special processing if we get the `Host` header, since it has some
-  // extra
-
-  // std::cout << "Key: " << name << ", Value: " << value << "\n";
-  headers_[name] = value;
+  insertHeader(name, value);
 }
 
 void Request::processHeaders(void)
@@ -267,4 +263,44 @@ bool Request::methodAllowed(const location& location) const
     default:
       return false;
   }
+}
+
+/*
+ * Key should already be lower-case here since it will be done in the function
+ * calling this
+ */
+void Request::insertHeader(const std::string& key, const std::string& value)
+{
+  Option< std::string > existing = getHeader(key);
+  if (isStandardHeader(key) && existing.is_some())
+    throw RequestError(400, "Standard Header redefined");
+
+  if (existing.is_none())
+  {
+    // TODO: Special processing if we get standard headers like Host or
+    // Content-Length since they have some extra requirements
+    headers_[key] = value;
+  }
+  else
+  {
+    std::string delim = (key != "cookie") ? ", " : "; ";
+    headers_[key] = existing.unwrap() + delim + value;
+  }
+}
+
+/*
+ * Key should already be lower-case here
+ */
+bool Request::isStandardHeader(const std::string& key) const
+{
+  size_t standard_header_count =
+      sizeof(STANDARD_HEADERS) / sizeof(STANDARD_HEADERS[0]);
+
+  for (size_t i = 0; i < standard_header_count; ++i)
+  {
+    if (key == STANDARD_HEADERS[i])
+      return (true);
+  }
+
+  return (false);
 }
