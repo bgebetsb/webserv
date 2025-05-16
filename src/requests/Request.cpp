@@ -16,6 +16,7 @@
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
+#include "exceptions/RequestError.hpp"
 #include "requests/RequestMethods.hpp"
 #include "responses/FileResponse.hpp"
 #include "responses/Response.hpp"
@@ -68,40 +69,23 @@ void Request::addHeaderLine(const std::string& line)
 {
   size_t pos = line.find('\r');
   if (pos != std::string::npos)
-  {
-    response_ = new StaticResponse(fd_, 400);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(400, "Unexpected CR before end of header line");
 
   total_header_size_ += line.size();
   if (total_header_size_ > 32768)
-  {
-    response_ = new StaticResponse(fd_, 400);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(400, "Total header size too large");
 
-  try
+  switch (status_)
   {
-    switch (status_)
-    {
-      case READING_START_LINE:
-        return readStartLine(line);
-      case READING_HEADERS:
-        return parseHeaderLine(line);
-      default:
-        // TODO: Figure out again what I was doing here lol
-        // response_ = Response(200, "OK", line);
-        // status_ = SENDING_RESPONSE;
-        throw;
-    }
-  }
-  catch (ConErr& e)
-  {
-    std::cerr << e.what() << "\n";
-    response_ = new StaticResponse(fd_, 400);
-    status_ = SENDING_RESPONSE;
+    case READING_START_LINE:
+      return readStartLine(line);
+    case READING_HEADERS:
+      return parseHeaderLine(line);
+    default:
+      // TODO: Figure out again what I was doing here lol
+      // response_ = Response(200, "OK", line);
+      // status_ = SENDING_RESPONSE;
+      throw;
   }
 }
 
@@ -132,9 +116,8 @@ void Request::parseHeaderLine(const std::string& line)
 
   size_t pos = line.find(':');
   if (pos == std::string::npos)
-  {
-    throw ConErr("Header does not contain a ':' character");
-  }
+    throw RequestError(400, "Header does not contain a ':' character");
+
   name = line.substr(0, pos);
   value = Utils::trimString(line.substr(pos + 1));
 
@@ -147,7 +130,7 @@ void Request::parseHeaderLine(const std::string& line)
     if (charset.find(c) == std::string::npos && !std::isalpha(c) &&
         !std::isdigit(c))
     {
-      throw ConErr("Invalid character");
+      throw RequestError(400, "Invalid character in header name");
     }
   }
 
@@ -163,11 +146,7 @@ void Request::processHeaders(void)
   Option< std::string > host = getHeader("Host");
 
   if (host.is_none())
-  {
-    response_ = new StaticResponse(fd_, 400);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(400, "Missing Host header");
 
   if (host_.empty())
     host_ = host.unwrap();
@@ -180,18 +159,10 @@ void Request::processHeaders(void)
   PathInfos infos;
 
   if (!methodAllowed(l_it->second))
-  {
-    response_ = new StaticResponse(fd_, 405);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(405, "Method now allowed");
 
   if (l_it == locations.end())
-  {
-    response_ = new StaticResponse(fd_, 404);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(404, "No matching location block");
 
   redirection redir = l_it->second.redirect;
   if (redir.has_been_set)
@@ -205,11 +176,7 @@ void Request::processHeaders(void)
   }
 
   if (l_it->second.root.empty())
-  {
-    response_ = new StaticResponse(fd_, 404);
-    status_ = SENDING_RESPONSE;
-    return;
-  }
+    throw RequestError(404, "No root directory set for location");
 
   // TODO: Actually search the correct location
   std::string full_path = locations[0].root + path_;
@@ -217,26 +184,20 @@ void Request::processHeaders(void)
   infos = getFileType(full_path);
 
   if (!infos.exists)
-  {
-    response_ = new StaticResponse(fd_, 404);
-  }
+    throw RequestError(404, "File doesn't exist");
   else if (!infos.readable || infos.types == OTHER)
-  {
-    response_ = new StaticResponse(fd_, 403);
-  }
+    throw RequestError(403, "File not readable or incorrect type");
   else
   {
     int fd = open(full_path.c_str(), O_RDONLY | O_NOFOLLOW);
     if (fd == -1)
-    {
-      response_ = new StaticResponse(fd_, 500);
-    }
+      throw RequestError(500, "Open failed for unknown reason");
     else
     {
       response_ = new FileResponse(fd_, fd, infos.size);
+      status_ = SENDING_RESPONSE;
     }
   }
-  status_ = SENDING_RESPONSE;
 }
 
 bool Request::closingConnection() const
@@ -244,6 +205,7 @@ bool Request::closingConnection() const
   return closing_;
 }
 
+// TODO: Maybe remove this and just use the setResponse function from outside
 void Request::timeout()
 {
   response_ = new StaticResponse(fd_, 408);

@@ -4,6 +4,7 @@
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
 #include "exceptions/ConError.hpp"
+#include "exceptions/RequestError.hpp"
 #include "requests/RequestStatus.hpp"
 
 void Request::readStartLine(const std::string& line)
@@ -40,16 +41,12 @@ void Request::parsePath(std::istringstream& stream)
   std::string::iterator it;
 
   if (!(stream >> path_))
-    throw ConErr("Unable to parse path");
+    throw RequestError(400, "Unable to parse path");
 
   if (path_[0] != '/')
   {
     if (!parseAbsoluteForm(path_))
-    {
-      response_ = new StaticResponse(fd_, 400);
-      status_ = SENDING_RESPONSE;
-      return;
-    }
+      throw RequestError(400, "Parsing absolute form failed");
   }
 
   path_ = preventEscaping(path_);
@@ -107,20 +104,15 @@ void Request::parseHTTPVersion(std::istringstream& stream)
   std::string version;
 
   if (!(stream >> version))
-  {
-    throw ConErr("Unable to parse HTTP version");
-  }
+    throw RequestError(400, "Unable to parse HTTP version");
 
   if (version.length() != 8 || version.substr(0, 5) != "HTTP/" ||
       version[6] != '.' || !std::isdigit(version[5]) ||
       !std::isdigit(version[7]))
   {
-    throw ConErr("Malformed HTTP version");
+    throw RequestError(400, "Malformed HTTP version");
   }
 
   if (version != "HTTP/1.1")
-  {
-    response_ = new StaticResponse(fd_, 505);
-    status_ = SENDING_RESPONSE;
-  }
+    throw RequestError(505, "Invalid HTTP version");
 }
