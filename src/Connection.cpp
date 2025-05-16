@@ -11,6 +11,7 @@
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
+#include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
 #include "responses/StaticResponse.hpp"
@@ -54,7 +55,17 @@ EpollAction Connection::epollCallback(int event)
 {
   if (event & EPOLLIN)
   {
-    return handleRead();
+    try
+    {
+      return handleRead();
+    }
+    catch (RequestError& e)
+    {
+      request_.setResponse(new StaticResponse(fd_, e.getCode()));
+      ep_event_->events = EPOLLOUT;
+      EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
+      return action;
+    }
   }
   else if (event & EPOLLOUT)
   {
@@ -113,9 +124,9 @@ EpollAction Connection::processBuffer()
   if (buffer_.size() > 8192)
   {
     if (request_.getStatus() == READING_START_LINE)
-      request_.setResponse(new StaticResponse(fd_, 414));
+      throw RequestError(414, "Request URI too long");
     else if (request_.getStatus() == READING_HEADERS)
-      request_.setResponse(new StaticResponse(fd_, 400));
+      throw RequestError(400, "Header too long");
   }
 
   if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
