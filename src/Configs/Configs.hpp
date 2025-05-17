@@ -126,8 +126,6 @@ struct Server
 
 typedef std::vector< Server > ServerVec;
 
-// TODO: Defend for config file dev/random dev/urandom
-
 class Configuration
 {
  private:
@@ -143,6 +141,7 @@ class Configuration
   ~Configuration();
 
   // ── ◼︎ Config file parsing ─────────────────
+  void checkFileType(const std::string& filename) const;
   void parseConfigFile(const std::string& config_file);
   void process_server_block(const std::string& line);
   void process_server_item(std::stringstream& item, Server& config);
