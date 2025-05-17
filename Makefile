@@ -7,6 +7,7 @@ UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
 CONFIGS:= Configs/Configs.cpp Configs/configUtils.cpp
 REQUESTS:= 		requests/Request.cpp \
 							requests/Startline.cpp \
+							requests/Headers.cpp \
 							requests/PathValidation/PathValidation.cpp \
 							requests/PathValidation/PreventEscape.cpp
 RESPONSES:=		responses/FileResponse.cpp \
