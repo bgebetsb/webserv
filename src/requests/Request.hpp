@@ -45,24 +45,24 @@ class Request
   size_t total_header_size_;
   Response* response_;
 
+  // Start Line
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
   void parsePath(std::istringstream& stream);
-  void parseHTTPVersion(std::istringstream& stream);
-  void parseHeaderLine(const std::string& line);
-  void processHeaders(void);
-  Option< std::string > getHeader(const std::string& name) const;
-  const Server& getServer(const std::string& host) const;
   bool parseAbsoluteForm(const std::string& path);
-  bool validateScheme(const std::string& scheme) const;
-  void replaceString(std::string& str,
-                     const std::string& search,
-                     const std::string& replace) const;
-  bool methodAllowed(const location& location) const;
+
+  // Header
+  Option< std::string > getHeader(const std::string& name) const;
+  void parseHeaderLine(const std::string& line);
   void insertHeader(const std::string& key, const std::string& value);
-  bool isStandardHeader(const std::string& key) const;
+  void validateHeaders(void);
+
+  void processRequest(void);
+  const Server& getServer(const std::string& host) const;
+  bool methodAllowed(const location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
+  // This one could be static
   const location& findMatchingLocationBlock(const MLocations& locations,
                                             const std::string& path) const;
 };

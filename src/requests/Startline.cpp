@@ -3,20 +3,26 @@
 #include "../responses/StaticResponse.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
-#include "exceptions/ConError.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/RequestStatus.hpp"
 
+static bool validateScheme(const std::string& scheme);
+static void parseHTTPVersion(std::istringstream& stream);
+
 void Request::readStartLine(const std::string& line)
 {
+  if (line.empty())
+    return;
+  if (std::isspace(line[0]))
+    throw RequestError(400, "Leading spaces in Start line");
+
   std::istringstream stream(line);
 
   parseMethod(stream);
   parsePath(stream);
   parseHTTPVersion(stream);
 
-  if (status_ == READING_START_LINE)
-    status_ = READING_HEADERS;
+  status_ = READING_HEADERS;
 }
 
 void Request::parseMethod(std::istringstream& stream)
@@ -24,7 +30,7 @@ void Request::parseMethod(std::istringstream& stream)
   std::string method;
 
   if (!(stream >> method))
-    throw ConErr("Unable to parse method");
+    throw RequestError(400, "Unable to parse method");
 
   if (method == "GET")
     method_ = GET;
@@ -86,7 +92,7 @@ bool Request::parseAbsoluteForm(const std::string& abs_path)
   return (true);
 }
 
-bool Request::validateScheme(const std::string& scheme) const
+static bool validateScheme(const std::string& scheme)
 {
   std::string::const_iterator it;
 
@@ -99,7 +105,7 @@ bool Request::validateScheme(const std::string& scheme) const
   return (true);
 }
 
-void Request::parseHTTPVersion(std::istringstream& stream)
+static void parseHTTPVersion(std::istringstream& stream)
 {
   std::string version;
 
