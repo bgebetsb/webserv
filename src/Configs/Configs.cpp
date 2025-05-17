@@ -1,8 +1,11 @@
 #include "Configs.hpp"
 #include <sys/types.h>
 
+#include <errno.h>
+#include <sys/stat.h>
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -67,7 +70,8 @@ string::size_type findClosingBracket(const string& line, string::size_type pos)
 
 void Configuration::parseConfigFile(const string& config_file)
 {
-  (void)config_file;
+  checkFileType(config_file);
+
   std::ifstream file(config_file.c_str());
   if (!file.is_open())
     throw Fatal("Could not open config file");
@@ -159,6 +163,17 @@ void Configuration::parseConfigFile(const string& config_file)
       cursor = pos + 1;  // weiter hinter dem Semikolon
     }
   }
+}
+
+void Configuration::checkFileType(const std::string& filename) const
+{
+  struct stat st;
+
+  if (stat(filename.c_str(), &st) != 0)
+    throw Fatal("Error opening " + filename + ": " + strerror(errno));
+
+  if (!S_ISREG(st.st_mode))
+    throw Fatal("Requested config " + filename + " is not a regular file");
 }
 
 void Configuration::process_server_block(const std::string& block)
