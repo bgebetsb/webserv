@@ -337,7 +337,6 @@ void Request::validateTransferEncoding(const std::string& value)
   }
 }
 
-<<<<<<< Updated upstream
 void Request::validateContentLength(const std::string& value)
 {
   std::istringstream stream(value);
@@ -346,7 +345,8 @@ void Request::validateContentLength(const std::string& value)
   if (!(stream >> number) || number < 0 || !stream.eof())
     throw RequestError(400, "Invalid Content-Length header");
   content_length_ = Option< long >(number);
-=======
+}
+
 const location& Request::findMatchingLocationBlock(
     const MLocations& locations,
     const std::string& path) const
@@ -367,5 +367,4 @@ const location& Request::findMatchingLocationBlock(
   }
 
   throw RequestError(404, "No matching location found");
->>>>>>> Stashed changes
 }
