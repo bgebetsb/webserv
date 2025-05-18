@@ -209,18 +209,11 @@ void Webserv::pingAllClients(size_t needed_fds)
     Connection* c = dynamic_cast< Connection* >(it->second);
     if (c)
     {
-      std::pair< EpollAction, u_int64_t > action_time = c->ping();
-      if (action_time.first.op == EPOLL_ACTION_MOD)
-      {
-        modifyFd(action_time.first.fd, action_time.first.event);
+      u_int64_t time = c->ping();
+      if (time == 0)
         continue;
-      }
 
-      if (action_time.second > 0)
-      {
-        keepalive_fds.insert(
-            MMKeepAlive::value_type(action_time.second, action_time.first.fd));
-      }
+      keepalive_fds.insert(MMKeepAlive::value_type(time, c->getFd()));
     }
   }
 
