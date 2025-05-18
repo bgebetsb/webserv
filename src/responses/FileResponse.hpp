@@ -5,7 +5,7 @@
 class FileResponse : public Response
 {
  public:
-  FileResponse(int client_fd, int file_fd, off_t size);
+  FileResponse(int client_fd, int file_fd, off_t size, bool close);
   ~FileResponse();
 
   void sendResponse(void);

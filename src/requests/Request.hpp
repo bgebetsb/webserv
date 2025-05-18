@@ -56,6 +56,7 @@ class Request
   void parseHeaderLine(const std::string& line);
   void insertHeader(const std::string& key, const std::string& value);
   void validateHeaders(void);
+  void processConnectionHeader(void);
 
   void processRequest(void);
   const Server& getServer(const std::string& host) const;

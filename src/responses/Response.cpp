@@ -7,10 +7,10 @@
 #include "../Connection.hpp"
 #include "exceptions/ConError.hpp"
 
-Response::Response(int client_fd, int response_code)
+Response::Response(int client_fd, int response_code, bool close_connection)
     : client_fd_(client_fd),
       response_code_(response_code),
-      close_connection_(false),
+      close_connection_(close_connection),
       complete_(false)
 {
   switch (response_code)

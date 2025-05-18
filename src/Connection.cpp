@@ -61,7 +61,8 @@ EpollAction Connection::epollCallback(int event)
     }
     catch (RequestError& e)
     {
-      request_.setResponse(new StaticResponse(fd_, e.getCode()));
+      request_.setResponse(
+          new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
       ep_event_->events = EPOLLOUT;
       EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
       return action;
