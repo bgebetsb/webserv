@@ -1,6 +1,7 @@
 #include "Request.hpp"
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <cerrno>
 #include <cstddef>
 #include <string>
 #include "../responses/RedirectResponse.hpp"
@@ -129,23 +130,38 @@ void Request::processRequest(void)
     throw RequestError(404, "No root directory set for location");
 
   std::string full_path = location.root + path_;
+  processFilePath(full_path);
+}
 
-  PathInfos infos = getFileType(full_path);
+void Request::processFilePath(const std::string& path)
+{
+  PathInfos infos = getFileType(path);
 
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
+  else if (infos.types == REGULAR_FILE)
+    openFile(path, infos.size);
+  else
+    throw RequestError(501, "Directories not implemented yet");
+}
+
+void Request::openFile(const std::string& path, off_t size)
+{
+  int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW);
+  if (fd == -1)
+  {
+    if (errno == ELOOP)
+      throw RequestError(403, "Requested file is a symlink");
+    else if (errno == ENFILE || errno == EMFILE)
+      throw RequestError(503, "Server ran out of fds");
+    throw RequestError(500, "Open failed for unknown reason");
+  }
   else
   {
-    int fd = open(full_path.c_str(), O_RDONLY | O_NOFOLLOW);
-    if (fd == -1)
-      throw RequestError(500, "Open failed for unknown reason");
-    else
-    {
-      response_ = new FileResponse(fd_, fd, infos.size, closing_);
-      status_ = SENDING_RESPONSE;
-    }
+    response_ = new FileResponse(fd_, fd, size, closing_);
+    status_ = SENDING_RESPONSE;
   }
 }
 

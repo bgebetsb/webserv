@@ -1,7 +1,7 @@
-#include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cerrno>
 #include <string>
 #include "PathInfos.hpp"
 #include "exceptions/ConError.hpp"

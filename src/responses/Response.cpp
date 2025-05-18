@@ -45,6 +45,10 @@ Response::Response(int client_fd, int response_code, bool close_connection)
     case 500:
       response_title_ = "Internal Server Error";
       break;
+    case 503:
+      response_title_ = "Service unavailable";
+      close_connection_ = true;
+      break;
     case 505:
       response_title_ = "HTTP Version Not Supported";
       close_connection_ = true;
