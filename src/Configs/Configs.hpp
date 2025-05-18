@@ -43,7 +43,7 @@ typedef std::map< string, string > MRedirects;
 typedef std::vector< filename > VDefaultFiles;
 typedef std::set< string > SCgiExtensions;
 struct location;
-typedef std::map< string, location > MLocations;
+typedef std::map< string, location, std::greater< string > > MLocations;
 
 /// @brief `Pair of bools to indicate if a value has been set`
 ///
