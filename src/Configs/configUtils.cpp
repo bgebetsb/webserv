@@ -1,5 +1,5 @@
 #include "configUtils.hpp"
-#include <errno.h>
+#include <cerrno>
 #include <cstdlib>
 #include "../exceptions/Fatal.hpp"
 

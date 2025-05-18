@@ -1,5 +1,5 @@
-#include <errno.h>
 #include <sys/types.h>
+#include <cerrno>
 #include <cstdlib>
 #include <string>
 #include "../exceptions/Fatal.hpp"

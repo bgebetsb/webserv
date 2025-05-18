@@ -25,11 +25,13 @@ class Request
   ~Request();
 
   void addHeaderLine(const std::string& line);
+  void processRequest(void);
   void sendResponse();
-  RequestStatus getStatus() const;
-  bool closingConnection() const;
   void timeout();
   void setResponse(Response* response);
+
+  RequestStatus getStatus() const;
+  bool closingConnection() const;
 
  private:
   int fd_;
@@ -58,7 +60,8 @@ class Request
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  void processRequest(void);
+  void processFilePath(const std::string& path);
+  void openFile(const std::string& path, off_t size);
   const Server& getServer(const std::string& host) const;
   bool methodAllowed(const location& location) const;
   void validateTransferEncoding(const std::string& value);

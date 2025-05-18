@@ -1,8 +1,8 @@
 #include "Configs.hpp"
 #include <sys/types.h>
 
-#include <errno.h>
 #include <sys/stat.h>
+#include <cerrno>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
