@@ -185,6 +185,12 @@ void Webserv::mainLoop()
       {
         deleteFd(fd->getFd());
       }
+      catch (std::bad_alloc& e)
+      {
+        Connection* c = dynamic_cast< Connection* >(fd);
+        if (c)
+          deleteFd(c->getFd());
+      }
     }
 
     pingAllClients(needed_fds);
