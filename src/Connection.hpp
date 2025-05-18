@@ -16,12 +16,13 @@ class Connection : public EpollFd
   Connection(int socket_fd, const std::vector< Server >& servers);
   ~Connection();
   EpollAction epollCallback(int event);
-  u_int64_t ping();
+  std::pair< EpollAction, u_int64_t > ping();
 
  private:
   const std::vector< Server >& servers_;
   char* readbuf_;
   std::string buffer_;
+  bool polling_write_;
   Request request_;
   size_t request_timeout_ping_;
   size_t keepalive_last_ping_;
