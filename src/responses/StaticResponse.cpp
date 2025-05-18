@@ -4,8 +4,8 @@
 #include <sstream>
 #include "responses/Response.hpp"
 
-StaticResponse::StaticResponse(int client_fd, int response_code)
-    : Response(client_fd, response_code)
+StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
+    : Response(client_fd, response_code, close)
 {
   std::string content("<html><head><title>" + response_title_ +
                       "</title></head><body><h1>" + response_title_ +

@@ -5,7 +5,8 @@ class RedirectResponse : public Response
  public:
   RedirectResponse(int client_fd,
                    int response_code,
-                   const std::string& redirect_location);
+                   const std::string& redirect_location,
+                   bool close);
   ~RedirectResponse();
 
  private:

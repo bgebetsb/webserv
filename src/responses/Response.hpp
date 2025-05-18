@@ -6,7 +6,7 @@
 class Response
 {
  public:
-  Response(int client_fd, int response_code);
+  Response(int client_fd, int response_code, bool close_connection);
   virtual ~Response();
 
   void setCloseConnectionHeader(void);

@@ -7,8 +7,8 @@
 #include "Connection.hpp"
 #include "exceptions/ConError.hpp"
 
-FileResponse::FileResponse(int client_fd, int file_fd, off_t size)
-    : Response(client_fd, 200),
+FileResponse::FileResponse(int client_fd, int file_fd, off_t size, bool close)
+    : Response(client_fd, 200, close),
       file_fd_(file_fd),
       remaining_(size),
       rd_buf_(new char[CHUNK_SIZE]),

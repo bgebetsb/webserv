@@ -3,13 +3,18 @@
 
 RedirectResponse::RedirectResponse(int client_fd,
                                    int response_code,
-                                   const std::string& redirect_location)
-    : Response(client_fd, response_code)
+                                   const std::string& redirect_location,
+                                   bool close)
+    : Response(client_fd, response_code, close)
 {
   std::ostringstream response;
   response << createResponseHeaderLine() << "Location: " << redirect_location
            << "\r\nConnection: ";
-  response << "close\r\nContent-Length: 0\r\n\r\n";
+  if (close_connection_)
+    response << "close\r\n";
+  else
+    response << "keep-alive\r\n";
+  response << "Content-Length: 0\r\n\r\n";
 
   full_response_ = response.str();
 }

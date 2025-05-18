@@ -109,7 +109,7 @@ void Request::processRequest(void)
   const Server& server = getServer(host_);
   const location& location = findMatchingLocationBlock(server.locations, path_);
 
-  PathInfos infos;
+  processConnectionHeader();
 
   if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
@@ -120,7 +120,7 @@ void Request::processRequest(void)
     std::string location = redir.uri;
     location = Utils::replaceString(location, "$host", host_);
     location = Utils::replaceString(location, "$request_uri", path_);
-    response_ = new RedirectResponse(fd_, redir.code, location);
+    response_ = new RedirectResponse(fd_, redir.code, location, closing_);
     status_ = SENDING_RESPONSE;
     return;
   }
@@ -130,7 +130,7 @@ void Request::processRequest(void)
 
   std::string full_path = location.root + path_;
 
-  infos = getFileType(full_path);
+  PathInfos infos = getFileType(full_path);
 
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
@@ -143,7 +143,7 @@ void Request::processRequest(void)
       throw RequestError(500, "Open failed for unknown reason");
     else
     {
-      response_ = new FileResponse(fd_, fd, infos.size);
+      response_ = new FileResponse(fd_, fd, infos.size, closing_);
       status_ = SENDING_RESPONSE;
     }
   }
@@ -157,7 +157,7 @@ bool Request::closingConnection() const
 // TODO: Maybe remove this and just use the setResponse function from outside
 void Request::timeout()
 {
-  response_ = new StaticResponse(fd_, 408);
+  response_ = new StaticResponse(fd_, 408, true);
   status_ = SENDING_RESPONSE;
 }
 

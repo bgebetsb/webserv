@@ -3,7 +3,7 @@
 class StaticResponse : public Response
 {
  public:
-  StaticResponse(int client_fd, int response_code);
+  StaticResponse(int client_fd, int response_code, bool close);
   ~StaticResponse();
 
  private:

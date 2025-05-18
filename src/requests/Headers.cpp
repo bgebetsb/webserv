@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include "../exceptions/RequestError.hpp"
 #include "../utils/Utils.hpp"
 #include "Request.hpp"
@@ -147,4 +148,24 @@ Option< std::string > Request::getHeader(const std::string& name) const
   }
 
   return Option< std::string >(it->second);
+}
+
+void Request::processConnectionHeader(void)
+{
+  Option< std::string > header = getHeader("Connection");
+  if (header.is_none())
+    return;
+
+  std::istringstream stream(header.unwrap());
+  std::string part;
+
+  while (std::getline(stream, part, ','))
+  {
+    part = Utils::trimString(part);
+    if (part == "close")
+      closing_ = true;
+    else if (part == "keep-alive")
+      closing_ = false;
+    // Ignore everything else since that seems to be nginx behavior
+  }
 }
