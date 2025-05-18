@@ -19,6 +19,7 @@
 
 Connection::Connection(int socket_fd, const std::vector< Server >& servers)
     : servers_(servers),
+      polling_write_(false),
       request_(Request(-1, servers)),
       request_timeout_ping_(Utils::getCurrentTime()),
       keepalive_last_ping_(0)
@@ -39,7 +40,7 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
   if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
     throw ConErr("Unable to set fd to non-blocking");
 
-  ep_event_->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
+  ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
   ep_event_->data.ptr = this;
   request_ = Request(fd_, servers);
@@ -52,12 +53,7 @@ Connection::~Connection()
 
 EpollAction Connection::epollCallback(int event)
 {
-  RequestStatus status = request_.getStatus();
-  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, getEvent()};
-
-  if ((status == READING_START_LINE || status == READING_HEADERS ||
-       status == READING_BODY || status == SKIPPING_BODY) &&
-      event & EPOLLIN)
+  if (event & EPOLLIN)
   {
     try
     {
@@ -67,14 +63,17 @@ EpollAction Connection::epollCallback(int event)
     {
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
+      ep_event_->events = EPOLLOUT;
+      EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
       return action;
     }
   }
-  else if (status == SENDING_RESPONSE && event & EPOLLOUT)
+  else if (event & EPOLLOUT)
   {
     return handleWrite();
   }
 
+  EpollAction action = {fd_, EPOLL_ACTION_DEL, NULL};
   return action;
 }
 
@@ -131,6 +130,14 @@ EpollAction Connection::processBuffer()
       throw RequestError(400, "Header too long");
   }
 
+  if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
+  {
+    ep_event_->events = EPOLLOUT | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    action.event = ep_event_;
+    polling_write_ = true;
+  }
+
   return action;
 }
 
@@ -153,6 +160,9 @@ EpollAction Connection::handleWrite()
   }
   else if (request_.getStatus() != SENDING_RESPONSE)
   {
+    ep_event_->events = EPOLLIN | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    polling_write_ = false;
     if (request_.getStatus() == READING_START_LINE)
     {
       keepalive_last_ping_ = Utils::getCurrentTime();
@@ -168,23 +178,30 @@ EpollAction Connection::handleWrite()
   return action;
 }
 
-u_int64_t Connection::ping()
+std::pair< EpollAction, u_int64_t > Connection::ping()
 {
+  EpollAction action;
   u_int64_t current_time;
   u_int64_t time_diff = 0;
+
+  action.event = getEvent();
+  action.fd = fd_;
 
   current_time = Utils::getCurrentTime();
   if (request_timeout_ping_ > 0 &&
       current_time >= request_timeout_ping_ + 30000)
   {
     request_.timeout();
+    action.event->events = EPOLLOUT | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
     request_timeout_ping_ = 0;
   }
   else
   {
+    action.op = EPOLL_ACTION_UNCHANGED;
     if (keepalive_last_ping_ > 0)
       time_diff = current_time - keepalive_last_ping_;
   }
 
-  return time_diff;
+  return std::make_pair(action, time_diff);
 }

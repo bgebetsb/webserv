@@ -1,12 +1,13 @@
 #include "EpollFd.hpp"
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <iostream>
 #include <stdexcept>
 
 EpollFd::EpollFd() : fd_(-1)
 {
   ep_event_ = new struct epoll_event();
-  ep_event_->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
+  ep_event_->events = EPOLLIN | EPOLLRDHUP;
   ep_event_->data.ptr = this;
 }
 
