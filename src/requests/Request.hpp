@@ -60,8 +60,9 @@ class Request
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  void processFilePath(const std::string& path);
+  void processFilePath(const std::string& path, const location& location);
   void openFile(const std::string& path, off_t size);
+  void openDirectory(const std::string& path, const location& location);
   const Server& getServer(const std::string& host) const;
   bool methodAllowed(const location& location) const;
   void validateTransferEncoding(const std::string& value);
