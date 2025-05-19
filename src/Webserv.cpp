@@ -27,7 +27,8 @@
  * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
  * than zero.
  */
-Webserv::Webserv(std::string config_file) : epoll_fd_(epoll_create(1024))
+Webserv::Webserv(std::string config_file)
+    : epoll_fd_(epoll_create1(EPOLL_CLOEXEC))
 {
   (void)config_file;
   if (epoll_fd_ == -1)
