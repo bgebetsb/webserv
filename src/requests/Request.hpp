@@ -24,7 +24,8 @@ class Request
   Request& operator=(const Request& other);
   ~Request();
 
-  void addHeaderLine(const std::string& line);
+  void addHeaderLine(const std::string& line);  // TODO: find out if we need to
+                                                // add something for POST
   void processRequest(void);
   void sendResponse();
   void timeout();
@@ -32,6 +33,8 @@ class Request
 
   RequestStatus getStatus() const;
   bool closingConnection() const;
+
+  // ── ◼︎ utils ────────────────────────────────────────────────────────
 
  private:
   int fd_;
@@ -46,8 +49,9 @@ class Request
   const vServer& servers_;
   size_t total_header_size_;
   Response* response_;
+  // ── ◼︎ POST ───────────────────────
 
-  // Start Line
+  // ── ◼︎ Start Line ───────────────────────
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
   void parsePath(std::istringstream& stream);
@@ -70,4 +74,8 @@ class Request
   // This one could be static
   const location& findMatchingLocationBlock(const MLocations& locations,
                                             const std::string& path) const;
+  // ── ◼︎ POST UTILS───────────────────────
+  bool isValidPostRequest(const location& loc) const;
+  bool is_multipart;
+  bool is_cgi;
 };

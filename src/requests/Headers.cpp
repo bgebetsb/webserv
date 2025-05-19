@@ -38,7 +38,6 @@ void Request::parseHeaderLine(const std::string& line)
       throw RequestError(400, "Invalid character in header name");
     }
   }
-
   insertHeader(name, value);
 }
 

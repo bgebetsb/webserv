@@ -125,7 +125,10 @@ void Request::processRequest(void)
     status_ = SENDING_RESPONSE;
     return;
   }
-
+  if (isValidPostRequest(location))
+  {
+    ;  // processPostRequest();
+  }
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
 
@@ -142,7 +145,15 @@ void Request::processFilePath(const std::string& path, const location& location)
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
+  {
     openFile(path, infos.size);
+    // TODO: CGI
+    // if (method_ == POST && location.cgi_extensions)
+    // {
+    //   postRequestCGI();
+    //   return;
+    // }
+  }
   else
     openDirectory(path, location);
 }
@@ -259,3 +270,15 @@ const location& Request::findMatchingLocationBlock(
 
   throw RequestError(404, "No matching location found");
 }
+
+// bool Request::isValidPostRequest(const location& loc) const
+// {
+//   std::string file_extension = path_.substr(path_.find_last_of(".") + 1);
+//   if (method_ != POST)
+//     return false;
+//   if (headers_.find("Content-Type") == headers_.end())
+//     return false;
+//   if (headers_.find("Content-Length") == headers_.end())
+//     return false;
+// TODO: enum erstellen für die verschiedenen POST typen
+//   chunked existiert schon.

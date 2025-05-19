@@ -401,9 +401,9 @@ void Configuration::process_location_item(std::stringstream& item,
     if (tokens.size() != 1)
       throw Fatal("Invalid config file format: upload_dir requires exactly 1 "
                   "argument");
-    if (tokens[0][0] != '/')
-      throw Fatal("Invalid config file format: upload_dir requires an "
-                  "absolute path");
+    if (tokens[0].find_first_of("/.") != string::npos)
+      throw Fatal("Invalid config file format: upload_dir cannot contain a  "
+                  "path");
     loc.upload_dir = tokens[0];
   }
 
