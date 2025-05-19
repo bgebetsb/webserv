@@ -61,8 +61,9 @@ class Request
   void processConnectionHeader(void);
 
   void processFilePath(const std::string& path, const location& location);
-  void openFile(const std::string& path, off_t size);
+  int openFile(const std::string& path) const;
   void openDirectory(const std::string& path, const location& location);
+  void createDirectoryListing(const std::string& path);
   const Server& getServer(const std::string& host) const;
   bool methodAllowed(const location& location) const;
   void validateTransferEncoding(const std::string& value);

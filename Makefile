@@ -14,6 +14,7 @@ RESPONSES:=		responses/FileResponse.cpp \
 							responses/RedirectResponse.cpp \
 							responses/Response.cpp \
 							responses/StaticResponse.cpp \
+							responses/DirectoryListing.cpp \
 							
 GLOBALS:=	main.cpp Connection.cpp Listener.cpp Webserv.cpp
 EPOLL:= epoll/EpollFd.cpp
