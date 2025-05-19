@@ -193,6 +193,7 @@ void Request::openDirectory(const std::string& path, const location& location)
     {
       int fd = openFile(path + *it);
       setResponse(new FileResponse(fd_, fd, infos.size, closing_));
+      return;
     }
   }
 
