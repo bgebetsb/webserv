@@ -130,10 +130,10 @@ void Request::processRequest(void)
     throw RequestError(404, "No root directory set for location");
 
   std::string full_path = location.root + path_;
-  processFilePath(full_path);
+  processFilePath(full_path, location);
 }
 
-void Request::processFilePath(const std::string& path)
+void Request::processFilePath(const std::string& path, const location& location)
 {
   PathInfos infos = getFileType(path);
 
@@ -144,7 +144,7 @@ void Request::processFilePath(const std::string& path)
   else if (infos.types == REGULAR_FILE)
     openFile(path, infos.size);
   else
-    throw RequestError(501, "Directories not implemented yet");
+    openDirectory(path, location);
 }
 
 void Request::openFile(const std::string& path, off_t size)
@@ -163,6 +163,33 @@ void Request::openFile(const std::string& path, off_t size)
     response_ = new FileResponse(fd_, fd, size, closing_);
     status_ = SENDING_RESPONSE;
   }
+}
+
+void Request::openDirectory(const std::string& path, const location& location)
+{
+  VDefaultFiles::const_iterator it;
+  const VDefaultFiles& files = location.default_files;
+
+  for (it = files.begin(); it != files.end(); ++it)
+  {
+    PathInfos infos = getFileType(path + *it);
+    if (!infos.exists)
+      continue;
+    if (!infos.readable || infos.types == OTHER)
+      throw RequestError(403, "File not readable or incorrect type");
+    else if (infos.types == DIRECTORY)
+    {
+      // TODO: Respond with 301 permanent redirect to the directory, just in
+      // case we have a directory called index.html (or similar) lol
+      throw RequestError(501, "index file pointing to directory");
+    }
+    else
+      return openFile(path + *it, infos.size);
+  }
+
+  if (!location.DIR_LISTING.first)
+    throw RequestError(403, "No index file found and autoindex disabled");
+  throw RequestError(501, "Directory listings not implemented yet");
 }
 
 bool Request::closingConnection() const
