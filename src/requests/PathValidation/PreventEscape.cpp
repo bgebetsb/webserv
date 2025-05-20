@@ -28,11 +28,13 @@ std::string preventEscaping(const std::string& path)
   }
 
   if (parts.empty())
-  {
     return "/";
-  }
 
-  return (joinStrings(parts, '/'));
+  std::string joined = joinStrings(parts, '/');
+  if (path[path.length() - 1] == '/')
+    joined += '/';
+
+  return (joined);
 }
 
 static std::string joinStrings(const std::vector< std::string >& parts,
