@@ -1,9 +1,12 @@
 #include "Request.hpp"
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstddef>
 #include <string>
+#include "../responses/DirectoryListing.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
@@ -46,6 +49,10 @@ Request& Request::operator=(const Request& other)
   {
     fd_ = other.fd_;
     status_ = other.status_;
+    method_ = other.method_;
+    host_ = other.host_;
+    path_ = other.path_;
+    headers_.clear();
     chunked_ = other.chunked_;
     content_length_ = other.content_length_;
     closing_ = other.closing_;
@@ -139,15 +146,20 @@ void Request::processFilePath(const std::string& path, const location& location)
 
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
+  else if (path[path.length() - 1] == '/' && infos.types != DIRECTORY)
+    throw RequestError(404, "Requested a directory but found a file");
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
-    openFile(path, infos.size);
+  {
+    int fd = openFile(path);
+    setResponse(new FileResponse(fd_, fd, infos.size, closing_));
+  }
   else
     openDirectory(path, location);
 }
 
-void Request::openFile(const std::string& path, off_t size)
+int Request::openFile(const std::string& path) const
 {
   int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW);
   if (fd == -1)
@@ -158,11 +170,7 @@ void Request::openFile(const std::string& path, off_t size)
       throw RequestError(503, "Server ran out of fds");
     throw RequestError(500, "Open failed for unknown reason");
   }
-  else
-  {
-    response_ = new FileResponse(fd_, fd, size, closing_);
-    status_ = SENDING_RESPONSE;
-  }
+  return fd;
 }
 
 void Request::openDirectory(const std::string& path, const location& location)
@@ -179,17 +187,30 @@ void Request::openDirectory(const std::string& path, const location& location)
       throw RequestError(403, "File not readable or incorrect type");
     else if (infos.types == DIRECTORY)
     {
-      // TODO: Respond with 301 permanent redirect to the directory, just in
-      // case we have a directory called index.html (or similar) lol
-      throw RequestError(501, "index file pointing to directory");
+      std::string redir_loc = "http://" + host_ + path_ + *it + '/';
+      setResponse(new RedirectResponse(fd_, 301, redir_loc, closing_));
+      return;
     }
     else
-      return openFile(path + *it, infos.size);
+    {
+      int fd = openFile(path + *it);
+      setResponse(new FileResponse(fd_, fd, infos.size, closing_));
+      return;
+    }
   }
 
   if (!location.DIR_LISTING.first)
     throw RequestError(403, "No index file found and autoindex disabled");
-  throw RequestError(501, "Directory listings not implemented yet");
+  createDirectoryListing(path);
+}
+
+void Request::createDirectoryListing(const std::string& path)
+{
+  int fd = openFile(path);
+  close(fd);
+
+  std::string content = DirectoryListing::createDirectoryListing(path, path_);
+  setResponse(new StaticResponse(fd_, 200, closing_, content));
 }
 
 bool Request::closingConnection() const

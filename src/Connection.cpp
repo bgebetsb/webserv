@@ -151,7 +151,15 @@ EpollAction Connection::handleWrite()
   {
     closing = request_.closingConnection();
     request_ = Request(fd_, servers_);
-    processBuffer();
+    try
+    {
+      processBuffer();
+    }
+    catch (RequestError& e)
+    {
+      request_.setResponse(
+          new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
+    }
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
