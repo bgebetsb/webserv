@@ -86,7 +86,8 @@ EpollAction Connection::handleRead()
   else if (ret == 0)
     throw ConErr("Peer closed connection");
   buffer_.append(readbuf_, ret);
-
+  // if (request_.getStatus() == READING_BODY)
+  //   request.addBody return processBuffer(); //TODO: Magic happens here @Max
   return processBuffer();
 }
 

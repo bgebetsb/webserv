@@ -26,7 +26,8 @@ Request::Request(const int fd, const std::vector< Server >& servers)
       closing_(false),
       servers_(servers),
       total_header_size_(0),
-      response_(NULL)
+      response_(NULL),
+      is_cgi_(false)
 {}
 
 Request::Request(const Request& other)
@@ -114,7 +115,6 @@ void Request::processRequest(void)
 
   if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
-
   redirection redir = location.redirect;
   if (redir.has_been_set)
   {
@@ -125,17 +125,26 @@ void Request::processRequest(void)
     status_ = SENDING_RESPONSE;
     return;
   }
-  if (isValidPostRequest(location))
-  {
-    ;  // processPostRequest();
-  }
+
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
-
+  if (isFileUpload(location))
+  {
+    ;  // setUpFileUpload();
+  }
+  // TODO: CGI
   std::string full_path = location.root + path_;
   processFilePath(full_path, location);
 }
 
+GET / skripts / skript.sh / HTTP /
+    1.1
+
+    location /
+    skripts /
+{
+  ROOT var / www / skripts / ABSOLUTE PATH var / www / skripts / skript.sh
+}
 void Request::processFilePath(const std::string& path, const location& location)
 {
   PathInfos infos = getFileType(path);
@@ -267,18 +276,92 @@ const location& Request::findMatchingLocationBlock(
       return it->second;
     }
   }
-
   throw RequestError(404, "No matching location found");
 }
 
-// bool Request::isValidPostRequest(const location& loc) const
-// {
-//   std::string file_extension = path_.substr(path_.find_last_of(".") + 1);
-//   if (method_ != POST)
-//     return false;
-//   if (headers_.find("Content-Type") == headers_.end())
-//     return false;
-//   if (headers_.find("Content-Length") == headers_.end())
-//     return false;
-// TODO: enum erstellen für die verschiedenen POST typen
-//   chunked existiert schon.
+/*
+  This function shall check in case of a directory request if the cgi extension
+  is found in the index files
+  If yes it shall set CGI to true and return false
+  If no it shall return true -> Random filename is going to be generated
+*/
+bool Request::isCgiRequest(const location& loc) const
+{
+  std::string file_extension = path_.substr(path_.find_last_of(".") + 1);
+  if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+    return true;
+  return false;
+}
+
+/*
+  This function shall check if the request is a file upload or if it is a cgi
+  since this gets treated differently
+  If no it shall return true -> Random filename is going to be generated
+*/
+bool Request::isFileUpload(const location& loc)
+{
+  if (status_ == READING_BODY)
+    throw;
+  std::string filename = path_.substr(loc.location_name.length());
+  // ── ◼︎ check for filename  ─────────────────────────────────────────────
+  if (filename.empty())
+    return isCgiRequest(loc);  // TODO: check for cgi and index -> upload or not
+
+  // ── ◼︎ check for cgi extension in filename ─────────────────────────────
+  std::string file_extension = filename.substr(filename.find_last_of(".") + 1);
+  if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+  {
+    is_cgi_ = true;
+    return false;
+  }
+
+  // ── ◼︎ if no cgi, check for slash -> forbidden ───────────────────────
+  if (filename.find_first_of("/") != std::string::npos)
+  {
+    throw RequestError(400, "Invalid filename");
+    return false;
+  }
+
+  // ── ◼︎ check for upload dir ───────────────────────────────────────────
+  if (loc.upload_dir.empty())
+  {
+    throw RequestError(403, "No upload dir set");
+    return false;
+  }
+  else
+  {
+    PathInfos infos = getFileType(loc.root + "/" + loc.upload_dir.substr(2));
+    if (!infos.exists || infos.types != DIRECTORY || !infos.writable)
+    {
+      throw RequestError(
+          500, "Upload dir not found or not a directory or not writable");
+      return false;
+    }
+  }
+
+  // ── ◼︎ check for file      ──────────────────────────────────────────────
+  absolute_path_ = loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename;
+  PathInfos infos = getFileType(absolute_path_);
+  if (!infos.exists)
+    return true;
+  else if (infos.exists && infos.types == REGULAR_FILE && infos.writable)
+    return true;
+  else
+  {
+    throw RequestError(403, "File not accesible or incorrect type");
+    return false;
+  }
+}
+
+void Request::setupFileUpload()
+{
+  if (current_upload_files_.insert(absolute_path_).second)
+  {
+    status_ = READING_BODY;
+    return;
+  }
+  else
+  {
+    throw RequestError(409, "File already exists");
+  }
+}

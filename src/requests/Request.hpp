@@ -75,7 +75,9 @@ class Request
   const location& findMatchingLocationBlock(const MLocations& locations,
                                             const std::string& path) const;
   // ── ◼︎ POST UTILS───────────────────────
-  bool isValidPostRequest(const location& loc) const;
-  bool is_multipart;
-  bool is_cgi;
+  bool isCgiRequest(const location& loc) const;
+  bool isFileUpload(const location& loc);
+  bool is_cgi_;
+  std::string absolute_path_;
+  static std::set< std::string > current_upload_files_;
 };

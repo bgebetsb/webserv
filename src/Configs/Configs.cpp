@@ -229,6 +229,7 @@ void Configuration::process_location_block(std::stringstream& item,
     throw Fatal("Invalid config file format: duplicate location path");
 
   location new_location;
+  new_location.location_name = token;
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
   config.locations[token] = new_location;
@@ -407,7 +408,7 @@ void Configuration::process_location_item(std::stringstream& item,
     loc.upload_dir = tokens[0];
   }
 
-  // ── ◼︎ invalid token ────────────────────────────────────────────────────────
+  // ── ◼︎ end / invalid token ──────────────────────────────────────────────────
   else if (identifier == "}")
     return;
   else

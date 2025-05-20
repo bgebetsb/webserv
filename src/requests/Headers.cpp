@@ -90,6 +90,8 @@ void Request::validateHeaders(void)
 
   Option< std::string > transfer_encoding = getHeader("Transfer-Encoding");
   Option< std::string > content_length = getHeader("Content-Length");
+  Option< std::string > content_disposition =
+      getHeader("Content-Disposition");  // TODO: validate
   if (transfer_encoding.is_some())
   {
     validateTransferEncoding(transfer_encoding.unwrap());
