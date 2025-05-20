@@ -14,6 +14,7 @@ namespace DirectoryListing
     FileTypes type;
     std::string name;
     off_t size;
+    char timestamp[20];
   };
 
   typedef std::set< DirEntry > SEntries;
