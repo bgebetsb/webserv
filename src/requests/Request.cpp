@@ -207,7 +207,7 @@ void Request::createDirectoryListing(const std::string& path)
   int fd = openFile(path);
   close(fd);
 
-  std::string content = DirectoryListing::createDirectoryListing(path);
+  std::string content = DirectoryListing::createDirectoryListing(path, path_);
   setResponse(new StaticResponse(fd_, 200, closing_, content));
 }
 

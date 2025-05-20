@@ -1,34 +1,19 @@
+#include "DirectoryListing.hpp"
 #include <dirent.h>
 #include <sys/stat.h>
-#include <set>
+#include <string>
 #include "exceptions/RequestError.hpp"
 #include "requests/PathValidation/FileTypes.hpp"
 
-struct DirEntry
-{
-  FileTypes type;
-  std::string name;
-  off_t size;
-};
-
-bool operator<(const DirEntry& a, const DirEntry& b)
-{
-  if (a.type == DIRECTORY && b.type != DIRECTORY)
-    return true;
-  else if ((a.type != DIRECTORY && b.type == DIRECTORY) || b.name == "..")
-    return false;
-
-  return (a.name < b.name);
-}
-
 namespace DirectoryListing
 {
-  typedef std::set< DirEntry > SEntries;
-  static std::string buildDirectoryListing(const SEntries& entries);
+  static std::string buildDirectoryListing(const SEntries& entries,
+                                           const std::string& request_path);
 
-  std::string createDirectoryListing(const std::string& path)
+  std::string createDirectoryListing(const std::string& local_path,
+                                     const std::string& request_path)
   {
-    DIR* dirp = opendir(path.c_str());
+    DIR* dirp = opendir(local_path.c_str());
     if (!dirp)
       throw RequestError(500, "Unable to open directory");
 
@@ -48,7 +33,7 @@ namespace DirectoryListing
       {
         case DT_REG:
           entry.type = REGULAR_FILE;
-          full_path = path + "/" + dir->d_name;
+          full_path = local_path + "/" + dir->d_name;
           if (stat(full_path.c_str(), &st) == -1)
           {
             closedir(dirp);
@@ -70,14 +55,19 @@ namespace DirectoryListing
     }
     closedir(dirp);
 
-    return buildDirectoryListing(entries);
+    return buildDirectoryListing(entries, request_path);
   }
 
-  static std::string buildDirectoryListing(const SEntries& entries)
+  static std::string buildDirectoryListing(const SEntries& entries,
+                                           const std::string& request_path)
   {
-    std::string response_body =
-        "<html><head><title>Index</title></head><body><h1>Most beautiful "
-        "directory listing ever</h1><br>";
+    std::string response_body = "<html>\r\n"
+                                "<head>\r\n"
+                                "<title>Index</title>\r\n"
+                                "</head>\r\n"
+                                "<body>\r\n"
+                                "<h1>Index of " +
+                                request_path + "</h1>\r\n<br>\r\n";
     SEntries::const_iterator it;
 
     for (it = entries.begin(); it != entries.end(); ++it)
@@ -85,8 +75,19 @@ namespace DirectoryListing
       response_body +=
           "<a href=\"" + it->name + "\">" + it->name + "</a><br />\r\n";
     }
-    response_body += "</body></html>";
+    response_body += "</body>\r\n</html>\r\n";
 
     return response_body;
   }
+
+  bool operator<(const DirEntry& a, const DirEntry& b)
+  {
+    if (a.type == DIRECTORY && b.type != DIRECTORY)
+      return true;
+    else if ((a.type != DIRECTORY && b.type == DIRECTORY) || b.name == "..")
+      return false;
+
+    return (a.name < b.name);
+  }
+
 }  // namespace DirectoryListing
