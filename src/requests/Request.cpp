@@ -146,6 +146,8 @@ void Request::processFilePath(const std::string& path, const location& location)
 
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
+  else if (path[path.length() - 1] == '/' && infos.types != DIRECTORY)
+    throw RequestError(404, "Requested a directory but found a file");
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
