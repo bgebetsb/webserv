@@ -155,6 +155,8 @@ void Request::processFilePath(const std::string& path, const location& location)
     int fd = openFile(path);
     setResponse(new FileResponse(fd_, fd, infos.size, closing_));
   }
+  else if (path[path.length() - 1] != '/')
+    throw RequestError(404, "Requested a file but found a directory");
   else
     openDirectory(path, location);
 }
