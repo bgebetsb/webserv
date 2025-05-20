@@ -185,9 +185,9 @@ void Request::openDirectory(const std::string& path, const location& location)
       throw RequestError(403, "File not readable or incorrect type");
     else if (infos.types == DIRECTORY)
     {
-      // TODO: Respond with 301 permanent redirect to the directory, just in
-      // case we have a directory called index.html (or similar) lol
-      throw RequestError(501, "index file pointing to directory");
+      std::string redir_loc = "http://" + host_ + path_ + *it + '/';
+      setResponse(new RedirectResponse(fd_, 301, redir_loc, closing_));
+      return;
     }
     else
     {
