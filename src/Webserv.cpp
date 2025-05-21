@@ -22,6 +22,8 @@
 
 #define MAX_EVENTS 1024
 
+#define KEEPALIVE_TIMEOUT_SECONDS 30
+
 /*
  * The `size` argument in epoll_create is just for backwards compatibility.
  * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
@@ -239,7 +241,7 @@ void Webserv::closeClientConnections(const MMKeepAlive& keepalive_fds,
   MMKeepAlive::const_iterator it = keepalive_fds.begin();
   size_t total_closed = 0;
   // TODO: set this to the number from the config
-  size_t time_limit = 30000;
+  size_t time_limit = KEEPALIVE_TIMEOUT_SECONDS * 1000;
 
   while (it != keepalive_fds.end() &&
          (it->first > time_limit || total_closed < needed_fds))

@@ -10,6 +10,9 @@
 
 #define CHUNK_SIZE 4096
 
+#define REQUEST_TIMEOUT_SECONDS 30
+#define SEND_RECEIVE_TIMEOUT 60
+
 class Connection : public EpollFd
 {
  public:
@@ -26,6 +29,7 @@ class Connection : public EpollFd
   Request request_;
   size_t request_timeout_ping_;
   size_t keepalive_last_ping_;
+  size_t send_receive_ping_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
