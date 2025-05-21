@@ -29,6 +29,7 @@ FileResponse::FileResponse(int client_fd, int file_fd, off_t size, bool close)
 FileResponse::~FileResponse()
 {
   delete[] rd_buf_;
+  close(file_fd_);
 }
 
 void FileResponse::sendResponse(void)
