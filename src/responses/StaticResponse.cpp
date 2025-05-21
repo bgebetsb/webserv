@@ -13,7 +13,8 @@ StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
 
   std::ostringstream response;
   response << createResponseHeaderLine()
-           << "Content-Length: " << content.length() << "\r\nConnection: ";
+           << "Content-Length: " << content.length()
+           << "\r\nContent-Type: text/html\r\nConnection: ";
   if (close_connection_)
     response << "close\r\n\r\n";
   else
@@ -31,7 +32,8 @@ StaticResponse::StaticResponse(int client_fd,
 {
   std::ostringstream response;
   response << createResponseHeaderLine()
-           << "Content-Length: " << content.length() << "\r\nConnection: ";
+           << "Content-Length: " << content.length()
+           << "\r\nContent-Type: text/html\r\nConnection: ";
   if (close_connection_)
     response << "close\r\n\r\n";
   else
