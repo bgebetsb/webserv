@@ -10,6 +10,8 @@
 
 #define CHUNK_SIZE 4096
 
+#define REQUEST_TIMEOUT_SECONDS 30
+
 class Connection : public EpollFd
 {
  public:

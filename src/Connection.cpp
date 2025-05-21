@@ -228,7 +228,7 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
 
   current_time = Utils::getCurrentTime();
   if (request_timeout_ping_ > 0 &&
-      current_time >= request_timeout_ping_ + 30000)
+      current_time >= request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000)
   {
     request_.timeout();
     action.event->events = EPOLLOUT | EPOLLRDHUP;
