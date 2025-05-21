@@ -25,7 +25,8 @@ Connection::Connection(int socket_fd, const std::vector< Server >& servers)
       polling_write_(false),
       request_(Request(-1, servers)),
       request_timeout_ping_(Utils::getCurrentTime()),
-      keepalive_last_ping_(0)
+      keepalive_last_ping_(0),
+      send_receive_ping_(request_timeout_ping_)
 {
   struct sockaddr_in peer_addr;
   socklen_t peer_addr_size = sizeof(peer_addr);
@@ -56,6 +57,8 @@ Connection::~Connection()
 
 EpollAction Connection::epollCallback(int event)
 {
+  if (((event & EPOLLIN) | (event & EPOLLOUT)) != 0)
+    send_receive_ping_ = Utils::getCurrentTime();
   if (event & EPOLLIN)
   {
     try
@@ -227,13 +230,22 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
   action.fd = fd_;
 
   current_time = Utils::getCurrentTime();
-  if (request_timeout_ping_ > 0 &&
-      current_time >= request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000)
+  if ((request_timeout_ping_ > 0 &&
+       current_time >=
+           request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000) ||
+      current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT * 1000)
   {
-    request_.timeout();
-    action.event->events = EPOLLOUT | EPOLLRDHUP;
-    action.op = EPOLL_ACTION_MOD;
-    request_timeout_ping_ = 0;
+    if (request_.getStatus() < SENDING_RESPONSE)
+    {
+      request_.timeout();
+      action.event->events = EPOLLOUT | EPOLLRDHUP;
+      action.op = EPOLL_ACTION_MOD;
+      request_timeout_ping_ = 0;
+    }
+    else
+    {
+      action.op = EPOLL_ACTION_DEL;
+    }
   }
   else
   {
