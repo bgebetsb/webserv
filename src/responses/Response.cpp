@@ -18,6 +18,9 @@ Response::Response(int client_fd, int response_code, bool close_connection)
     case 200:
       response_title_ = "OK";
       break;
+    case 204:
+      response_title_ = "No Content";
+      break;
     case 301:
       response_title_ = "Moved Permanently";
       break;

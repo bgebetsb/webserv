@@ -153,11 +153,25 @@ void Request::processFilePath(const std::string& path, const location& location)
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
-    setResponse(new FileResponse(fd_, path, 200, closing_));
+  {
+    if (method_ == GET)
+      setResponse(new FileResponse(fd_, path, 200, closing_));
+    else if (method_ == DELETE)
+    {
+      if (unlink(path.c_str()) == 0)
+        setResponse(new StaticResponse(fd_, 204, false, ""));
+      else
+        throw RequestError(403, "Unable to delete file");
+    }
+  }
   else if (path[path.length() - 1] != '/')
     throw RequestError(404, "Requested a file but found a directory");
   else
+  {
+    if (method_ == DELETE)
+      throw RequestError(403, "Attempted to delete a directory");
     openDirectory(path, location);
+  }
 }
 
 int Request::openFile(const std::string& path) const
