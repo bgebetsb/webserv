@@ -106,6 +106,7 @@ struct location
   redirection redirect;           // redirections
   string root;                    // root
   string upload_dir;              // upload_dir
+  string location_name;           // location name
 };
 
 /// @brief `Server configuration`
