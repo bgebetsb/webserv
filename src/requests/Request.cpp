@@ -137,7 +137,8 @@ void Request::processRequest(void)
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
 
-  std::string full_path = location.root + path_;
+  std::string full_path =
+      location.root + '/' + path_.substr(location.location_name.length());
   processFilePath(full_path, location);
 }
 
