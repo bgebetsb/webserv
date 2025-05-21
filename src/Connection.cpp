@@ -74,11 +74,12 @@ EpollAction Connection::epollCallback(int event)
         }
         const location& location =
             Request::findMatchingLocationBlock(server.locations, it->second);
+        if (!location.GET)
+          throw RequestError(405, "Method not allowed for error page");
         if (location.root.empty())
-        {
-          throw RequestError(404, "Error page not found");
-        }
-        std::string path = location.root + it->second;
+          throw RequestError(404, "Error page: no root directory set");
+        std::string path =
+            location.root + it->second.substr(location.location_name.length());
         request_.setResponse(new FileResponse(fd_, path, e.getCode(),
                                               request_.closingConnection()));
         ep_event_->events = EPOLLOUT;
