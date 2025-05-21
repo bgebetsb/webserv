@@ -24,6 +24,18 @@ Response::Response(int client_fd, int response_code, bool close_connection)
     case 301:
       response_title_ = "Moved Permanently";
       break;
+    case 302:
+      response_title_ = "Found";
+      break;
+    case 303:
+      response_title_ = "See Other";
+      break;
+    case 307:
+      response_title_ = "Temporary Redirect";
+      break;
+    case 308:
+      response_title_ = "Permanent Redirect";
+      break;
     case 400:
       response_title_ = "Bad Request";
       close_connection_ = true;
