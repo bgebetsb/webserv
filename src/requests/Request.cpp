@@ -115,6 +115,7 @@ RequestStatus Request::getStatus() const
 void Request::processRequest(void)
 {
   const Server& server = getServer(host_);
+  server_ = &server;
   const location& location = findMatchingLocationBlock(server.locations, path_);
 
   processConnectionHeader();
@@ -261,9 +262,8 @@ bool Request::methodAllowed(const location& location) const
   }
 }
 
-const location& Request::findMatchingLocationBlock(
-    const MLocations& locations,
-    const std::string& path) const
+const location& Request::findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path)
 {
   MLocations::const_iterator it;
 
@@ -281,4 +281,11 @@ const location& Request::findMatchingLocationBlock(
   }
 
   throw RequestError(404, "No matching location found");
+}
+
+const Server& Request::getServer() const
+{
+  if (server_ == NULL)
+    throw RequestError(404, "No matching server found");
+  return *server_;
 }

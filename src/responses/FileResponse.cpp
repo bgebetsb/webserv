@@ -26,6 +26,29 @@ FileResponse::FileResponse(int client_fd, int file_fd, off_t size, bool close)
   full_response_ = response.str();
 }
 
+FileResponse::FileResponse(int client_fd,
+                           int response_code,
+                           int file_fd,
+                           off_t size,
+                           bool close)
+    : Response(client_fd, response_code, close),
+      file_fd_(file_fd),
+      remaining_(size),
+      rd_buf_(new char[CHUNK_SIZE]),
+      eof_(false)
+{
+  std::ostringstream response;
+
+  response << createResponseHeaderLine() << "Content-Length: " << size
+           << "\r\nConnection: ";
+  if (close_connection_)
+    response << "close\r\n\r\n";
+  else
+    response << "keep-alive\r\n\r\n";
+
+  full_response_ = response.str();
+}
+
 FileResponse::~FileResponse()
 {
   delete[] rd_buf_;

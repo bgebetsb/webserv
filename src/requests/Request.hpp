@@ -32,9 +32,14 @@ class Request
 
   RequestStatus getStatus() const;
   bool closingConnection() const;
+  const Server& getServer() const;
+
+  static const location& findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path);
 
  private:
   int fd_;
+  const Server* server_;
   RequestStatus status_;
   RequestMethod method_;
   std::string host_;
@@ -69,6 +74,4 @@ class Request
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
   // This one could be static
-  const location& findMatchingLocationBlock(const MLocations& locations,
-                                            const std::string& path) const;
 };
