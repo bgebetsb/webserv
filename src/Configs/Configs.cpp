@@ -316,7 +316,11 @@ void Configuration::process_location_item(std::stringstream& item,
       throw Fatal("Invalid config file format: index requires at least 1 "
                   "argument");
     for (size_t i = 0; i < tokens.size(); ++i)
+    {
+      if (tokens[i].find('/') != std::string::npos)
+        throw Fatal("Invalid config file format: index may not contain '/'");
       loc.default_files.push_back(tokens[i]);
+    }
   }
 
   // ── ◼︎ cgi ────────────────────────────────────────────────────────────────
@@ -404,6 +408,9 @@ void Configuration::process_location_item(std::stringstream& item,
       loc.redirect.uri = tokens[1];
       loc.redirect.has_been_set = true;
     }
+    else
+      throw Fatal("Invalid config file format: invalid return code => " +
+                  tokens[0]);
   }
 
   // ── ◼︎ upload directory ───────────────────────────────────────────────────

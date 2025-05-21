@@ -171,7 +171,7 @@ class Configuration
   {
     for (size_t i = 0; i < sizeof(cgis) / sizeof(string); ++i)
     {
-      if (cgi_path.find(cgis[i]) != string::npos)
+      if (cgi_path == cgis[i])
         return true;
     }
     return false;
