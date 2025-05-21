@@ -152,10 +152,7 @@ void Request::processFilePath(const std::string& path, const location& location)
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
-  {
-    int fd = openFile(path);
-    setResponse(new FileResponse(fd_, fd, infos.size, closing_));
-  }
+    setResponse(new FileResponse(fd_, path, 200, closing_));
   else if (path[path.length() - 1] != '/')
     throw RequestError(404, "Requested a file but found a directory");
   else
@@ -196,8 +193,7 @@ void Request::openDirectory(const std::string& path, const location& location)
     }
     else
     {
-      int fd = openFile(path + *it);
-      setResponse(new FileResponse(fd_, fd, infos.size, closing_));
+      setResponse(new FileResponse(fd_, path + *it, 200, closing_));
       return;
     }
   }

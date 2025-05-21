@@ -14,8 +14,6 @@
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
 #include "exceptions/RequestError.hpp"
-#include "requests/PathValidation/FileTypes.hpp"
-#include "requests/PathValidation/PathValidation.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
 #include "responses/FileResponse.hpp"
@@ -81,20 +79,11 @@ EpollAction Connection::epollCallback(int event)
           throw RequestError(404, "Error page not found");
         }
         std::string path = location.root + it->second;
-        PathInfos infos = getFileType(path);
-        if (infos.exists && infos.types == REGULAR_FILE)
-        {
-          int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW);
-          if (fd != -1)
-          {
-            request_.setResponse(
-                new FileResponse(fd_, e.getCode(), fd, infos.size,
-                                 request_.closingConnection()));
-            ep_event_->events = EPOLLOUT;
-            EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
-            return action;
-          }
-        }
+        request_.setResponse(new FileResponse(fd_, path, e.getCode(),
+                                              request_.closingConnection()));
+        ep_event_->events = EPOLLOUT;
+        EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
+        return action;
       }
       catch (std::exception& e)
       {
