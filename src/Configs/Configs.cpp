@@ -182,30 +182,42 @@ void Configuration::process_server_block(const std::string& block)
   std::size_t cursor = 0;
 
   // std::cout << block << std::endl;
-  while (cursor < block.size())
+  try
   {
-    std::size_t pos = block.find_first_of(";{", cursor);
-    if (pos == std::string::npos)
-      break;
-    if (block[pos] == ';')
+    while (cursor < block.size())
     {
-      std::stringstream ss(block.substr(cursor, pos - cursor));
-      process_server_item(ss, config);
-      cursor = pos + 1;  // weiter hinter dem Semikolon
-    }
-    else if (block[pos] == '{')
-    {
-      std::size_t end = block.find('}', pos);
-      if (end == std::string::npos)
-        throw Fatal("Invalid config file format: expected '}'");
+      std::size_t pos = block.find_first_of(";{", cursor);
+      if (pos == std::string::npos)
+        break;
+      if (block[pos] == ';')
+      {
+        std::stringstream ss(block.substr(cursor, pos - cursor));
+        process_server_item(ss, config);
+        cursor = pos + 1;  // weiter hinter dem Semikolon
+      }
+      else if (block[pos] == '{')
+      {
+        std::size_t end = block.find('}', pos);
+        if (end == std::string::npos)
+          throw Fatal("Invalid config file format: expected '}'");
 
-      std::stringstream ss(block.substr(cursor, end - cursor + 1));
-      process_location_block(ss, config);
-      cursor = end + 1;  // weiter hinter der schließenden Klammer
+        std::stringstream ss(block.substr(cursor, end - cursor + 1));
+        process_location_block(ss, config);
+        cursor = end + 1;  // weiter hinter der schließenden Klammer
+      }
     }
+    // TODO: check here if configs are valid
+    server_configs_.push_back(config);
   }
-  // TODO: check here if configs are valid
-  server_configs_.push_back(config);
+  catch (std::exception& e)
+  {
+    IpSet::iterator it;
+
+    for (it = config.ips.begin(); it != config.ips.end(); ++it)
+      delete *it;
+    config.ips.clear();
+    throw;
+  }
 }
 
 void Configuration::process_location_block(std::stringstream& item,
