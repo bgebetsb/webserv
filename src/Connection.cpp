@@ -6,14 +6,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cerrno>
+#include <exception>
 #include <string>
 #include <vector>
+#include "Configs/Configs.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
+#include "responses/FileResponse.hpp"
 #include "responses/StaticResponse.hpp"
 #include "utils/Utils.hpp"
 
@@ -61,6 +64,33 @@ EpollAction Connection::epollCallback(int event)
     }
     catch (RequestError& e)
     {
+      try
+      {
+        const Server& server = request_.getServer();
+        MErrors::const_iterator it = server.error_pages.find(e.getCode());
+        if (it == server.error_pages.end())
+        {
+          throw RequestError(404, "No error page configured");
+        }
+        const location& location =
+            Request::findMatchingLocationBlock(server.locations, it->second);
+        if (!location.GET)
+          throw RequestError(405, "Method not allowed for error page");
+        if (location.root.empty())
+          throw RequestError(404, "Error page: no root directory set");
+        std::string path =
+            location.root + it->second.substr(location.location_name.length());
+        request_.setResponse(new FileResponse(fd_, path, e.getCode(),
+                                              request_.closingConnection()));
+        ep_event_->events = EPOLLOUT;
+        EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
+        return action;
+      }
+      catch (std::exception& e)
+      {
+        // Fall back to the Static-Response if something happens with the
+        // ErrorPage
+      }
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
       ep_event_->events = EPOLLOUT;

@@ -115,6 +115,7 @@ RequestStatus Request::getStatus() const
 void Request::processRequest(void)
 {
   const Server& server = getServer(host_);
+  server_ = &server;
   const location& location = findMatchingLocationBlock(server.locations, path_);
 
   processConnectionHeader();
@@ -151,10 +152,7 @@ void Request::processFilePath(const std::string& path, const location& location)
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
-  {
-    int fd = openFile(path);
-    setResponse(new FileResponse(fd_, fd, infos.size, closing_));
-  }
+    setResponse(new FileResponse(fd_, path, 200, closing_));
   else if (path[path.length() - 1] != '/')
     throw RequestError(404, "Requested a file but found a directory");
   else
@@ -195,8 +193,7 @@ void Request::openDirectory(const std::string& path, const location& location)
     }
     else
     {
-      int fd = openFile(path + *it);
-      setResponse(new FileResponse(fd_, fd, infos.size, closing_));
+      setResponse(new FileResponse(fd_, path + *it, 200, closing_));
       return;
     }
   }
@@ -261,9 +258,8 @@ bool Request::methodAllowed(const location& location) const
   }
 }
 
-const location& Request::findMatchingLocationBlock(
-    const MLocations& locations,
-    const std::string& path) const
+const location& Request::findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path)
 {
   MLocations::const_iterator it;
 
@@ -281,4 +277,11 @@ const location& Request::findMatchingLocationBlock(
   }
 
   throw RequestError(404, "No matching location found");
+}
+
+const Server& Request::getServer() const
+{
+  if (server_ == NULL)
+    throw RequestError(404, "No matching server found");
+  return *server_;
 }
