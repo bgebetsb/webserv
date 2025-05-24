@@ -116,14 +116,14 @@ void Request::processRequest(void)
 {
   const Server& server = getServer(host_);
   server_ = &server;
-  const location& location = findMatchingLocationBlock(server.locations, path_);
+  const Location& location = findMatchingLocationBlock(server.locations, path_);
 
   processConnectionHeader();
 
   if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
 
-  redirection redir = location.redirect;
+  Redirection redir = location.redirect;
   if (redir.has_been_set)
   {
     std::string location = redir.uri;
@@ -142,7 +142,7 @@ void Request::processRequest(void)
   processFilePath(full_path, location);
 }
 
-void Request::processFilePath(const std::string& path, const location& location)
+void Request::processFilePath(const std::string& path, const Location& location)
 {
   PathInfos infos = getFileType(path);
 
@@ -188,7 +188,7 @@ int Request::openFile(const std::string& path) const
   return fd;
 }
 
-void Request::openDirectory(const std::string& path, const location& location)
+void Request::openDirectory(const std::string& path, const Location& location)
 {
   VDefaultFiles::const_iterator it;
   const VDefaultFiles& files = location.default_files;
@@ -258,7 +258,7 @@ const Server& Request::getServer(const std::string& host) const
   return servers_.front();
 }
 
-bool Request::methodAllowed(const location& location) const
+bool Request::methodAllowed(const Location& location) const
 {
   switch (method_)
   {
@@ -273,7 +273,7 @@ bool Request::methodAllowed(const location& location) const
   }
 }
 
-const location& Request::findMatchingLocationBlock(const MLocations& locations,
+const Location& Request::findMatchingLocationBlock(const MLocations& locations,
                                                    const std::string& path)
 {
   MLocations::const_iterator it;
