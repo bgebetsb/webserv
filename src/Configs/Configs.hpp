@@ -143,6 +143,7 @@ class Configuration
 
   // ── ◼︎ Config file parsing ─────────────────
   void checkFileType(const std::string& filename) const;
+  std::string removeComments(const std::string& content) const;
   void parseConfigFile(const std::string& config_file);
   void process_server_block(const std::string& line);
   void process_server_item(std::stringstream& item, Server& config);
