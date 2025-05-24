@@ -79,7 +79,7 @@ void Configuration::parseConfigFile(const string& config_file)
   string::size_type cursor = 0;
   std::stringstream file_buffer;
   file_buffer << file.rdbuf();
-  std::string file_str = file_buffer.str();
+  std::string file_str = removeComments(file_buffer.str());
   while (1)
   {
     std::string::size_type pos = file_str.find_first_of("{;", cursor);
@@ -179,6 +179,28 @@ void Configuration::checkFileType(const std::string& filename) const
 
   if (!S_ISREG(st.st_mode))
     throw Fatal("Requested config " + filename + " is not a regular file");
+}
+
+std::string Configuration::removeComments(const std::string& content) const
+{
+  std::string newcontent;
+  std::string::size_type cursor = 0;
+
+  while (true)
+  {
+    std::string::size_type pos = content.find('#', cursor);
+    if (pos == std::string::npos)
+    {
+      newcontent.append(content.substr(cursor));
+      return newcontent;
+    }
+    newcontent.append(content.substr(cursor, pos - cursor));
+    pos = content.find('\n', pos);
+    if (pos == std::string::npos)
+      break;
+    cursor = pos;
+  }
+  return newcontent;
 }
 
 void Configuration::process_server_block(const std::string& block)
