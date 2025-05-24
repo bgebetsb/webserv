@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/epoll.h>
 #include <sys/types.h>
 #include <map>
 #include <vector>
@@ -30,6 +31,7 @@ class Webserv
   ListenerMap listeners_;
   EpollMap fds_;
   const int epoll_fd_;
+  struct epoll_event* events_;
   VServers servers_;
   Configuration config_;
 
@@ -38,6 +40,7 @@ class Webserv
   Webserv& operator=(const Webserv& other);
 
   Listener& getListener(IpAddress* addr);
+  void addServers();
   void addFdsToEpoll() const;
   void addFd(int fd, struct epoll_event* event);
   void modifyFd(int fd, struct epoll_event* event) const;

@@ -29,29 +29,26 @@
  * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
  * than zero.
  */
-Webserv::Webserv(std::string config_file) : epoll_fd_(epoll_create(1024))
+Webserv::Webserv(std::string config_file)
+    : epoll_fd_(epoll_create(1024)), events_(NULL)
 {
-  (void)config_file;
   if (epoll_fd_ == -1)
   {
     throw std::runtime_error("Unable to create epoll fd");
   }
   try
   {
+    events_ = new struct epoll_event[MAX_EVENTS];
     config_.parseConfigFile(config_file);
   }
   catch (const Fatal& e)
   {
+    if (events_)
+      delete[] events_;
     close(epoll_fd_);
     throw;
   }
   servers_ = config_.getServerConfigs();
-  for (size_t i = 0; i < servers_.size(); ++i)  // TODO: extract this
-  {
-    std::cout << "Server " << i << ": " << servers_[i] << std::endl;
-    const Server& server = servers_[i];
-    addServer(server.ips, server);
-  }
 }
 
 Webserv::~Webserv()
@@ -62,6 +59,7 @@ Webserv::~Webserv()
   {
     delete it->second;
   }
+  delete[] events_;
   close(epoll_fd_);
 }
 
@@ -127,6 +125,16 @@ void Webserv::deleteFd(int fd)
   fds_.erase(fd);
 }
 
+void Webserv::addServers()
+{
+  for (size_t i = 0; i < servers_.size(); ++i)  // TODO: extract this
+  {
+    std::cout << "Server " << i << ": " << servers_[i] << std::endl;
+    const Server& server = servers_[i];
+    addServer(server.ips, server);
+  }
+}
+
 void Webserv::addFdsToEpoll() const
 {
   typedef std::map< int, EpollFd* >::const_iterator iter_type;
@@ -140,13 +148,13 @@ void Webserv::addFdsToEpoll() const
 void Webserv::mainLoop()
 {
   extern volatile sig_atomic_t g_signal;
-  struct epoll_event* events = new struct epoll_event[MAX_EVENTS];
 
+  addServers();
   addFdsToEpoll();
 
   while (true)
   {
-    int count = epoll_wait(epoll_fd_, events, MAX_EVENTS, 1000);
+    int count = epoll_wait(epoll_fd_, events_, MAX_EVENTS, 1000);
 
     if (g_signal || count == -1)
     {
@@ -158,11 +166,11 @@ void Webserv::mainLoop()
 
     for (int j = 0; j < count; ++j)
     {
-      EpollFd* fd = static_cast< EpollFd* >(events[j].data.ptr);
+      EpollFd* fd = static_cast< EpollFd* >(events_[j].data.ptr);
 
       try
       {
-        EpollAction action = fd->epollCallback(events[j].events);
+        EpollAction action = fd->epollCallback(events_[j].events);
 
         switch (action.op)
         {
@@ -197,7 +205,6 @@ void Webserv::mainLoop()
 
     pingAllClients(needed_fds);
   }
-  delete[] events;
 }
 
 /*
