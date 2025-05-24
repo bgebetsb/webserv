@@ -84,7 +84,12 @@ void Configuration::parseConfigFile(const string& config_file)
   {
     std::string::size_type pos = file_str.find_first_of("{;", cursor);
     if (pos == std::string::npos)
+    {
+      std::string rest = Utils::trimString(file_str.substr(cursor));
+      if (!rest.empty())
+        throw Fatal("Unexpected content at end of file, or missing semicolon");
       break;
+    }
     std::string identifier = file_str.substr(cursor, pos - cursor);
     if (file_str[pos] == '{')
     {
