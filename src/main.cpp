@@ -8,7 +8,6 @@
 #include <exception>
 #include <iostream>
 #include "Webserv.hpp"
-#include "exceptions/Fatal.hpp"
 #include "ip/IpAddress.hpp"
 #include "ip/Ipv4Address.hpp"
 
