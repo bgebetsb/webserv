@@ -240,7 +240,7 @@ void Configuration::process_location_block(std::stringstream& item,
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
 
-  location new_location;
+  Location new_location;
   new_location.location_name = token;
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
@@ -258,7 +258,7 @@ void Configuration::process_location_block(std::stringstream& item,
 }
 
 void Configuration::process_location_item(std::stringstream& item,
-                                          location& loc)
+                                          Location& loc)
 {
   std::string identifier;
   std::string token;
@@ -655,14 +655,14 @@ std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const redirection& redirect)
+std::ostream& operator<<(std::ostream& os, const Redirection& redirect)
 {
   os << "------->Code: " << redirect.code << std::endl;
   os << "------->URI: " << redirect.uri << std::endl;
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const location& loc)
+std::ostream& operator<<(std::ostream& os, const Location& loc)
 {
   os << std::endl;
   os << "---->Allowed http methods: " << (loc.GET ? "GET " : "")

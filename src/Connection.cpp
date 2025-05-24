@@ -75,7 +75,7 @@ EpollAction Connection::epollCallback(int event)
         {
           throw RequestError(404, "No error page configured");
         }
-        const location& location =
+        const Location& location =
             Request::findMatchingLocationBlock(server.locations, it->second);
         if (!location.GET)
           throw RequestError(405, "Method not allowed for error page");

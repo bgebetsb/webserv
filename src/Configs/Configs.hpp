@@ -42,8 +42,8 @@ typedef std::map< errcode, filename > MErrors;
 typedef std::map< string, string > MRedirects;
 typedef std::vector< filename > VDefaultFiles;
 typedef std::set< string > SCgiExtensions;
-struct location;
-typedef std::map< string, location, std::greater< string > > MLocations;
+struct Location;
+typedef std::map< string, Location, std::greater< string > > MLocations;
 
 /// @brief `Pair of bools to indicate if a value has been set`
 ///
@@ -60,7 +60,7 @@ typedef std::pair< size_t, bool > size_pair;
 // ║              SECTION: Your Section           ║
 // ╚══════════════════════════════════════════════╝
 
-struct redirection
+struct Redirection
 {
   bool has_been_set;
   u_int16_t code;
@@ -80,9 +80,9 @@ struct redirection
 /// `_____redirects` redirections
 /// `__________root` root directory
 /// `____upload_dir` upload directory
-struct location
+struct Location
 {
-  location()
+  Location()
       : http_methods_set(false),
         GET(false),
         POST(false),
@@ -103,7 +103,7 @@ struct location
   size_pair max_body_size;        // in bytes
   SCgiExtensions cgi_extensions;  // cgi_extensions
   VDefaultFiles default_files;    // default_files
-  redirection redirect;           // redirections
+  Redirection redirect;           // redirections
   string root;                    // root
   string upload_dir;              // upload_dir
   string location_name;           // location name
@@ -147,7 +147,7 @@ class Configuration
   void process_server_block(const std::string& line);
   void process_server_item(std::stringstream& item, Server& config);
   void process_location_block(std::stringstream& item, Server& loc);
-  void process_location_item(std::stringstream& item, location& loc);
+  void process_location_item(std::stringstream& item, Location& loc);
   void addServer(const std::string& server_name, int port);
   void printConfigurations() const;
 
@@ -189,8 +189,8 @@ class Configuration
 
 // ── ◼︎ operator overloads ───────────────────────
 std::ostream& operator<<(std::ostream& os, const Server& config);
-std::ostream& operator<<(std::ostream& os, const location& loc);
-std::ostream& operator<<(std::ostream& os, const redirection& redirect);
+std::ostream& operator<<(std::ostream& os, const Location& loc);
+std::ostream& operator<<(std::ostream& os, const Redirection& redirect);
 std::ostream& operator<<(std::ostream& os,
                          const std::vector< string >& default_files);
 std::ostream& operator<<(std::ostream& os,

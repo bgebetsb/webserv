@@ -34,7 +34,7 @@ class Request
   bool closingConnection() const;
   const Server& getServer() const;
 
-  static const location& findMatchingLocationBlock(const MLocations& locations,
+  static const Location& findMatchingLocationBlock(const MLocations& locations,
                                                    const std::string& path);
 
  private:
@@ -65,12 +65,12 @@ class Request
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  void processFilePath(const std::string& path, const location& location);
+  void processFilePath(const std::string& path, const Location& location);
   int openFile(const std::string& path) const;
-  void openDirectory(const std::string& path, const location& location);
+  void openDirectory(const std::string& path, const Location& location);
   void createDirectoryListing(const std::string& path);
   const Server& getServer(const std::string& host) const;
-  bool methodAllowed(const location& location) const;
+  bool methodAllowed(const Location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
   // This one could be static
