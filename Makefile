@@ -16,8 +16,9 @@ RESPONSES:=		responses/FileResponse.cpp \
 							responses/StaticResponse.cpp \
 							responses/DirectoryListing.cpp \
 							
-GLOBALS:=	main.cpp Connection.cpp Ipv4Connection.cpp Ipv6Connection.cpp Listener.cpp Webserv.cpp
-EPOLL:= epoll/EpollFd.cpp
+GLOBALS:=	main.cpp Webserv.cpp
+EPOLL:= epoll/EpollFd.cpp epoll/Connection.cpp epoll/Ipv4Connection.cpp epoll/Ipv6Connection.cpp \
+				epoll/Listener.cpp
 IP:= ip/IpAddress.cpp ip/Ipv4Address.cpp ip/Ipv6Address.cpp ip/IpComparison.cpp
 SRC := $(UTILS) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES)
 SRCDIR := src
