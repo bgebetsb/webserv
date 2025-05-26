@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "Connection.hpp"
+#include "epoll/Connection.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/PathValidation/FileTypes.hpp"

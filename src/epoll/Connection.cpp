@@ -5,14 +5,12 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cerrno>
 #include <exception>
 #include <string>
 #include <vector>
 #include "Configs/Configs.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
-#include "exceptions/FdLimitReached.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
@@ -20,35 +18,15 @@
 #include "responses/StaticResponse.hpp"
 #include "utils/Utils.hpp"
 
-Connection::Connection(int socket_fd, const std::vector< Server >& servers)
-    : servers_(servers),
+Connection::Connection(const std::vector< Server >& servers)
+    : request_(Request(-1, servers)),
+      servers_(servers),
+      readbuf_(new char[CHUNK_SIZE]),
       polling_write_(false),
-      request_(Request(-1, servers)),
       request_timeout_ping_(Utils::getCurrentTime()),
       keepalive_last_ping_(0),
       send_receive_ping_(request_timeout_ping_)
-{
-  struct sockaddr_in peer_addr;
-  socklen_t peer_addr_size = sizeof(peer_addr);
-
-  readbuf_ = new char[CHUNK_SIZE];
-  fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
-  if (fd_ == -1)
-  {
-    if (errno == EMFILE || errno == ENFILE)
-      throw FdLimitReached("Unable to accept client connection");
-    else
-      throw ConErr("Unable to accept client connection");
-  }
-
-  if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
-    throw ConErr("Unable to set fd to non-blocking");
-
-  ep_event_->events = EPOLLIN | EPOLLRDHUP;
-
-  ep_event_->data.ptr = this;
-  request_ = Request(fd_, servers);
-}
+{}
 
 Connection::~Connection()
 {

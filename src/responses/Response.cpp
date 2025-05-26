@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <ostream>
 #include <sstream>
-#include "../Connection.hpp"
+#include "epoll/Connection.hpp"
 #include "exceptions/ConError.hpp"
 
 Response::Response(int client_fd, int response_code, bool close_connection)
