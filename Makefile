@@ -4,6 +4,7 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 NAME := webserv
 
 UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
+LOGGER := Logger/Logger.cpp
 CONFIGS:= Configs/Configs.cpp Configs/configUtils.cpp
 REQUESTS:= 		requests/Request.cpp \
 							requests/Startline.cpp \
@@ -20,7 +21,7 @@ GLOBALS:=	main.cpp Webserv.cpp
 EPOLL:= epoll/EpollFd.cpp epoll/Connection.cpp epoll/Ipv4Connection.cpp epoll/Ipv6Connection.cpp \
 				epoll/Listener.cpp
 IP:= ip/IpAddress.cpp ip/Ipv4Address.cpp ip/Ipv6Address.cpp ip/IpComparison.cpp
-SRC := $(UTILS) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES)
+SRC := $(UTILS) $(LOGGER) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES)
 SRCDIR := src
 OBJDIR := obj
 OBJ := $(patsubst %.cpp, $(OBJDIR)/%.o, $(SRC))
