@@ -10,6 +10,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <utility>
+#include "Configs/Configs.hpp"
+#include "Logger/Logger.hpp"
 #include "Webserv.hpp"
 #include "epoll/Connection.hpp"
 #include "epoll/EpollAction.hpp"
@@ -151,6 +153,12 @@ void Webserv::mainLoop()
 
   addServers();
   addFdsToEpoll();
+
+  const LogSettings& logsettings = config_.getLogsettings();
+  if (logsettings.configured && logsettings.mode == LOGFILE)
+    Logger::openFile(logsettings.logfile);
+  else if (logsettings.configured)
+    Logger::setLogMode(logsettings.mode);
 
   while (true)
   {

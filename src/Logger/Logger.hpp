@@ -3,17 +3,7 @@
 #include <fstream>
 #include <ostream>
 #include <string>
-
-/*
- * If there is no access_log configured, it will be in state `LogFile` but the
- * file will actually be `/dev/null`
- */
-enum LogMode
-{
-  LOGFILE,
-  STDOUT,
-  STDERR
-};
+#include "Configs/Configs.hpp"
 
 class Logger
 {

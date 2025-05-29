@@ -160,6 +160,24 @@ void Configuration::parseConfigFile(const string& config_file)
         }
         keep_alive_timeout_.second = true;
       }
+      else if (identifier_token == "access_log")
+      {
+        if (log_.configured)
+          throw Fatal("Invalid config file format: access_log already defined");
+        std::string token;
+        if (!(ss >> token))
+          throw Fatal("Invalid config file format: expected access_log value");
+        log_.configured = true;
+        if (token == "stdout")
+          log_.mode = STDOUT;
+        else if (token == "stderr")
+          log_.mode = STDERR;
+        else
+          log_.logfile = token;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: invalid token count in "
+                      "access_log directive");
+      }
       else
       {
         throw Fatal("Invalid config file format: unknown global token => " +
