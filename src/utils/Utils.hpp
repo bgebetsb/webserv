@@ -9,6 +9,7 @@ namespace Utils
   bool isBigEndian();
   u_int16_t u16ToBigEndian(u_int16_t value);
   u_int32_t ipv4ToBigEndian(u_int8_t octets[4]);
+  std::string ipv4ToString(u_int32_t addr);
 
   // ── ◼︎ String to int ──────────────────────────────
   u_int8_t ipStrToUint8(const std::string& str);

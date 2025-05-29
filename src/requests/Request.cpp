@@ -2,6 +2,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstddef>
@@ -110,6 +111,24 @@ void Request::sendResponse()
 RequestStatus Request::getStatus() const
 {
   return status_;
+}
+
+const std::string& Request::getStartLine() const
+{
+  return startline_;
+}
+
+const std::string& Request::getHost() const
+{
+  return host_;
+}
+
+u_int16_t Request::getResponseCode() const
+{
+  if (!response_)
+    throw;  // The function should only be called when the response has already
+            // been sent
+  return response_->getResponseCode();
 }
 
 void Request::processRequest(void)

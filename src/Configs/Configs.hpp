@@ -34,6 +34,26 @@ enum eCGI
   CGI_NONE
 };
 
+/*
+ * If there is no access_log configured, it will be in state `LogFile` but the
+ * file will actually be `/dev/null`
+ */
+enum LogMode
+{
+  LOGFILE,
+  STDOUT,
+  STDERR
+};
+
+struct LogSettings
+{
+  LogSettings() : configured(false), mode(LOGFILE) {}
+
+  bool configured;
+  LogMode mode;
+  std::string logfile;
+};
+
 // ── ◼︎ typedefs utils ───────────────────────
 typedef std::string string;
 typedef std::set< IpAddress* > IpSet;
@@ -133,6 +153,7 @@ class Configuration
   ServerVec server_configs_;
   size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
   size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  LogSettings log_;
   const string config_file_;
 
  public:
@@ -156,6 +177,11 @@ class Configuration
   const ServerVec& getServerConfigs() const
   {
     return server_configs_;
+  }
+
+  const LogSettings& getLogsettings() const
+  {
+    return log_;
   }
 
   // ── ◼︎ Utilities  ───────────────────────

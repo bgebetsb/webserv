@@ -1,6 +1,7 @@
 #include "Response.hpp"
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <ostream>
 #include <sstream>
@@ -97,6 +98,11 @@ std::string Response::createResponseHeaderLine(void) const
 bool Response::getClosing() const
 {
   return close_connection_;
+}
+
+u_int16_t Response::getResponseCode() const
+{
+  return response_code_;
 }
 
 void Response::sendResponse()

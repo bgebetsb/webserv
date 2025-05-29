@@ -2,6 +2,7 @@
 
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <string>
 #include <vector>
 #include "Configs/Configs.hpp"
 #include "epoll/EpollAction.hpp"
@@ -23,6 +24,7 @@ class Connection : public EpollFd
 
  protected:
   Request request_;
+  std::string client_ip_;
 
  private:
   const std::vector< Server >& servers_;

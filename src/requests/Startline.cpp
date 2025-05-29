@@ -1,6 +1,5 @@
 #include <cctype>
 #include <string>
-#include "../responses/StaticResponse.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
 #include "exceptions/RequestError.hpp"
@@ -13,6 +12,7 @@ void Request::readStartLine(const std::string& line)
 {
   if (line.empty())
     return;
+  startline_ = line;
   if (std::isspace(line[0]))
     throw RequestError(400, "Leading spaces in Start line");
 

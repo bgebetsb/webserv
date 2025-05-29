@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "Configs/Configs.hpp"
+#include "Logger/Logger.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/RequestError.hpp"
@@ -161,6 +162,9 @@ EpollAction Connection::handleWrite()
   if (request_.getStatus() == COMPLETED)
   {
     closing = request_.closingConnection();
+    Logger::log() << "- " << client_ip_ << " - \"" << request_.getStartLine()
+                  << "\" - " << request_.getHost() << " - "
+                  << request_.getResponseCode() << std::endl;
     request_ = Request(fd_, servers_);
     try
     {
