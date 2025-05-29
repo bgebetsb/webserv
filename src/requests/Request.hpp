@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/types.h>
 #include <map>
 #include <sstream>
 #include <string>
@@ -33,6 +34,9 @@ class Request
   RequestStatus getStatus() const;
   bool closingConnection() const;
   const Server& getServer() const;
+  const std::string& getStartLine() const;
+  const std::string& getHost() const;
+  u_int16_t getResponseCode() const;
 
   static const Location& findMatchingLocationBlock(const MLocations& locations,
                                                    const std::string& path);
@@ -44,6 +48,7 @@ class Request
   RequestMethod method_;
   std::string host_;
   std::string path_;
+  std::string startline_;
   mHeader headers_;
   bool chunked_;
   Option< long > content_length_;

@@ -40,7 +40,7 @@ std::ostream& Logger::log()
   Logger& logger = Logger::instance();
 
   std::ostream& stream = logger.getOstream();
-  stream << Logger::getCurrentTimestamp() << ": ";
+  stream << Logger::getCurrentTimestamp() << " ";
 
   return stream;
 }
