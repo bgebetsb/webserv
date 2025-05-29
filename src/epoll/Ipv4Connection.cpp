@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
+#include "utils/Utils.hpp"
 
 Ipv4Connection::Ipv4Connection(int socket_fd,
                                const std::vector< Server >& servers)
@@ -25,6 +26,8 @@ Ipv4Connection::Ipv4Connection(int socket_fd,
   {
     throw ConErr("Unable to set fd to non-blocking");
   }
+
+  client_ip_ = Utils::ipv4ToString(peer_addr.sin_addr.s_addr);
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
