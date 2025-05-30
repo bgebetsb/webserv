@@ -35,10 +35,17 @@ class Connection : public EpollFd
   size_t keepalive_last_ping_;
   size_t send_receive_ping_;
 
+  // ── ◼︎ File Upload ───────────────────────
+  long max_body_size_;
+  long content_length_;
+  long total_written_bytes_;
+  bool chunked_;
+
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
 
   EpollAction handleRead();
   EpollAction processBuffer();
+  EpollAction processFileUpload();
   EpollAction handleWrite();
 };

@@ -26,7 +26,11 @@ Connection::Connection(const std::vector< Server >& servers)
       polling_write_(false),
       request_timeout_ping_(Utils::getCurrentTime()),
       keepalive_last_ping_(0),
-      send_receive_ping_(request_timeout_ping_)
+      send_receive_ping_(request_timeout_ping_),
+      max_body_size_(0),
+      content_length_(0),
+      total_written_bytes_(0),
+      chunked_(false)  // Initialize chunked to false
 {}
 
 Connection::~Connection()
@@ -98,9 +102,23 @@ EpollAction Connection::handleRead()
   else if (ret == 0)
     throw ConErr("Peer closed connection");
   buffer_.append(readbuf_, ret);
-  // if (request_.getStatus() == READING_BODY)
-  //   request.addBody return processBuffer(); //TODO: Magic happens here @Max
+  if (request_.getStatus() == READING_BODY)
+    return processFileUpload();  // TODO: Magic happens here @Max
   return processBuffer();
+}
+
+EpollAction Connection::processFileUpload()
+{
+  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
+  request_.uploadBody(buffer_);
+  if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
+  {
+    ep_event_->events = EPOLLOUT | EPOLLRDHUP;
+    action.op = EPOLL_ACTION_MOD;
+    action.event = ep_event_;
+    polling_write_ = true;
+  }
+  return action;
 }
 
 EpollAction Connection::processBuffer()
@@ -125,13 +143,15 @@ EpollAction Connection::processBuffer()
       buffer_.clear();
     }
     request_.addHeaderLine(line);
-
+    if (request_.getStatus() == READING_BODY)
+    {
+      // TODO: Initialize the Values
+    }
     if (request_.getStatus() == SENDING_RESPONSE)
     {
       request_timeout_ping_ = 0;
       break;
     }
-
     pos = buffer_.find('\n');
   }
 
@@ -170,6 +190,8 @@ EpollAction Connection::handleWrite()
     try
     {
       processBuffer();
+      if (request_.getStatus() == READING_BODY)
+        processFileUpload();
     }
     catch (RequestError& e)
     {
@@ -177,7 +199,6 @@ EpollAction Connection::handleWrite()
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
     }
   }
-
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
   if (closing)
   {

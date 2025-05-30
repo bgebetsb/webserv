@@ -8,6 +8,7 @@
 
 static bool fileReadable(const std::string& filename);
 static bool fileWritable(const std::string& filename);
+static bool fileExecutable(const std::string& filename);
 
 PathInfos getFileType(const std::string& filename)
 {
@@ -45,6 +46,7 @@ PathInfos getFileType(const std::string& filename)
 
   infos.readable = fileReadable(filename);
   infos.writable = fileWritable(filename);
+  infos.executable = fileExecutable(filename);
   infos.size = statbuf.st_size;
   return (infos);
 }
@@ -61,6 +63,15 @@ static bool fileReadable(const std::string& filename)
 static bool fileWritable(const std::string& filename)
 {
   if (access(filename.c_str(), W_OK) == 0)
+  {
+    return (true);
+  }
+  return (false);
+}
+
+static bool fileExecutable(const std::string& filename)
+{
+  if (access(filename.c_str(), X_OK) == 0)
   {
     return (true);
   }

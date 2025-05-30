@@ -156,11 +156,16 @@ void Request::processRequest(void)
 
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
+  if (location.max_body_size.second)
+    max_body_size_ = location.max_body_size.first;
+  else
+    max_body_size_ = 1024 * 1024;  // Default max body size
   if (isFileUpload(location))
+    return (setupFileUpload());
+  else if (is_cgi_ == true)
   {
-    ;  // setUpFileUpload();
+    return (setupCgi());
   }
-  // TODO: CGI
   std::string full_path = location.root + path_;
   processFilePath(full_path, location);
 }
@@ -281,6 +286,18 @@ const Server& Request::getServer(const std::string& host) const
   return servers_.front();
 }
 
+bool Request::isChunked() const
+{
+  return chunked_;
+}
+
+long Request::getContentLength() const
+{
+  if (content_length_.is_none())
+    throw RequestError(400, "Content-Length header not set");
+  return content_length_.unwrap();
+}
+
 bool Request::methodAllowed(const Location& location) const
 {
   switch (method_)
@@ -322,49 +339,67 @@ const Location& Request::findMatchingLocationBlock(const MLocations& locations,
   If yes it shall set CGI to true and return false
   If no it shall return true -> Random filename is going to be generated
 */
-bool Request::isCgiRequest(const location& loc) const
+bool Request::CgiOrUpload(const Location& loc)
 {
-  std::string file_extension = path_.substr(path_.find_last_of(".") + 1);
-  if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
-    return true;
-  return false;
+  for (VDefaultFiles::const_iterator it = loc.default_files.begin();
+       it != loc.default_files.end(); ++it)
+  {
+    std::string file_extension = it->substr(it->find_last_of(".") + 1);
+    if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+    {
+      is_cgi_ = true;
+      cgi_path_ = loc.root + "/" + *it;
+      return false;  // CGI found, no upload
+    }
+  }
+  is_cgi_ = false;
+  while (1)
+  {
+    filename_ = generateRandomFilename();
+    absolute_path_ =
+        loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename_;
+    PathInfos infos = getFileType(absolute_path_);
+    if (!infos.exists)
+    {
+      break;  // Found a random filename that does not exist
+    }
+    // else continue to generate a new random filename
+  }
+  return true;  // No CGI found, upload is possible
 }
 
 /*
-  This function shall check if the request is a file upload or if it is a cgi
+  This function is to check if the request is a file upload or if it is a cgi
   since this gets treated differently
   If no it shall return true -> Random filename is going to be generated
 */
-bool Request::isFileUpload(const location& loc)
+bool Request::isFileUpload(const Location& loc)
 {
   if (status_ == READING_BODY)
     throw;
-  std::string filename = path_.substr(loc.location_name.length());
-  // ── ◼︎ check for filename  ─────────────────────────────────────────────
-  if (filename.empty())
-    return isCgiRequest(loc);  // TODO: check for cgi and index -> upload or not
+  filename_ = path_.substr(loc.location_name.length());
+  // ── ◼︎ check for empty filename & CGI ─────────────────────────────────────
+  if (filename_.empty())
+    return CgiOrUpload(loc);
 
   // ── ◼︎ check for cgi extension in filename ─────────────────────────────
-  std::string file_extension = filename.substr(filename.find_last_of(".") + 1);
-  if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+  std::string file_extension =
+      filename_.substr(filename_.find_last_of(".") + 1);
+  if (!file_extension.empty() &&
+      loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
   {
     is_cgi_ = true;
+    cgi_path_ = loc.root + "/" + filename_;
     return false;
   }
 
   // ── ◼︎ if no cgi, check for slash -> forbidden ───────────────────────
-  if (filename.find_first_of("/") != std::string::npos)
-  {
-    throw RequestError(400, "Invalid filename");
-    return false;
-  }
+  if (filename_.find_first_of("/") != std::string::npos)
+    throw RequestError(400, "Invalid filename_");
 
   // ── ◼︎ check for upload dir ───────────────────────────────────────────
   if (loc.upload_dir.empty())
-  {
     throw RequestError(403, "No upload dir set");
-    return false;
-  }
   else
   {
     PathInfos infos = getFileType(loc.root + "/" + loc.upload_dir.substr(2));
@@ -377,7 +412,7 @@ bool Request::isFileUpload(const location& loc)
   }
 
   // ── ◼︎ check for file      ──────────────────────────────────────────────
-  absolute_path_ = loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename;
+  absolute_path_ = loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename_;
   PathInfos infos = getFileType(absolute_path_);
   if (!infos.exists)
     return true;
@@ -394,6 +429,8 @@ void Request::setupFileUpload()
 {
   if (current_upload_files_.insert(absolute_path_).second)
   {
+    upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
+    total_written_bytes_ = 0;
     status_ = READING_BODY;
     return;
   }
@@ -401,6 +438,26 @@ void Request::setupFileUpload()
   {
     throw RequestError(409, "File already exists");
   }
+}
+
+void Request::setupCgi()
+{
+  PathInfos infos = getFileType(cgi_path_);
+  if (!infos.exists || infos.types != REGULAR_FILE)
+    throw RequestError(404, "CGI file not found");
+  if (!infos.executable)
+    throw RequestError(403, "CGI file not executable");
+  while (1)
+  {
+    filename_ = generateRandomFilename();
+    absolute_path_ = "/tmp/" + filename_;
+    PathInfos infos = getFileType(absolute_path_);
+    if (!infos.exists)
+      break;  // Found a random filename that does not exist
+    // else continue to generate a new random filename
+  }
+  upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
+  total_written_bytes_ = 0;
 }
 
 const Server& Request::getServer() const

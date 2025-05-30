@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/types.h>
+#include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -19,31 +20,7 @@ const static std::string STANDARD_HEADERS[] = {"host", "content-length",
 
 class Request
 {
- public:
-  Request(int fd, const std::vector< Server >& servers);
-  Request(const Request& other);
-  Request& operator=(const Request& other);
-  ~Request();
-
-  void addHeaderLine(const std::string& line);  // TODO: find out if we need to
-                                                // add something for POST
-  void processRequest(void);
-  void sendResponse();
-  void timeout();
-  void setResponse(Response* response);
-
-  RequestStatus getStatus() const;
-  bool closingConnection() const;
-  const Server& getServer() const;
-  const std::string& getStartLine() const;
-  const std::string& getHost() const;
-  u_int16_t getResponseCode() const;
-
-  static const Location& findMatchingLocationBlock(const MLocations& locations,
-                                                   const std::string& path);
-
-  // ── ◼︎ utils ────────────────────────────────────────────────────────
-
+  // ── ◼︎ member variables ───────────────────────
  private:
   int fd_;
   const Server* server_;
@@ -59,7 +36,60 @@ class Request
   const vServer& servers_;
   size_t total_header_size_;
   Response* response_;
+
+  // ── ◼︎ constructors, destructors, assignment ───────────────────────
+ public:
+  Request(int fd, const std::vector< Server >& servers);
+  Request(const Request& other);
+  Request& operator=(const Request& other);
+  ~Request();
+
+  // ── ◼︎ Request ───────────────────────
+  void addHeaderLine(const std::string& line);
+  void processRequest(void);
+
+ private:
+  bool CgiOrUpload(const Location& loc);
+  bool isFileUpload(const Location& loc);
+  void setupFileUpload();
+  void setupCgi();
+
+  std::string generateRandomFilename();
   // ── ◼︎ POST ───────────────────────
+ public:
+  void uploadBody(const std::string& body);
+
+ private:
+  long max_body_size_;
+  bool is_cgi_;
+  std::string filename_;
+  std::string absolute_path_;
+  long total_written_bytes_;
+  std::ofstream upload_file_;
+  std::string cgi_path_;
+  static std::set< std::string > current_upload_files_;
+  void uploadBodyWithContentLength(const std::string& body);
+
+  // ── ◼︎ Response ───────────────────────
+ public:
+  void sendResponse();
+  void timeout();
+  void setResponse(Response* response);
+
+  // ── ◼︎ getters ───────────────────────
+  RequestStatus getStatus() const;
+  bool closingConnection() const;
+  const Server& getServer() const;
+  const std::string& getStartLine() const;
+  const std::string& getHost() const;
+  u_int16_t getResponseCode() const;
+  long getMaxBodySize() const;
+  bool isChunked() const;
+  long getContentLength() const;
+
+  // ── ◼︎ utils ────────────────────────────────────────────────────────
+  static const Location& findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path);
 
   // ── ◼︎ Start Line ───────────────────────
   void readStartLine(const std::string& line);
@@ -67,13 +97,14 @@ class Request
   void parsePath(std::istringstream& stream);
   bool parseAbsoluteForm(const std::string& path);
 
-  // Header
+  // ── ◼︎ Header ───────────────────────
   Option< std::string > getHeader(const std::string& name) const;
   void parseHeaderLine(const std::string& line);
   void insertHeader(const std::string& key, const std::string& value);
   void validateHeaders(void);
   void processConnectionHeader(void);
 
+  // ── ◼︎ xxx ─────────────────────── //TODO: rename this
   void processFilePath(const std::string& path, const Location& location);
   int openFile(const std::string& path) const;
   void openDirectory(const std::string& path, const Location& location);
@@ -82,10 +113,6 @@ class Request
   bool methodAllowed(const Location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
-  // ── ◼︎ POST UTILS───────────────────────
-  bool isCgiRequest(const Location& loc) const;
-  bool isFileUpload(const Location& loc);
-  bool is_cgi_;
-  std::string absolute_path_;
-  static std::set< std::string > current_upload_files_;
+
+  // ── ◼︎ POST ───────────────────────
 };
