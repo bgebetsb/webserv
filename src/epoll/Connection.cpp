@@ -5,46 +5,29 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cerrno>
+#include <exception>
 #include <string>
 #include <vector>
+#include "Configs/Configs.hpp"
+#include "Logger/Logger.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
-#include "exceptions/FdLimitReached.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
+#include "responses/FileResponse.hpp"
 #include "responses/StaticResponse.hpp"
 #include "utils/Utils.hpp"
 
-Connection::Connection(int socket_fd, const std::vector< Server >& servers)
-    : servers_(servers),
+Connection::Connection(const std::vector< Server >& servers)
+    : request_(Request(-1, servers)),
+      servers_(servers),
+      readbuf_(new char[CHUNK_SIZE]),
       polling_write_(false),
-      request_(Request(-1, servers)),
       request_timeout_ping_(Utils::getCurrentTime()),
-      keepalive_last_ping_(0)
-{
-  struct sockaddr_in peer_addr;
-  socklen_t peer_addr_size = sizeof(peer_addr);
-
-  readbuf_ = new char[CHUNK_SIZE];
-  fd_ = accept(socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_size);
-  if (fd_ == -1)
-  {
-    if (errno == EMFILE || errno == ENFILE)
-      throw FdLimitReached("Unable to accept client connection");
-    else
-      throw ConErr("Unable to accept client connection");
-  }
-
-  if (fcntl(fd_, F_SETFL, O_NONBLOCK) == -1)
-    throw ConErr("Unable to set fd to non-blocking");
-
-  ep_event_->events = EPOLLIN | EPOLLRDHUP;
-
-  ep_event_->data.ptr = this;
-  request_ = Request(fd_, servers);
-}
+      keepalive_last_ping_(0),
+      send_receive_ping_(request_timeout_ping_)
+{}
 
 Connection::~Connection()
 {
@@ -53,6 +36,8 @@ Connection::~Connection()
 
 EpollAction Connection::epollCallback(int event)
 {
+  if (((event & EPOLLIN) | (event & EPOLLOUT)) != 0)
+    send_receive_ping_ = Utils::getCurrentTime();
   if (event & EPOLLIN)
   {
     try
@@ -61,6 +46,33 @@ EpollAction Connection::epollCallback(int event)
     }
     catch (RequestError& e)
     {
+      try
+      {
+        const Server& server = request_.getServer();
+        MErrors::const_iterator it = server.error_pages.find(e.getCode());
+        if (it == server.error_pages.end())
+        {
+          throw RequestError(404, "No error page configured");
+        }
+        const Location& location =
+            Request::findMatchingLocationBlock(server.locations, it->second);
+        if (!location.GET)
+          throw RequestError(405, "Method not allowed for error page");
+        if (location.root.empty())
+          throw RequestError(404, "Error page: no root directory set");
+        std::string path = location.root + '/' +
+                           it->second.substr(location.location_name.length());
+        request_.setResponse(new FileResponse(fd_, path, e.getCode(),
+                                              request_.closingConnection()));
+        ep_event_->events = EPOLLOUT;
+        EpollAction action = {fd_, EPOLL_ACTION_MOD, getEvent()};
+        return action;
+      }
+      catch (std::exception& e)
+      {
+        // Fall back to the Static-Response if something happens with the
+        // ErrorPage
+      }
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
       ep_event_->events = EPOLLOUT;
@@ -151,7 +163,19 @@ EpollAction Connection::handleWrite()
   if (request_.getStatus() == COMPLETED)
   {
     closing = request_.closingConnection();
+    Logger::log() << "- " << client_ip_ << " - \"" << request_.getStartLine()
+                  << "\" - " << request_.getHost() << " - "
+                  << request_.getResponseCode() << std::endl;
     request_ = Request(fd_, servers_);
+    try
+    {
+      processBuffer();
+    }
+    catch (RequestError& e)
+    {
+      request_.setResponse(
+          new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
+    }
   }
 
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, ep_event_};
@@ -189,13 +213,22 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
   action.fd = fd_;
 
   current_time = Utils::getCurrentTime();
-  if (request_timeout_ping_ > 0 &&
-      current_time >= request_timeout_ping_ + 30000)
+  if ((request_timeout_ping_ > 0 &&
+       current_time >=
+           request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000) ||
+      current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT * 1000)
   {
-    request_.timeout();
-    action.event->events = EPOLLOUT | EPOLLRDHUP;
-    action.op = EPOLL_ACTION_MOD;
-    request_timeout_ping_ = 0;
+    if (request_.getStatus() < SENDING_RESPONSE)
+    {
+      request_.timeout();
+      action.event->events = EPOLLOUT | EPOLLRDHUP;
+      action.op = EPOLL_ACTION_MOD;
+      request_timeout_ping_ = 0;
+    }
+    else
+    {
+      action.op = EPOLL_ACTION_DEL;
+    }
   }
   else
   {

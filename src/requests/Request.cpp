@@ -1,9 +1,13 @@
 #include "Request.hpp"
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstddef>
 #include <string>
+#include "../responses/DirectoryListing.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
@@ -47,6 +51,10 @@ Request& Request::operator=(const Request& other)
   {
     fd_ = other.fd_;
     status_ = other.status_;
+    method_ = other.method_;
+    host_ = other.host_;
+    path_ = other.path_;
+    headers_.clear();
     chunked_ = other.chunked_;
     content_length_ = other.content_length_;
     closing_ = other.closing_;
@@ -106,16 +114,36 @@ RequestStatus Request::getStatus() const
   return status_;
 }
 
+const std::string& Request::getStartLine() const
+{
+  return startline_;
+}
+
+const std::string& Request::getHost() const
+{
+  return host_;
+}
+
+u_int16_t Request::getResponseCode() const
+{
+  if (!response_)
+    throw;  // The function should only be called when the response has already
+            // been sent
+  return response_->getResponseCode();
+}
+
 void Request::processRequest(void)
 {
   const Server& server = getServer(host_);
-  const location& location = findMatchingLocationBlock(server.locations, path_);
+  server_ = &server;
+  const Location& location = findMatchingLocationBlock(server.locations, path_);
 
   processConnectionHeader();
 
   if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
-  redirection redir = location.redirect;
+
+  Redirection redir = location.redirect;
   if (redir.has_been_set)
   {
     std::string location = redir.uri;
@@ -137,29 +165,39 @@ void Request::processRequest(void)
   processFilePath(full_path, location);
 }
 
-void Request::processFilePath(const std::string& path, const location& location)
+void Request::processFilePath(const std::string& path, const Location& location)
 {
   PathInfos infos = getFileType(path);
 
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
+  else if (path[path.length() - 1] == '/' && infos.types != DIRECTORY)
+    throw RequestError(404, "Requested a directory but found a file");
   else if (!infos.readable || infos.types == OTHER)
     throw RequestError(403, "File not readable or incorrect type");
   else if (infos.types == REGULAR_FILE)
   {
-    openFile(path, infos.size);
-    // TODO: CGI
-    // if (method_ == POST && location.cgi_extensions)
-    // {
-    //   postRequestCGI();
-    //   return;
-    // }
+    if (method_ == GET)
+      setResponse(new FileResponse(fd_, path, 200, closing_));
+    else if (method_ == DELETE)
+    {
+      if (unlink(path.c_str()) == 0)
+        setResponse(new StaticResponse(fd_, 204, false, ""));
+      else
+        throw RequestError(403, "Unable to delete file");
+    }
   }
+  else if (path[path.length() - 1] != '/')
+    throw RequestError(404, "Requested a file but found a directory");
   else
+  {
+    if (method_ == DELETE)
+      throw RequestError(403, "Attempted to delete a directory");
     openDirectory(path, location);
+  }
 }
 
-void Request::openFile(const std::string& path, off_t size)
+int Request::openFile(const std::string& path) const
 {
   int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW);
   if (fd == -1)
@@ -170,14 +208,10 @@ void Request::openFile(const std::string& path, off_t size)
       throw RequestError(503, "Server ran out of fds");
     throw RequestError(500, "Open failed for unknown reason");
   }
-  else
-  {
-    response_ = new FileResponse(fd_, fd, size, closing_);
-    status_ = SENDING_RESPONSE;
-  }
+  return fd;
 }
 
-void Request::openDirectory(const std::string& path, const location& location)
+void Request::openDirectory(const std::string& path, const Location& location)
 {
   VDefaultFiles::const_iterator it;
   const VDefaultFiles& files = location.default_files;
@@ -191,17 +225,29 @@ void Request::openDirectory(const std::string& path, const location& location)
       throw RequestError(403, "File not readable or incorrect type");
     else if (infos.types == DIRECTORY)
     {
-      // TODO: Respond with 301 permanent redirect to the directory, just in
-      // case we have a directory called index.html (or similar) lol
-      throw RequestError(501, "index file pointing to directory");
+      std::string redir_loc = "http://" + host_ + path_ + *it + '/';
+      setResponse(new RedirectResponse(fd_, 301, redir_loc, closing_));
+      return;
     }
     else
-      return openFile(path + *it, infos.size);
+    {
+      setResponse(new FileResponse(fd_, path + *it, 200, closing_));
+      return;
+    }
   }
 
   if (!location.DIR_LISTING.first)
     throw RequestError(403, "No index file found and autoindex disabled");
-  throw RequestError(501, "Directory listings not implemented yet");
+  createDirectoryListing(path);
+}
+
+void Request::createDirectoryListing(const std::string& path)
+{
+  int fd = openFile(path);
+  close(fd);
+
+  std::string content = DirectoryListing::createDirectoryListing(path, path_);
+  setResponse(new StaticResponse(fd_, 200, closing_, content));
 }
 
 bool Request::closingConnection() const
@@ -235,7 +281,7 @@ const Server& Request::getServer(const std::string& host) const
   return servers_.front();
 }
 
-bool Request::methodAllowed(const location& location) const
+bool Request::methodAllowed(const Location& location) const
 {
   switch (method_)
   {
@@ -250,9 +296,8 @@ bool Request::methodAllowed(const location& location) const
   }
 }
 
-const location& Request::findMatchingLocationBlock(
-    const MLocations& locations,
-    const std::string& path) const
+const Location& Request::findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path)
 {
   MLocations::const_iterator it;
 
@@ -356,4 +401,11 @@ void Request::setupFileUpload()
   {
     throw RequestError(409, "File already exists");
   }
+}
+
+const Server& Request::getServer() const
+{
+  if (server_ == NULL)
+    throw RequestError(404, "No matching server found");
+  return *server_;
 }

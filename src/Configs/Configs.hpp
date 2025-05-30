@@ -52,6 +52,26 @@ enum eCGI
   CGI_NONE
 };
 
+/*
+ * If there is no access_log configured, it will be in state `LogFile` but the
+ * file will actually be `/dev/null`
+ */
+enum LogMode
+{
+  LOGFILE,
+  STDOUT,
+  STDERR
+};
+
+struct LogSettings
+{
+  LogSettings() : configured(false), mode(LOGFILE) {}
+
+  bool configured;
+  LogMode mode;
+  std::string logfile;
+};
+
 // ── ◼︎ typedefs utils ───────────────────────
 typedef std::string string;
 typedef std::set< IpAddress* > IpSet;
@@ -60,8 +80,8 @@ typedef std::map< errcode, filename > MErrors;
 typedef std::map< string, string > MRedirects;
 typedef std::vector< filename > VDefaultFiles;
 typedef std::set< string > SCgiExtensions;
-struct location;
-typedef std::map< string, location, std::greater< string > > MLocations;
+struct Location;
+typedef std::map< string, Location, std::greater< string > > MLocations;
 
 /// @brief `Pair of bools to indicate if a value has been set`
 ///
@@ -78,7 +98,7 @@ typedef std::pair< size_t, bool > size_pair;
 // ║              SECTION: Your Section           ║
 // ╚══════════════════════════════════════════════╝
 
-struct redirection
+struct Redirection
 {
   bool has_been_set;
   u_int16_t code;
@@ -98,9 +118,9 @@ struct redirection
 /// `_____redirects` redirections
 /// `__________root` root directory
 /// `____upload_dir` upload directory
-struct location
+struct Location
 {
-  location()
+  Location()
       : http_methods_set(false),
         GET(false),
         POST(false),
@@ -121,7 +141,7 @@ struct location
   size_pair max_body_size;        // in bytes
   SCgiExtensions cgi_extensions;  // cgi_extensions
   VDefaultFiles default_files;    // default_files
-  redirection redirect;           // redirections
+  Redirection redirect;           // redirections
   string root;                    // root
   string upload_dir;              // upload_dir
   string location_name;           // location name
@@ -151,6 +171,7 @@ class Configuration
   ServerVec server_configs_;
   size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
   size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  LogSettings log_;
   const string config_file_;
 
  public:
@@ -161,11 +182,12 @@ class Configuration
 
   // ── ◼︎ Config file parsing ─────────────────
   void checkFileType(const std::string& filename) const;
+  std::string removeComments(const std::string& content) const;
   void parseConfigFile(const std::string& config_file);
   void process_server_block(const std::string& line);
   void process_server_item(std::stringstream& item, Server& config);
   void process_location_block(std::stringstream& item, Server& loc);
-  void process_location_item(std::stringstream& item, location& loc);
+  void process_location_item(std::stringstream& item, Location& loc);
   void addServer(const std::string& server_name, int port);
   void printConfigurations() const;
 
@@ -173,6 +195,11 @@ class Configuration
   const ServerVec& getServerConfigs() const
   {
     return server_configs_;
+  }
+
+  const LogSettings& getLogsettings() const
+  {
+    return log_;
   }
 
   // ── ◼︎ Utilities  ───────────────────────
@@ -189,7 +216,7 @@ class Configuration
   {
     for (size_t i = 0; i < sizeof(cgis) / sizeof(string); ++i)
     {
-      if (cgi_path.find(cgis[i]) != string::npos)
+      if (cgi_path == cgis[i])
         return true;
     }
     return false;
@@ -207,8 +234,8 @@ class Configuration
 
 // ── ◼︎ operator overloads ───────────────────────
 std::ostream& operator<<(std::ostream& os, const Server& config);
-std::ostream& operator<<(std::ostream& os, const location& loc);
-std::ostream& operator<<(std::ostream& os, const redirection& redirect);
+std::ostream& operator<<(std::ostream& os, const Location& loc);
+std::ostream& operator<<(std::ostream& os, const Redirection& redirect);
 std::ostream& operator<<(std::ostream& os,
                          const std::vector< string >& default_files);
 std::ostream& operator<<(std::ostream& os,

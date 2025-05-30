@@ -13,6 +13,7 @@ class Response
   virtual void sendResponse(void);
   bool isComplete(void) const;
   bool getClosing() const;
+  u_int16_t getResponseCode() const;
 
  protected:
   std::string full_response_;

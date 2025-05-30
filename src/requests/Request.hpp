@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/types.h>
 #include <map>
 #include <sstream>
 #include <string>
@@ -33,15 +34,24 @@ class Request
 
   RequestStatus getStatus() const;
   bool closingConnection() const;
+  const Server& getServer() const;
+  const std::string& getStartLine() const;
+  const std::string& getHost() const;
+  u_int16_t getResponseCode() const;
+
+  static const Location& findMatchingLocationBlock(const MLocations& locations,
+                                                   const std::string& path);
 
   // ── ◼︎ utils ────────────────────────────────────────────────────────
 
  private:
   int fd_;
+  const Server* server_;
   RequestStatus status_;
   RequestMethod method_;
   std::string host_;
   std::string path_;
+  std::string startline_;
   mHeader headers_;
   bool chunked_;
   Option< long > content_length_;
@@ -64,19 +74,17 @@ class Request
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  void processFilePath(const std::string& path, const location& location);
-  void openFile(const std::string& path, off_t size);
-  void openDirectory(const std::string& path, const location& location);
+  void processFilePath(const std::string& path, const Location& location);
+  int openFile(const std::string& path) const;
+  void openDirectory(const std::string& path, const Location& location);
+  void createDirectoryListing(const std::string& path);
   const Server& getServer(const std::string& host) const;
-  bool methodAllowed(const location& location) const;
+  bool methodAllowed(const Location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
-  // This one could be static
-  const location& findMatchingLocationBlock(const MLocations& locations,
-                                            const std::string& path) const;
   // ── ◼︎ POST UTILS───────────────────────
-  bool isCgiRequest(const location& loc) const;
-  bool isFileUpload(const location& loc);
+  bool isCgiRequest(const Location& loc) const;
+  bool isFileUpload(const Location& loc);
   bool is_cgi_;
   std::string absolute_path_;
   static std::set< std::string > current_upload_files_;

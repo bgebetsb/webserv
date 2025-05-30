@@ -8,6 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 #include "Connection.hpp"
+#include "Ipv4Connection.hpp"
+#include "Ipv6Connection.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "ip/IpAddress.hpp"
@@ -62,7 +64,11 @@ EpollAction Listener::acceptConnection()
 {
   try
   {
-    Connection* c = new Connection(fd_, servers_);
+    Connection* c;
+    if (address_->getType() == IPv4)
+      c = new Ipv4Connection(fd_, servers_);
+    else
+      c = new Ipv6Connection(fd_, servers_);
     EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
     return action;
   }

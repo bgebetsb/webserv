@@ -79,12 +79,17 @@ void Configuration::parseConfigFile(const string& config_file)
   string::size_type cursor = 0;
   std::stringstream file_buffer;
   file_buffer << file.rdbuf();
-  std::string file_str = file_buffer.str();
+  std::string file_str = removeComments(file_buffer.str());
   while (1)
   {
     std::string::size_type pos = file_str.find_first_of("{;", cursor);
     if (pos == std::string::npos)
+    {
+      std::string rest = Utils::trimString(file_str.substr(cursor));
+      if (!rest.empty())
+        throw Fatal("Unexpected content at end of file, or missing semicolon");
       break;
+    }
     std::string identifier = file_str.substr(cursor, pos - cursor);
     if (file_str[pos] == '{')
     {
@@ -155,6 +160,24 @@ void Configuration::parseConfigFile(const string& config_file)
         }
         keep_alive_timeout_.second = true;
       }
+      else if (identifier_token == "access_log")
+      {
+        if (log_.configured)
+          throw Fatal("Invalid config file format: access_log already defined");
+        std::string token;
+        if (!(ss >> token))
+          throw Fatal("Invalid config file format: expected access_log value");
+        log_.configured = true;
+        if (token == "stdout")
+          log_.mode = STDOUT;
+        else if (token == "stderr")
+          log_.mode = STDERR;
+        else
+          log_.logfile = token;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: invalid token count in "
+                      "access_log directive");
+      }
       else
       {
         throw Fatal("Invalid config file format: unknown global token => " +
@@ -176,36 +199,70 @@ void Configuration::checkFileType(const std::string& filename) const
     throw Fatal("Requested config " + filename + " is not a regular file");
 }
 
+std::string Configuration::removeComments(const std::string& content) const
+{
+  std::string newcontent;
+  std::string::size_type cursor = 0;
+
+  while (true)
+  {
+    std::string::size_type pos = content.find('#', cursor);
+    if (pos == std::string::npos)
+    {
+      newcontent.append(content.substr(cursor));
+      return newcontent;
+    }
+    newcontent.append(content.substr(cursor, pos - cursor));
+    pos = content.find('\n', pos);
+    if (pos == std::string::npos)
+      break;
+    cursor = pos;
+  }
+  return newcontent;
+}
+
 void Configuration::process_server_block(const std::string& block)
 {
   Server config;
   std::size_t cursor = 0;
 
   // std::cout << block << std::endl;
-  while (cursor < block.size())
+  try
   {
-    std::size_t pos = block.find_first_of(";{", cursor);
-    if (pos == std::string::npos)
-      break;
-    if (block[pos] == ';')
+    while (cursor < block.size())
     {
-      std::stringstream ss(block.substr(cursor, pos - cursor));
-      process_server_item(ss, config);
-      cursor = pos + 1;  // weiter hinter dem Semikolon
-    }
-    else if (block[pos] == '{')
-    {
-      std::size_t end = block.find('}', pos);
-      if (end == std::string::npos)
-        throw Fatal("Invalid config file format: expected '}'");
+      std::size_t pos = block.find_first_of(";{", cursor);
+      if (pos == std::string::npos)
+        break;
+      if (block[pos] == ';')
+      {
+        std::stringstream ss(block.substr(cursor, pos - cursor));
+        process_server_item(ss, config);
+        cursor = pos + 1;  // weiter hinter dem Semikolon
+      }
+      else if (block[pos] == '{')
+      {
+        std::size_t end = block.find('}', pos);
+        if (end == std::string::npos)
+          throw Fatal("Invalid config file format: expected '}'");
 
-      std::stringstream ss(block.substr(cursor, end - cursor + 1));
-      process_location_block(ss, config);
-      cursor = end + 1;  // weiter hinter der schließenden Klammer
+        std::stringstream ss(block.substr(cursor, end - cursor + 1));
+        process_location_block(ss, config);
+        cursor = end + 1;  // weiter hinter der schließenden Klammer
+      }
     }
+    // TODO: check here if configs are valid
+    server_configs_.push_back(config);
   }
-  // TODO: check here if configs are valid
-  server_configs_.push_back(config);
+  catch (std::exception& e)
+  {
+    IpSet::iterator it;
+
+    for (it = config.ips.begin(); it != config.ips.end(); ++it)
+      delete *it;
+    config.ips.clear();
+    throw;
+  }
 }
 
 void Configuration::process_location_block(std::stringstream& item,
@@ -228,7 +285,7 @@ void Configuration::process_location_block(std::stringstream& item,
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
 
-  location new_location;
+  Location new_location;
   new_location.location_name = token;
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
@@ -246,7 +303,7 @@ void Configuration::process_location_block(std::stringstream& item,
 }
 
 void Configuration::process_location_item(std::stringstream& item,
-                                          location& loc)
+                                          Location& loc)
 {
   std::string identifier;
   std::string token;
@@ -304,7 +361,11 @@ void Configuration::process_location_item(std::stringstream& item,
       throw Fatal("Invalid config file format: index requires at least 1 "
                   "argument");
     for (size_t i = 0; i < tokens.size(); ++i)
+    {
+      if (tokens[i].find('/') != std::string::npos)
+        throw Fatal("Invalid config file format: index may not contain '/'");
       loc.default_files.push_back(tokens[i]);
+    }
   }
 
   // ── ◼︎ cgi ────────────────────────────────────────────────────────────────
@@ -392,6 +453,9 @@ void Configuration::process_location_item(std::stringstream& item,
       loc.redirect.uri = tokens[1];
       loc.redirect.has_been_set = true;
     }
+    else
+      throw Fatal("Invalid config file format: invalid return code => " +
+                  tokens[0]);
   }
 
   // ── ◼︎ upload directory ───────────────────────────────────────────────────
@@ -636,14 +700,14 @@ std::ostream& operator<<(std::ostream& os,
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const redirection& redirect)
+std::ostream& operator<<(std::ostream& os, const Redirection& redirect)
 {
   os << "------->Code: " << redirect.code << std::endl;
   os << "------->URI: " << redirect.uri << std::endl;
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const location& loc)
+std::ostream& operator<<(std::ostream& os, const Location& loc)
 {
   os << std::endl;
   os << "---->Allowed http methods: " << (loc.GET ? "GET " : "")

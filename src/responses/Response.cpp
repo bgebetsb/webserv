@@ -1,10 +1,11 @@
 #include "Response.hpp"
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <ostream>
 #include <sstream>
-#include "../Connection.hpp"
+#include "epoll/Connection.hpp"
 #include "exceptions/ConError.hpp"
 
 Response::Response(int client_fd, int response_code, bool close_connection)
@@ -18,8 +19,23 @@ Response::Response(int client_fd, int response_code, bool close_connection)
     case 200:
       response_title_ = "OK";
       break;
+    case 204:
+      response_title_ = "No Content";
+      break;
     case 301:
       response_title_ = "Moved Permanently";
+      break;
+    case 302:
+      response_title_ = "Found";
+      break;
+    case 303:
+      response_title_ = "See Other";
+      break;
+    case 307:
+      response_title_ = "Temporary Redirect";
+      break;
+    case 308:
+      response_title_ = "Permanent Redirect";
       break;
     case 400:
       response_title_ = "Bad Request";
@@ -93,6 +109,11 @@ std::string Response::createResponseHeaderLine(void) const
 bool Response::getClosing() const
 {
   return close_connection_;
+}
+
+u_int16_t Response::getResponseCode() const
+{
+  return response_code_;
 }
 
 void Response::sendResponse()

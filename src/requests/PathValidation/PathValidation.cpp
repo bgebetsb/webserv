@@ -4,7 +4,7 @@
 #include <cerrno>
 #include <string>
 #include "PathInfos.hpp"
-#include "exceptions/ConError.hpp"
+#include "exceptions/RequestError.hpp"
 
 static bool fileReadable(const std::string& filename);
 static bool fileWritable(const std::string& filename);
@@ -25,7 +25,9 @@ PathInfos getFileType(const std::string& filename)
       infos.size = -1;
       return (infos);
     }
-    throw ConErr("Stat failed");
+    else if (errno == ENOTDIR)
+      return getFileType(filename.substr(0, filename.length() - 1));
+    throw RequestError(500, "Stat failed for unknown reason");
   }
 
   infos.exists = true;
