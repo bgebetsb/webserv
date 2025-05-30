@@ -137,14 +137,6 @@ void Request::processRequest(void)
   processFilePath(full_path, location);
 }
 
-GET / skripts / skript.sh / HTTP /
-    1.1
-
-    location /
-    skripts /
-{
-  ROOT var / www / skripts / ABSOLUTE PATH var / www / skripts / skript.sh
-}
 void Request::processFilePath(const std::string& path, const location& location)
 {
   PathInfos infos = getFileType(path);
