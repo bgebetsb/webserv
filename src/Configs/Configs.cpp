@@ -295,6 +295,10 @@ void Configuration::process_location_block(std::stringstream& item,
   new_location.location_name = token;
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
+  ss >> std::ws;
+  if (!ss.eof())
+    throw Fatal("Invalid config file format: unexpected content between "
+                "location and opening bracket");
   config.locations[token] = new_location;
   std::string location_path = token;
   if (line.empty())
