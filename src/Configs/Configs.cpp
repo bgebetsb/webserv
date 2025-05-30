@@ -133,6 +133,9 @@ void Configuration::parseConfigFile(const string& config_file)
               token);
         }
         cgi_timeout_.second = true;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: cgi_timeout requires "
+                      "exactly 1 argument");
       }
       else if (identifier_token == "keep_alive_timeout")
       {
@@ -159,6 +162,9 @@ void Configuration::parseConfigFile(const string& config_file)
                       token);
         }
         keep_alive_timeout_.second = true;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: keep_alive_timeout requires "
+                      "exactly 1 argument");
       }
       else if (identifier_token == "access_log")
       {
@@ -175,8 +181,8 @@ void Configuration::parseConfigFile(const string& config_file)
         else
           log_.logfile = token;
         if (ss >> token)
-          throw Fatal("Invalid config file format: invalid token count in "
-                      "access_log directive");
+          throw Fatal("Invalid config file format: access_log requires exactly "
+                      "1 argument");
       }
       else
       {
