@@ -2,13 +2,11 @@
 #include "IpAddress.hpp"
 
 #include <ostream>
-#include <string>
 
 class Ipv4Address : public IpAddress
 {
  public:
   Ipv4Address(u_int32_t ip, u_int16_t port);
-  Ipv4Address(const std::string& address);
   ~Ipv4Address();
 
   int createSocket() const;
