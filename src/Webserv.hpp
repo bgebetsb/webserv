@@ -11,7 +11,7 @@
 #include "ip/IpComparison.hpp"
 
 typedef int filedescriptor;
-typedef std::set< IpAddress* > IpSet;
+typedef std::set< IpAddress*, IpComparison > IpSet;
 typedef std::map< const IpAddress*, filedescriptor, IpComparison > ListenerMap;
 typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;

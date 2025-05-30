@@ -65,8 +65,7 @@ Webserv::~Webserv()
   close(epoll_fd_);
 }
 
-void Webserv::addServer(const std::set< IpAddress* >& listeners,
-                        const Server& server)
+void Webserv::addServer(const IpSet& listeners, const Server& server)
 {
   typedef std::set< IpAddress* >::const_iterator iter_type;
 
