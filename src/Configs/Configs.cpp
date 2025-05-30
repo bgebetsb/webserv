@@ -328,6 +328,9 @@ void Configuration::process_location_item(std::stringstream& item,
           "argument");
     if (loc.http_methods_set)
       throw Fatal("Invalid config file format: http_methods already defined");
+    if (Utils::duplicateEntries(tokens))
+      throw Fatal("Invalid config file format: duplicate entries in "
+                  "http_methods directive");
     loc.http_methods_set = true;
     for (size_t i = 0; i < tokens.size(); ++i)
     {
