@@ -536,11 +536,21 @@ static void insert_ip(IpSet& ips, const string& token)
   }
   else
   {
-    Ipv4Address* addr = new Ipv4Address(token);
-    if (!ips.insert(addr).second)
+    string::size_type pos = token.find(':');
+    if (pos == string::npos)
+      throw Fatal("Invalid config file format: Invalid Ipv4 Address format");
+    u_int16_t port = Utils::ipStrToUint16(token.substr(pos + 1));
+    typedef std::set< u_int32_t > IpSet;
+    IpSet ipSet = Utils::getIpv4Addresses(token.substr(0, pos));
+    IpSet::iterator it;
+    for (it = ipSet.begin(); it != ipSet.end(); ++it)
     {
-      delete addr;
-      throw Fatal("Invalid config file format: duplicate IP address");
+      Ipv4Address* addr = new Ipv4Address(*it, port);
+      if (!ips.insert(addr).second)
+      {
+        delete addr;
+        throw Fatal("Invalid config file format: duplicate IP address");
+      }
     }
   }
 }

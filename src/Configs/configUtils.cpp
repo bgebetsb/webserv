@@ -1,6 +1,10 @@
 #include "configUtils.hpp"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <set>
 #include "../exceptions/Fatal.hpp"
 
@@ -92,4 +96,25 @@ bool Utils::duplicateEntries(const std::vector< std::string >& entries)
   }
 
   return (false);
+}
+
+std::set< u_int32_t > Utils::getIpv4Addresses(const std::string& ip_string)
+{
+  std::set< u_int32_t > ips;
+  struct addrinfo hints;
+  struct addrinfo *result, *item;
+
+  std::memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+
+  if (getaddrinfo(ip_string.c_str(), NULL, &hints, &result) != 0)
+    throw Fatal("getaddrinfo failed for " + ip_string);
+
+  for (item = result; item != NULL; item = item->ai_next)
+  {
+    struct sockaddr_in* addr = (struct sockaddr_in*)item->ai_addr;
+    ips.insert(addr->sin_addr.s_addr);
+  }
+
+  return ips;
 }
