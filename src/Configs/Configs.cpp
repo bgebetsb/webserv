@@ -133,6 +133,9 @@ void Configuration::parseConfigFile(const string& config_file)
               token);
         }
         cgi_timeout_.second = true;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: cgi_timeout requires "
+                      "exactly 1 argument");
       }
       else if (identifier_token == "keep_alive_timeout")
       {
@@ -159,6 +162,9 @@ void Configuration::parseConfigFile(const string& config_file)
                       token);
         }
         keep_alive_timeout_.second = true;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: keep_alive_timeout requires "
+                      "exactly 1 argument");
       }
       else if (identifier_token == "access_log")
       {
@@ -175,8 +181,8 @@ void Configuration::parseConfigFile(const string& config_file)
         else
           log_.logfile = token;
         if (ss >> token)
-          throw Fatal("Invalid config file format: invalid token count in "
-                      "access_log directive");
+          throw Fatal("Invalid config file format: access_log requires exactly "
+                      "1 argument");
       }
       else
       {
@@ -289,6 +295,10 @@ void Configuration::process_location_block(std::stringstream& item,
   new_location.location_name = token;
   if (config.locations.find(token) != config.locations.end())
     throw Fatal("Invalid config file format: duplicate location path");
+  ss >> std::ws;
+  if (!ss.eof())
+    throw Fatal("Invalid config file format: unexpected content between "
+                "location and opening bracket");
   config.locations[token] = new_location;
   std::string location_path = token;
   if (line.empty())
@@ -322,6 +332,9 @@ void Configuration::process_location_item(std::stringstream& item,
           "argument");
     if (loc.http_methods_set)
       throw Fatal("Invalid config file format: http_methods already defined");
+    if (Utils::duplicateEntries(tokens))
+      throw Fatal("Invalid config file format: duplicate entries in "
+                  "http_methods directive");
     loc.http_methods_set = true;
     for (size_t i = 0; i < tokens.size(); ++i)
     {

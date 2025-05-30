@@ -1,6 +1,7 @@
 #include "configUtils.hpp"
 #include <cerrno>
 #include <cstdlib>
+#include <set>
 #include "../exceptions/Fatal.hpp"
 
 #define VALID_URI_CHARS                      \
@@ -76,4 +77,19 @@ bool Utils::isValidHostname(const std::string& hostname)  // RFC 1035
   // Letztes Label prüfen
   std::string lastLabel = hostname.substr(start);
   return isValidHostnameLabel(lastLabel);
+}
+
+bool Utils::duplicateEntries(const std::vector< std::string >& entries)
+{
+  typedef std::vector< std::string > container;
+  std::set< std::string > unique;
+
+  container::const_iterator it;
+  for (it = entries.begin(); it != entries.end(); ++it)
+  {
+    if (!unique.insert(*it).second)
+      return (true);
+  }
+
+  return (false);
 }
