@@ -72,13 +72,13 @@ namespace Utils
       throw Fatal("Invalid config file format: expected error code");
     return static_cast< u_int16_t >(value);
   }
-  int strToInt(const std::string& str)
+  int strToIntHex(const std::string& str)
   {
     char* endptr;
     if (str.empty())
       throw Fatal("Empty string to convert to int");
     errno = 0;
-    long value = strtol(str.c_str(), &endptr, 10);
+    long value = strtol(str.c_str(), &endptr, 16);
     if (*endptr != '\0' || errno == ERANGE)
       throw Fatal("Invalid string to convert to int");
     return static_cast< int >(value);

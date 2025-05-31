@@ -103,14 +103,12 @@ EpollAction Connection::handleRead()
     throw ConErr("Peer closed connection");
   buffer_.append(readbuf_, ret);
   if (request_.getStatus() == READING_BODY)
-    return processFileUpload();  // TODO: Magic happens here @Max
+    return processFileUpload();
   return processBuffer();
 }
 
-#include <iostream>
 EpollAction Connection::processFileUpload()
 {
-  std::cout << "Processing file upload..." << std::endl;
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
   std::string write_buffer;
   UploadMode mode = NORM;
@@ -143,6 +141,8 @@ EpollAction Connection::processFileUpload()
   // ── ◼︎ Chunked Transfer Encoding ───────────────────────
   else
   {
+    if (buffer_.empty())
+      return action;  // No data to process
     while (1)
     {
       size_t pos = buffer_.find("\r\n");
@@ -154,7 +154,7 @@ EpollAction Connection::processFileUpload()
       size_t chunk_size;
       try
       {
-        chunk_size = Utils::strToInt(chunk_size_str);
+        chunk_size = Utils::strToIntHex(chunk_size_str);
       }
       catch (std::exception& e)
       {
@@ -191,8 +191,8 @@ EpollAction Connection::processFileUpload()
         break;
       }
       // Remove the chunk size and CRLF from the buffer
-      if (buffer_.size() > pos + 2 + chunk_size)
-        buffer_ = std::string(buffer_, pos + 2 + chunk_size);
+      if (buffer_.size() > pos + 4 + chunk_size)
+        buffer_ = std::string(buffer_, pos + 4 + chunk_size);
       else
         buffer_.clear();
     }
@@ -243,7 +243,7 @@ EpollAction Connection::processBuffer()
       }
       max_body_size_ = request_.getMaxBodySize();
       request_timeout_ping_ = 0;
-      break;
+      return processFileUpload();
     }
     if (request_.getStatus() == SENDING_RESPONSE)
     {
