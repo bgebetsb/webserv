@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstddef>
+#include <iostream>
 #include <string>
 #include "../responses/DirectoryListing.hpp"
 #include "../responses/RedirectResponse.hpp"
@@ -22,6 +23,8 @@
 #include "responses/FileResponse.hpp"
 #include "responses/Response.hpp"
 
+std::set< std::string > Request::current_upload_files_;
+
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
       status_(READING_START_LINE),
@@ -30,7 +33,8 @@ Request::Request(const int fd, const std::vector< Server >& servers)
       closing_(false),
       servers_(servers),
       total_header_size_(0),
-      response_(NULL)
+      response_(NULL),
+      is_cgi_(false)
 {}
 
 Request::Request(const Request& other)
@@ -155,9 +159,17 @@ void Request::processRequest(void)
 
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
-
-  std::string full_path =
-      location.root + '/' + path_.substr(location.location_name.length());
+  if (location.max_body_size.second)
+    max_body_size_ = location.max_body_size.first;
+  else
+    max_body_size_ = 1024 * 1024;  // Default max body size
+  if (isFileUpload(location))
+    return (setupFileUpload());
+  else if (is_cgi_ == true)
+  {
+    return (setupCgi());
+  }
+  std::string full_path = location.root + path_;
   processFilePath(full_path, location);
 }
 
@@ -277,6 +289,18 @@ const Server& Request::getServer(const std::string& host) const
   return servers_.front();
 }
 
+bool Request::isChunked() const
+{
+  return chunked_;
+}
+
+long Request::getContentLength() const
+{
+  if (content_length_.is_none())
+    throw RequestError(400, "Content-Length header not set");
+  return content_length_.unwrap();
+}
+
 bool Request::methodAllowed(const Location& location) const
 {
   switch (method_)
@@ -309,8 +333,136 @@ const Location& Request::findMatchingLocationBlock(const MLocations& locations,
       return it->second;
     }
   }
-
   throw RequestError(404, "No matching location found");
+}
+
+/*
+  This function shall check in case of a directory request if the cgi extension
+  is found in the index files
+  If yes it shall set CGI to true and return false
+  If no it shall return true -> Random filename is going to be generated
+*/
+bool Request::CgiOrUpload(const Location& loc)
+{
+  for (VDefaultFiles::const_iterator it = loc.default_files.begin();
+       it != loc.default_files.end(); ++it)
+  {
+    std::string file_extension = it->substr(it->find_last_of(".") + 1);
+    if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+    {
+      is_cgi_ = true;
+      cgi_path_ = loc.root + "/" + *it;
+      return false;  // CGI found, no upload
+    }
+  }
+  is_cgi_ = false;
+  while (1)
+  {
+    filename_ = generateRandomFilename();
+    absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
+    PathInfos infos = getFileType(absolute_path_);
+    if (!infos.exists)
+    {
+      break;  // Found a random filename that does not exist
+    }
+    // else continue to generate a new random filename
+  }
+  return true;  // No CGI found, upload is possible
+}
+
+/*
+  This function is to check if the request is a file upload or if it is a cgi
+  since this gets treated differently
+  If no it shall return true -> Random filename is going to be generated
+*/
+bool Request::isFileUpload(const Location& loc)
+{
+  if (status_ == READING_BODY)
+    throw;
+  filename_ = path_.substr(loc.location_name.length());
+
+  // ── ◼︎ check for upload dir ───────────────────────────────────────────
+  if (loc.upload_dir.empty())
+    throw RequestError(403, "No upload dir set");
+  else
+  {
+    PathInfos infos = getFileType(loc.root + "/" + loc.upload_dir);
+    if (!infos.exists || infos.types != DIRECTORY || !infos.writable)
+    {
+      throw RequestError(
+          500, "Upload dir not found or not a directory or not writable");
+      return false;
+    }
+  }
+
+  // ── ◼︎ check for empty filename & CGI ─────────────────────────────────────
+  if (filename_.empty())
+    return CgiOrUpload(loc);
+
+  // ── ◼︎ check for cgi extension in filename ─────────────────────────────
+  std::string file_extension =
+      filename_.substr(filename_.find_last_of(".") + 1);
+  if (!file_extension.empty() &&
+      loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+  {
+    is_cgi_ = true;
+    cgi_path_ = loc.root + "/" + filename_;
+    return false;
+  }
+
+  // ── ◼︎ if no cgi, check for slash -> forbidden ───────────────────────
+  if (filename_.find_first_of("/") != std::string::npos)
+    throw RequestError(400, "Invalid filename_");
+
+  // ── ◼︎ check for file      ──────────────────────────────────────────────
+  absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
+  PathInfos infos = getFileType(absolute_path_);
+  if (!infos.exists)
+    return true;
+  else if (infos.exists && infos.types == REGULAR_FILE && infos.writable)
+    return true;
+  else
+  {
+    throw RequestError(403, "File not accesible or incorrect type");
+    return false;
+  }
+}
+
+void Request::setupFileUpload()
+{
+  if (current_upload_files_.insert(absolute_path_).second)
+  {
+    std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
+
+    upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
+    total_written_bytes_ = 0;
+    status_ = READING_BODY;
+    return;
+  }
+  else
+  {
+    throw RequestError(409, "File already exists");
+  }
+}
+
+void Request::setupCgi()
+{
+  PathInfos infos = getFileType(cgi_path_);
+  if (!infos.exists || infos.types != REGULAR_FILE)
+    throw RequestError(404, "CGI file not found");
+  if (!infos.executable)
+    throw RequestError(403, "CGI file not executable");
+  while (1)
+  {
+    filename_ = generateRandomFilename();
+    absolute_path_ = "/tmp/" + filename_;
+    PathInfos infos = getFileType(absolute_path_);
+    if (!infos.exists)
+      break;  // Found a random filename that does not exist
+    // else continue to generate a new random filename
+  }
+  upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
+  total_written_bytes_ = 0;
 }
 
 const Server& Request::getServer() const
@@ -318,4 +470,9 @@ const Server& Request::getServer() const
   if (server_ == NULL)
     throw RequestError(404, "No matching server found");
   return *server_;
+}
+
+long Request::getMaxBodySize() const
+{
+  return max_body_size_;
 }

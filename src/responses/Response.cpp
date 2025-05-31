@@ -54,6 +54,18 @@ Response::Response(int client_fd, int response_code, bool close_connection)
       response_title_ = "Request Timeout";
       close_connection_ = true;
       break;
+    case 409:
+      response_title_ = "Conflict";
+      close_connection_ = true;
+      break;
+    case 411:
+      response_title_ = "Length Required";
+      close_connection_ = true;
+      break;
+    case 413:
+      response_title_ = "Payload Too Large";
+      close_connection_ = true;
+      break;
     case 414:
       response_title_ = "URI Too Long";
       close_connection_ = true;
@@ -69,7 +81,6 @@ Response::Response(int client_fd, int response_code, bool close_connection)
       response_title_ = "HTTP Version Not Supported";
       close_connection_ = true;
       break;
-    // TODO: If I add new error here, also add them to Configs.hpp
     default:
       response_title_ = "Not implemented";
   }

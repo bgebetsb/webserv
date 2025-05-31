@@ -13,14 +13,32 @@
 #define CGI_TIMEOUT_MAX 300
 #define KEEP_ALIVE_TIMEOUT_MAX 60
 
-// ── ◼︎ errorcodes     ───────────────────────
-static const u_int16_t error_codes[] = {400, 403, 404, 405, 408, 500};
+// ── ◼︎ errorcodes implemented ───────────────────────// TODO: check if complete
+static const u_int16_t error_codes[] = {403, 404, 405, 500};
+
+// ── ◼︎ invalid chars for servername ───────────────────────
 static const char invalid_server_name_chars[] = {
     '=', '{', '}', '[', ']', '\\', '|', ';', ':', '\'', '"', '`', '!', '@', '#',
     '$', '%', '^', '&', '*', '(',  ')', '+', ',', '<',  '>', '/', '?', '~'};
+
+// ── ◼︎ supported cgi extensions ───────────────────────
 static const std::string cgis[] = {".py", ".php"};
-static const u_int16_t redirection_codes[] = {301, 302, 303, 307,
-                                              308};  // redirection codes
+
+// ── ◼︎ valid http codes ───────────────────────
+const int VALID_HTTP_CODES[] = {
+    // 1xx Informational
+    100, 101, 102, 103,
+    // 2xx Success
+    200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
+    // 3xx Redirection
+    300, 301, 302, 303, 304, 305, 306, 307, 308,
+    // 4xx Client Errors
+    400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414,
+    415, 416, 417, 418, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451,
+    // 5xx Server Errors
+    500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511};
+const std::size_t VALID_HTTP_CODES_COUNT =
+    sizeof(VALID_HTTP_CODES) / sizeof(VALID_HTTP_CODES[0]);
 
 // ── ◼︎ typedefs names ───────────────────────
 typedef int port;
@@ -205,9 +223,9 @@ class Configuration
   }
   static bool is_valid_redirection_code(int code)
   {
-    for (size_t i = 0; i < sizeof(redirection_codes) / sizeof(u_int16_t); ++i)
+    for (size_t i = 0; i < sizeof(VALID_HTTP_CODES) / sizeof(int); ++i)
     {
-      if (redirection_codes[i] == code)
+      if (VALID_HTTP_CODES[i] == code)
         return true;
     }
     return false;

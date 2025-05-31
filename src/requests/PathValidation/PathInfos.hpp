@@ -8,5 +8,7 @@ struct PathInfos
   bool exists;
   FileTypes types;
   bool readable;
+  bool writable;
+  bool executable;
   off_t size;
 };
