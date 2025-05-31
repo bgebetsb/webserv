@@ -75,7 +75,7 @@ EpollAction Connection::epollCallback(int event)
       catch (std::exception& e)
       {
         // Fall back to the Static-Response if something happens with the
-        // ErrorPage
+        // ErrorPagethrow RequestError(413, "Request body too large");
       }
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
@@ -107,10 +107,97 @@ EpollAction Connection::handleRead()
   return processBuffer();
 }
 
+#include <iostream>
 EpollAction Connection::processFileUpload()
 {
+  std::cout << "Processing file upload..." << std::endl;
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
-  request_.uploadBody(buffer_);
+  std::string write_buffer;
+  UploadMode mode = NORM;
+  // ── ◼︎ Content Length Upload ───────────────────────
+  if (!chunked_)
+  {
+    if (content_length_ > max_body_size_)
+      mode = ERROR_LENGTH;
+    if (mode != ERROR_LENGTH)
+    {
+      if (static_cast< long >(buffer_.size()) > content_length_)
+      {
+        write_buffer = std::string(buffer_, 0, content_length_);
+        buffer_ = std::string(buffer_, content_length_);
+        total_written_bytes_ += content_length_;
+      }
+      else
+      {
+        write_buffer = buffer_;
+        buffer_.clear();
+        total_written_bytes_ += write_buffer.size();
+      }
+      if (total_written_bytes_ > max_body_size_)
+        mode = ERROR_LENGTH;  // Indicate an error
+      else if (total_written_bytes_ == content_length_)
+        mode = END;  // Indicate end of upload
+    }
+  }
+
+  // ── ◼︎ Chunked Transfer Encoding ───────────────────────
+  else
+  {
+    while (1)
+    {
+      size_t pos = buffer_.find("\r\n");
+      if (pos == std::string::npos && write_buffer.empty())
+        return action;  // Not enough data for a chunk
+      if (pos == std::string::npos)
+        break;
+      std::string chunk_size_str(buffer_, 0, pos);
+      size_t chunk_size;
+      try
+      {
+        chunk_size = Utils::strToInt(chunk_size_str);
+      }
+      catch (std::exception& e)
+      {
+        mode = ERROR_CHUNKSIZE;
+        break;
+      }
+
+      //       ○      End of chunked transfer encoding
+      if (chunk_size == 0)
+      {
+        //       ○      Setup for the next request
+        if (buffer_.size() > pos + 2)
+          buffer_ = std::string(buffer_, pos + 2);
+        else
+          buffer_.clear();
+        mode = END;
+        break;
+      }
+
+      //       ○      Check if chunk available
+      if (pos + 2 + chunk_size > buffer_.size())
+        return action;
+
+      //       ○      Extract the chunk
+      write_buffer.append(buffer_, pos + 2, chunk_size);
+
+      //       ○      Update the total written bytes
+      total_written_bytes_ += chunk_size;
+
+      //       ○      Check if total written bytes exceed max body size
+      if (total_written_bytes_ > max_body_size_)
+      {
+        mode = ERROR_LENGTH;  // Indicate an error
+        break;
+      }
+      // Remove the chunk size and CRLF from the buffer
+      if (buffer_.size() > pos + 2 + chunk_size)
+        buffer_ = std::string(buffer_, pos + 2 + chunk_size);
+      else
+        buffer_.clear();
+    }
+  }
+  request_.uploadBody(write_buffer, mode);
   if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
   {
     ep_event_->events = EPOLLOUT | EPOLLRDHUP;
@@ -145,7 +232,18 @@ EpollAction Connection::processBuffer()
     request_.addHeaderLine(line);
     if (request_.getStatus() == READING_BODY)
     {
-      // TODO: Initialize the Values
+      total_written_bytes_ = 0;
+      if (request_.isChunked())
+      {
+        chunked_ = true;
+      }
+      else
+      {
+        content_length_ = request_.getContentLength();
+      }
+      max_body_size_ = request_.getMaxBodySize();
+      request_timeout_ping_ = 0;
+      break;
     }
     if (request_.getStatus() == SENDING_RESPONSE)
     {
@@ -154,7 +252,6 @@ EpollAction Connection::processBuffer()
     }
     pos = buffer_.find('\n');
   }
-
   if (buffer_.size() > 8192)
   {
     if (request_.getStatus() == READING_START_LINE)
@@ -220,7 +317,6 @@ EpollAction Connection::handleWrite()
       request_timeout_ping_ = Utils::getCurrentTime();
     }
   }
-
   return action;
 }
 

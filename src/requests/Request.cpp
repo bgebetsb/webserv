@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstddef>
+#include <iostream>
 #include <string>
 #include "../responses/DirectoryListing.hpp"
 #include "../responses/RedirectResponse.hpp"
@@ -21,6 +22,8 @@
 #include "requests/RequestMethods.hpp"
 #include "responses/FileResponse.hpp"
 #include "responses/Response.hpp"
+
+std::set< std::string > Request::current_upload_files_;
 
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
@@ -356,8 +359,7 @@ bool Request::CgiOrUpload(const Location& loc)
   while (1)
   {
     filename_ = generateRandomFilename();
-    absolute_path_ =
-        loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename_;
+    absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
     PathInfos infos = getFileType(absolute_path_);
     if (!infos.exists)
     {
@@ -378,6 +380,21 @@ bool Request::isFileUpload(const Location& loc)
   if (status_ == READING_BODY)
     throw;
   filename_ = path_.substr(loc.location_name.length());
+
+  // ── ◼︎ check for upload dir ───────────────────────────────────────────
+  if (loc.upload_dir.empty())
+    throw RequestError(403, "No upload dir set");
+  else
+  {
+    PathInfos infos = getFileType(loc.root + "/" + loc.upload_dir);
+    if (!infos.exists || infos.types != DIRECTORY || !infos.writable)
+    {
+      throw RequestError(
+          500, "Upload dir not found or not a directory or not writable");
+      return false;
+    }
+  }
+
   // ── ◼︎ check for empty filename & CGI ─────────────────────────────────────
   if (filename_.empty())
     return CgiOrUpload(loc);
@@ -397,22 +414,8 @@ bool Request::isFileUpload(const Location& loc)
   if (filename_.find_first_of("/") != std::string::npos)
     throw RequestError(400, "Invalid filename_");
 
-  // ── ◼︎ check for upload dir ───────────────────────────────────────────
-  if (loc.upload_dir.empty())
-    throw RequestError(403, "No upload dir set");
-  else
-  {
-    PathInfos infos = getFileType(loc.root + "/" + loc.upload_dir.substr(2));
-    if (!infos.exists || infos.types != DIRECTORY || !infos.writable)
-    {
-      throw RequestError(
-          500, "Upload dir not found or not a directory or not writable");
-      return false;
-    }
-  }
-
   // ── ◼︎ check for file      ──────────────────────────────────────────────
-  absolute_path_ = loc.root + "/" + loc.upload_dir.substr(2) + "/" + filename_;
+  absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
   PathInfos infos = getFileType(absolute_path_);
   if (!infos.exists)
     return true;
@@ -429,6 +432,8 @@ void Request::setupFileUpload()
 {
   if (current_upload_files_.insert(absolute_path_).second)
   {
+    std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
+
     upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
     total_written_bytes_ = 0;
     status_ = READING_BODY;
@@ -465,4 +470,9 @@ const Server& Request::getServer() const
   if (server_ == NULL)
     throw RequestError(404, "No matching server found");
   return *server_;
+}
+
+long Request::getMaxBodySize() const
+{
+  return max_body_size_;
 }

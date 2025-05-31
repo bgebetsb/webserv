@@ -18,6 +18,14 @@ typedef std::vector< Server > vServer;
 const static std::string STANDARD_HEADERS[] = {"host", "content-length",
                                                "transfer-encoding"};
 
+enum UploadMode
+{
+  NORM,
+  END,
+  ERROR_LENGTH,
+  ERROR_CHUNKSIZE
+};
+
 class Request
 {
   // ── ◼︎ member variables ───────────────────────
@@ -26,7 +34,7 @@ class Request
   const Server* server_;
   RequestStatus status_;
   RequestMethod method_;
-  std::string host_;
+  std::string host_;  // TODO: Initialize the Values
   std::string path_;
   std::string startline_;
   mHeader headers_;
@@ -57,7 +65,7 @@ class Request
   std::string generateRandomFilename();
   // ── ◼︎ POST ───────────────────────
  public:
-  void uploadBody(const std::string& body);
+  void uploadBody(const std::string& body, UploadMode mode = NORM);
 
  private:
   long max_body_size_;
@@ -68,7 +76,6 @@ class Request
   std::ofstream upload_file_;
   std::string cgi_path_;
   static std::set< std::string > current_upload_files_;
-  void uploadBodyWithContentLength(const std::string& body);
 
   // ── ◼︎ Response ───────────────────────
  public:
@@ -113,6 +120,4 @@ class Request
   bool methodAllowed(const Location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
-
-  // ── ◼︎ POST ───────────────────────
 };
