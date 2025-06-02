@@ -184,6 +184,35 @@ void Configuration::parseConfigFile(const string& config_file)
           throw Fatal("Invalid config file format: access_log requires exactly "
                       "1 argument");
       }
+      else if (identifier_token == "cgi_path")
+      {
+        std::string extension;
+        std::string path;
+        std::string trash;
+        if (!(ss >> extension) || !(ss >> path) || (ss >> trash))
+          throw Fatal(
+              "Invalid config file format: cgi_path needs exactly 2 arguments");
+        if (extension != ".php" && extension != ".py")
+          throw Fatal(
+              "Invalid config file format: invalid file extension in cgi_path");
+        if (path[0] != '/')
+          throw Fatal("Invalid config file format: cgi_path for " + extension +
+                      " is not an absolute path");
+        if (extension == ".php")
+        {
+          if (!php_path_.empty())
+            throw Fatal("Invalid config file format: cgi_path for .php already "
+                        "defined");
+          php_path_ = path;
+        }
+        else if (extension == ".py")
+        {
+          if (!python_path_.empty())
+            throw Fatal("Invalid config file format: cgi_path for .py already "
+                        "defined");
+          python_path_ = path;
+        }
+      }
       else
       {
         throw Fatal("Invalid config file format: unknown global token => " +
