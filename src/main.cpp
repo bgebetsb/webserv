@@ -8,7 +8,7 @@
 #include <exception>
 #include <iostream>
 #include "Webserv.hpp"
-#include "ip/Ipv4Address.hpp"
+#include "exceptions/ExitExc.hpp"
 
 volatile sig_atomic_t g_signal = 0;
 
@@ -55,9 +55,15 @@ try
       w.mainLoop();
     }
   }
+  catch (ExitExc& e)
+  {
+    std::cerr << "Error in CGI Process!" << std::endl;
+    return (EXITERR);
+  }
   catch (std::exception& e)
   {
     std::cerr << "Error: " << e.what() << std::endl;
+    return (1);
   }
 }
 catch (...)
