@@ -12,8 +12,6 @@
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
-#include "Configs/Configs.hpp"
-#include "Option.hpp"
 #include "PathValidation/FileTypes.hpp"
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
@@ -21,7 +19,6 @@
 #include "exceptions/RequestError.hpp"
 #include "requests/RequestMethods.hpp"
 #include "responses/FileResponse.hpp"
-#include "responses/Response.hpp"
 
 std::set< std::string > Request::current_upload_files_;
 
@@ -362,7 +359,7 @@ bool Request::CgiOrUpload(const Location& loc)
     if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
     {
       is_cgi_ = true;
-      cgi_path_ = loc.root + "/" + *it;
+      cgi_skript_path_ = loc.root + "/" + *it;
       return false;  // CGI found, no upload
     }
   }
@@ -419,7 +416,7 @@ bool Request::isFileUpload(const Location& loc)
       loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
   {
     is_cgi_ = true;
-    cgi_path_ = loc.root + "/" + filename_;
+    cgi_skript_path_ = loc.root + "/" + filename_;
     return false;
   }
 
@@ -469,11 +466,11 @@ void Request::setupFileUpload()
 
 void Request::setupCgi()
 {
-  PathInfos infos = getFileType(cgi_path_);
+  PathInfos infos = getFileType(cgi_skript_path_);
   if (!infos.exists || infos.types != REGULAR_FILE)
-    throw RequestError(404, "CGI file not found");
+    throw RequestError(404, "CGI Skript not found");
   if (!infos.executable)
-    throw RequestError(403, "CGI file not executable");
+    throw RequestError(403, "CGI Skript not executable");
   while (1)
   {
     filename_ = generateRandomFilename();

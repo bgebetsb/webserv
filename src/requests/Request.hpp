@@ -75,7 +75,7 @@ class Request
   std::string absolute_path_;
   long total_written_bytes_;
   std::ofstream upload_file_;
-  std::string cgi_path_;
+  std::string cgi_skript_path_;
   bool file_existed_;
   static std::set< std::string > current_upload_files_;
 
