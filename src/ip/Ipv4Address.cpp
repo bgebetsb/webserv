@@ -2,11 +2,6 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstddef>
-#include <cstdlib>
-#include <iostream>
-#include <ostream>
-#include <sstream>
 #include "../exceptions/Fatal.hpp"
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
@@ -14,20 +9,6 @@
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Operators              ║
 // ╚══════════════════════════════════════════════╝
-
-std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
-{
-  u_int8_t octets[4];
-  u_int32_t ip = ntohl(addr.getIp());
-  octets[0] = (ip >> 24) & 0xFF;
-  octets[1] = (ip >> 16) & 0xFF;
-  octets[2] = (ip >> 8) & 0xFF;
-  octets[3] = ip & 0xFF;
-  os << static_cast< int >(octets[0]) << "." << static_cast< int >(octets[1])
-     << "." << static_cast< int >(octets[2]) << "."
-     << static_cast< int >(octets[3]) << ":" << ntohs(addr.getPort());
-  return os;
-}
 
 bool Ipv4Address::operator<(const IpAddress& other) const
 {
@@ -62,46 +43,15 @@ bool Ipv4Address::operator==(const IpAddress& other) const
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port) : IpAddress("", IPv4)
+Ipv4Address::Ipv4Address(u_int32_t ip,
+                         u_int16_t port,
+                         const std::string& original)
+    : IpAddress(original, IPv4)
 {
   if (port == 0)
     throw Fatal("Invalid Ipv4 Address format");
   ip_ = ip;
   port_ = Utils::u16ToBigEndian(port);
-}
-
-Ipv4Address::Ipv4Address(const std::string& address) : IpAddress(address, IPv4)
-
-{
-  u_int8_t ar[4];
-  if (address.find_first_not_of("0123456789.:") != std::string::npos)
-    throw Fatal("Invalid Ipv4 Address format");
-  std::string::size_type pos = address.find(':');
-  if (pos == std::string::npos)
-  {
-    throw Fatal("Invalid Ipv4 Address format");
-  }
-
-  std::string ip = address.substr(0, pos);
-  std::stringstream ss(ip);
-  std::string token;
-  size_t i = 0;
-  while (std::getline(ss, token, '.'))
-  {
-    if (i > 3)
-      throw Fatal("Invalid Ipv4 Address format");
-    ar[i++] = Utils::ipStrToUint8(token);
-  }
-  if (i != 4)
-    throw Fatal("Invalid Ipv4 Address format: Invalid octet count");
-  std::string port = address.substr(pos + 1);
-  port_ = Utils::ipStrToUint16(port);
-  if (port_ == 0)
-    throw Fatal("Invalid Ipv4 Address format: port cannot be 0");
-  port_ = htons(port_);
-  ip_ = htonl(Utils::ipv4ToBigEndian(ar));
-  type_ = IPv4;
-  IpAddress::address_ = address;
 }
 
 Ipv4Address::~Ipv4Address() {}

@@ -3,15 +3,18 @@
 #include <string>
 #include "IpAddress.hpp"
 
-struct PosDoubleColon;
+struct Ipv6
+{
+  u_int16_t ip[8];
+};
+
+bool operator<(const Ipv6& lhs, const Ipv6& rhs);
 
 class Ipv6Address : public IpAddress
 {
  public:
   // ── ◼︎ constructors and destructors ─────────────
-  Ipv6Address(u_int16_t port);
-  PosDoubleColon checkDoubleColonPosition(const std::string& ip);
-  void readBigEndianIpv6(const std::string& ip);
+  Ipv6Address(Ipv6 ip, u_int16_t port, const std::string& original);
   Ipv6Address(const std::string& address);
   ~Ipv6Address();
 
@@ -30,5 +33,3 @@ class Ipv6Address : public IpAddress
   u_int16_t ip_[8];
   u_int16_t port_;
 };
-
-std::ostream& operator<<(std::ostream& os, const Ipv6Address& addr);

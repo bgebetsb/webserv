@@ -24,7 +24,7 @@ Listener::Listener(IpAddress* address) : address_(address)
     throw std::runtime_error("Unable to listen");
   }
 
-  std::cerr << "Started listening\n";
+  std::cerr << "Started listening on " << *address << "\n";
 }
 
 Listener::~Listener() {}

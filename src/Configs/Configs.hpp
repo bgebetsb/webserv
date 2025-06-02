@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "../ip/IpAddress.hpp"
+#include "ip/IpComparison.hpp"
 
 #define CGI_TIMEOUT_MAX 300
 #define KEEP_ALIVE_TIMEOUT_MAX 60
@@ -74,7 +75,7 @@ struct LogSettings
 
 // ── ◼︎ typedefs utils ───────────────────────
 typedef std::string string;
-typedef std::set< IpAddress* > IpSet;
+typedef std::set< IpAddress*, IpComparison > IpSet;
 typedef std::set< string > ServerNames;
 typedef std::map< errcode, filename > MErrors;
 typedef std::map< string, string > MRedirects;
