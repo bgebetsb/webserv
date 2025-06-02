@@ -1,4 +1,5 @@
 #include <cctype>
+#include <sstream>
 #include <string>
 #include "PathValidation/PathValidation.hpp"
 #include "Request.hpp"
@@ -7,6 +8,7 @@
 
 static bool validateScheme(const std::string& scheme);
 static void parseHTTPVersion(std::istringstream& stream);
+static std::string processURLEncoding(const std::string& original);
 
 void Request::readStartLine(const std::string& line)
 {
@@ -48,6 +50,8 @@ void Request::parsePath(std::istringstream& stream)
 
   if (!(stream >> path_))
     throw RequestError(400, "Unable to parse path");
+
+  path_ = processURLEncoding(path_);
 
   if (path_[0] != '/')
   {
@@ -121,4 +125,34 @@ static void parseHTTPVersion(std::istringstream& stream)
 
   if (version != "HTTP/1.1")
     throw RequestError(505, "Invalid HTTP version");
+}
+
+static std::string processURLEncoding(const std::string& original)
+{
+  std::string::size_type i = 0;
+  std::string escaped;
+
+  for (i = 0; i < original.size(); ++i)
+  {
+    if (original[i] == '%')
+    {
+      std::string chars = original.substr(i + 1, 2);
+      if (chars.length() != 2)
+        throw RequestError(400, "Invalid URL encoding");
+      std::istringstream stream(chars);
+      int code;
+      if (!(stream >> std::hex >> code))
+        throw RequestError(400, "Tried to escape non-hex characters");
+      if (code > 127)
+        throw RequestError(400, "Hex value in request path greater than 127");
+      escaped += static_cast< char >(code);
+      i += 2;
+    }
+    else
+    {
+      escaped += original[i];
+    }
+  }
+
+  return escaped;
 }
