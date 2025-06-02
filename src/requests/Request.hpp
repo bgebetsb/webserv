@@ -23,7 +23,8 @@ enum UploadMode
   NORM,
   END,
   ERROR_LENGTH,
-  ERROR_CHUNKSIZE
+  ERROR_CHUNKSIZE,
+  CLEAN
 };
 
 class Request
@@ -75,6 +76,7 @@ class Request
   long total_written_bytes_;
   std::ofstream upload_file_;
   std::string cgi_path_;
+  bool file_existed_;
   static std::set< std::string > current_upload_files_;
 
   // ── ◼︎ Response ───────────────────────

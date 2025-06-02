@@ -34,7 +34,8 @@ Request::Request(const int fd, const std::vector< Server >& servers)
       servers_(servers),
       total_header_size_(0),
       response_(NULL),
-      is_cgi_(false)
+      is_cgi_(false),
+      file_existed_(false)
 {}
 
 Request::Request(const Request& other)
@@ -45,7 +46,8 @@ Request::Request(const Request& other)
       closing_(other.closing_),
       servers_(other.servers_),
       total_header_size_(other.total_header_size_),
-      response_(other.response_)
+      response_(other.response_),
+      file_existed_(other.file_existed_)
 {}
 
 Request& Request::operator=(const Request& other)
@@ -77,6 +79,14 @@ Request::~Request()
   if (response_)
   {
     delete response_;
+  }
+  if (upload_file_.is_open())
+  {
+    upload_file_.close();
+    if (!absolute_path_.empty())
+    {
+      std::remove(absolute_path_.c_str());
+    }
   }
 }
 
@@ -176,7 +186,8 @@ void Request::processRequest(void)
 void Request::processFilePath(const std::string& path, const Location& location)
 {
   PathInfos infos = getFileType(path);
-
+  if (current_upload_files_.find(path) != current_upload_files_.end())
+    throw RequestError(409, "Conflict: File being uploaded");
   if (!infos.exists)
     throw RequestError(404, "File doesn't exist");
   else if (path[path.length() - 1] == '/' && infos.types != DIRECTORY)
@@ -363,6 +374,7 @@ bool Request::CgiOrUpload(const Location& loc)
     PathInfos infos = getFileType(absolute_path_);
     if (!infos.exists)
     {
+      current_upload_files_.insert(absolute_path_);
       break;  // Found a random filename that does not exist
     }
     // else continue to generate a new random filename
@@ -377,10 +389,11 @@ bool Request::CgiOrUpload(const Location& loc)
 */
 bool Request::isFileUpload(const Location& loc)
 {
+  filename_ = path_.substr(loc.location_name.length());
+  if (method_ != POST)
+    return false;  // Not a POST request, no file upload
   if (status_ == READING_BODY)
     throw;
-  filename_ = path_.substr(loc.location_name.length());
-
   // ── ◼︎ check for upload dir ───────────────────────────────────────────
   if (loc.upload_dir.empty())
     throw RequestError(403, "No upload dir set");
@@ -420,7 +433,10 @@ bool Request::isFileUpload(const Location& loc)
   if (!infos.exists)
     return true;
   else if (infos.exists && infos.types == REGULAR_FILE && infos.writable)
+  {
+    file_existed_ = true;
     return true;
+  }
   else
   {
     throw RequestError(403, "File not accesible or incorrect type");
@@ -430,11 +446,17 @@ bool Request::isFileUpload(const Location& loc)
 
 void Request::setupFileUpload()
 {
+  std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
   if (current_upload_files_.insert(absolute_path_).second)
   {
     std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
-
+    errno = 0;  // Reset errno before opening the file
     upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
+    if (errno == ENAMETOOLONG)
+    {
+      std::cout << "ERRNO: " << errno << std::endl;
+      throw RequestError(400, "Filename too long");
+    }
     total_written_bytes_ = 0;
     status_ = READING_BODY;
     return;
