@@ -2,8 +2,6 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <iostream>
-#include <ostream>
 #include "../exceptions/Fatal.hpp"
 #include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
@@ -11,20 +9,6 @@
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Operators              ║
 // ╚══════════════════════════════════════════════╝
-
-std::ostream& operator<<(std::ostream& os, const Ipv4Address& addr)
-{
-  u_int8_t octets[4];
-  u_int32_t ip = ntohl(addr.getIp());
-  octets[0] = (ip >> 24) & 0xFF;
-  octets[1] = (ip >> 16) & 0xFF;
-  octets[2] = (ip >> 8) & 0xFF;
-  octets[3] = ip & 0xFF;
-  os << static_cast< int >(octets[0]) << "." << static_cast< int >(octets[1])
-     << "." << static_cast< int >(octets[2]) << "."
-     << static_cast< int >(octets[3]) << ":" << ntohs(addr.getPort());
-  return os;
-}
 
 bool Ipv4Address::operator<(const IpAddress& other) const
 {
@@ -59,7 +43,10 @@ bool Ipv4Address::operator==(const IpAddress& other) const
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv4Address::Ipv4Address(u_int32_t ip, u_int16_t port) : IpAddress("", IPv4)
+Ipv4Address::Ipv4Address(u_int32_t ip,
+                         u_int16_t port,
+                         const std::string& original)
+    : IpAddress(original, IPv4)
 {
   if (port == 0)
     throw Fatal("Invalid Ipv4 Address format");

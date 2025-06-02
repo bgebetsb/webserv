@@ -506,7 +506,10 @@ static void insert_ip(IpSet& ips, const string& token)
     port = Utils::ipStrToUint16(token);
     if (port == 0)
       throw Fatal("Invalid config file format: port cannot be 0");
-    addr = new Ipv4Address(0, port);
+    std::ostringstream ss;
+    ss << "0.0.0.0:";
+    ss << port;
+    addr = new Ipv4Address(0, port, ss.str());
     if (!ips.insert(addr).second)
     {
       delete addr;
@@ -529,7 +532,9 @@ static void insert_ip(IpSet& ips, const string& token)
       IpSet::iterator it;
       for (it = ipSet.begin(); it != ipSet.end(); ++it)
       {
-        Ipv6Address* addr = new Ipv6Address(*it, port);
+        std::ostringstream ss;
+        ss << "[" << remaining << "]:" << port;
+        Ipv6Address* addr = new Ipv6Address(*it, port, ss.str());
         if (!ips.insert(addr).second)
         {
           delete addr;
@@ -545,7 +550,7 @@ static void insert_ip(IpSet& ips, const string& token)
       IpSet::iterator it;
       for (it = ipSet.begin(); it != ipSet.end(); ++it)
       {
-        Ipv4Address* addr = new Ipv4Address(*it, port);
+        Ipv4Address* addr = new Ipv4Address(*it, port, token);
         if (!ips.insert(addr).second)
         {
           delete addr;

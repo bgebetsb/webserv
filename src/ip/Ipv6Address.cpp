@@ -7,8 +7,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <ostream>
 #include "../exceptions/Fatal.hpp"
 #include "IpAddress.hpp"
 
@@ -23,22 +21,6 @@ bool operator<(const Ipv6& lhs, const Ipv6& rhs)
       return true;
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& os, const Ipv6Address& addr)
-{
-  (void)addr;
-  os << "[";
-  const u_int16_t* ip = addr.getIp();
-  for (size_t i = 0; i < 8; ++i)
-  {
-    os << std::hex << ntohs(ip[i]);
-    if (i != 7)
-      os << ":";
-  }
-  os << "]:";
-  os << std::dec << ntohs(addr.getPort());
-  return os;
 }
 
 bool Ipv6Address::operator<(const IpAddress& other) const
@@ -84,19 +66,12 @@ bool Ipv6Address::operator==(const IpAddress& other) const
 // ║              SECTION: Member functions       ║
 // ╚══════════════════════════════════════════════╝
 
-Ipv6Address::Ipv6Address(Ipv6 ip, u_int16_t port) : IpAddress("", IPv6)
+Ipv6Address::Ipv6Address(Ipv6 ip, u_int16_t port, const std::string& original)
+    : IpAddress(original, IPv6)
 {
   if (port == 0)
     throw Fatal("Invalid Ipv6 Address format");
   std::memcpy(ip_, ip.ip, 16);
-  port_ = htons(port);
-}
-
-Ipv6Address::Ipv6Address(u_int16_t port) : IpAddress("", IPv6)
-{
-  if (port == 0)
-    throw Fatal("Invalid Ipv6 Address format");
-  std::memset(ip_, 0, sizeof(uint16_t) * 8);
   port_ = htons(port);
 }
 
