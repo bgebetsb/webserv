@@ -23,20 +23,10 @@
 // ║              SECTION: Con. / Destructors     ║
 // ╚══════════════════════════════════════════════╝
 
-Configuration::Configuration(const string& config_file)
-    : config_file_(config_file)
-
-{
-  (void)config_file;
-  cgi_timeout_ = std::make_pair(CGI_TIMEOUT_MAX, false);
-  keep_alive_timeout_ = std::make_pair(KEEP_ALIVE_TIMEOUT_MAX, false);
-}
-
-// Default constructor only enabled for testing purposes
 Configuration::Configuration()
 {
-  cgi_timeout_ = std::make_pair(0, false);
-  keep_alive_timeout_ = std::make_pair(0, false);
+  cgi_timeout_ = std::make_pair(CGI_TIMEOUT_MAX, false);
+  keep_alive_timeout_ = std::make_pair(KEEP_ALIVE_TIMEOUT_MAX, false);
 }
 
 Configuration::~Configuration()
@@ -365,6 +355,7 @@ void Configuration::process_location_item(std::stringstream& item,
       throw Fatal("Invalid config file format: duplicate entries in "
                   "http_methods directive");
     loc.http_methods_set = true;
+    loc.GET = false;
     for (size_t i = 0; i < tokens.size(); ++i)
     {
       if (tokens[i] == "GET")

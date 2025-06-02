@@ -8,11 +8,6 @@ enum IpTypes
   IPv6
 };
 
-/*
-  string address;
-  IpTypes type;
-  int port;
-*/
 class IpAddress
 {
  public:
@@ -22,7 +17,6 @@ class IpAddress
   virtual ~IpAddress();
   virtual int createSocket() const = 0;
 
-  static IpTypes detectType(const std::string& input);
   virtual bool operator<(const IpAddress& other) const = 0;
   virtual bool operator==(const IpAddress& other) const = 0;
   IpTypes getType() const;

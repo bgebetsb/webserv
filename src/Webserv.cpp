@@ -254,8 +254,7 @@ void Webserv::closeClientConnections(const MMKeepAlive& keepalive_fds,
 {
   MMKeepAlive::const_iterator it = keepalive_fds.begin();
   size_t total_closed = 0;
-  // TODO: set this to the number from the config
-  size_t time_limit = KEEPALIVE_TIMEOUT_SECONDS * 1000;
+  size_t time_limit = config_.getKeepAliveTimeout() * 1000;
 
   while (it != keepalive_fds.end() &&
          (it->first > time_limit || total_closed < needed_fds))
