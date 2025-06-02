@@ -1,11 +1,14 @@
 #include "DirectoryListing.hpp"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <ctime>
 #include <sstream>
 #include <string>
+#include <vector>
 #include "exceptions/RequestError.hpp"
 #include "requests/PathValidation/FileTypes.hpp"
+#include "utils/Utils.hpp"
 
 namespace DirectoryListing
 {
@@ -14,6 +17,9 @@ namespace DirectoryListing
   static bool fillDirEntry(DirEntry& entry,
                            const std::string& local_path,
                            struct dirent* dir);
+
+  static std::string escapeHTML(const std::string& original);
+  static std::string applyURLEncoding(const std::string& original);
 
   std::string createDirectoryListing(const std::string& local_path,
                                      const std::string& request_path)
@@ -113,7 +119,7 @@ namespace DirectoryListing
                        "</head>\r\n"
                        "<body>\r\n"
                        "<h1>Index of " +
-                       request_path +
+                       escapeHTML(request_path) +
                        "</h1>\r\n<table>\r\n<tr>\r\n<th "
                        "class=\"left\">Name</th>\r\n<th "
                        "class=\"center\">Last Modified</th>"
@@ -122,8 +128,10 @@ namespace DirectoryListing
 
     for (it = entries.begin(); it != entries.end(); ++it)
     {
-      body_stream << "<tr><td class=\"left\"><a href=\"" + it->name + "\">" +
-                         it->name + "</a></td><td class=\"center\">";
+      body_stream << "<tr><td class=\"left\"><a href=\"" +
+                         applyURLEncoding(it->name) + "\">" +
+                         escapeHTML(it->name) +
+                         "</a></td><td class=\"center\">";
       body_stream << it->timestamp;
       body_stream << "</td><td "
                      "class=\"right\">";
@@ -134,6 +142,61 @@ namespace DirectoryListing
     body_stream << "</table></body>\r\n</html>\r\n";
 
     return body_stream.str();
+  }
+
+  static const VRanges& getURLEncodingRanges()
+  {
+    static VRanges ranges;
+
+    if (ranges.empty())
+    {
+      ranges.push_back(RangePair(0x20, 0x2C));
+      ranges.push_back(RangePair(0x2F, 0x2F));
+      ranges.push_back(RangePair(0x3A, 0x40));
+      ranges.push_back(RangePair(0x5B, 0x5D));
+      ranges.push_back(RangePair(0x7B, 0x7D));
+    }
+
+    return ranges;
+  }
+
+  static std::string escapeHTML(const std::string& original)
+  {
+    std::string current = Utils::replaceString(original, "&", "&amp;");
+    current = Utils::replaceString(current, "<", "&lt;");
+    current = Utils::replaceString(current, ">", "&gt;");
+    current = Utils::replaceString(current, "\"", "&quot;");
+    current = Utils::replaceString(current, "'", "&#39;");
+
+    return current;
+  }
+
+  static std::string applyURLEncoding(const std::string& original)
+  {
+    const VRanges& ranges = getURLEncodingRanges();
+    VRanges::const_iterator it;
+
+    std::stringstream replaced;
+
+    for (std::string::size_type i = 0; i < original.length(); ++i)
+    {
+      bool found = false;
+      for (it = ranges.begin(); it != ranges.end(); ++it)
+      {
+        if (original[i] >= it->first && original[i] <= it->second)
+        {
+          replaced << "%" << std::uppercase << std::hex
+                   << static_cast< u_int16_t >(original[i]);
+          found = true;
+          break;
+        }
+      }
+
+      if (!found)
+        replaced << original[i];
+    }
+
+    return replaced.str();
   }
 
   bool operator<(const DirEntry& a, const DirEntry& b)
