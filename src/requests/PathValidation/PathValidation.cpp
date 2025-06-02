@@ -28,6 +28,8 @@ PathInfos getFileType(const std::string& filename)
     }
     else if (errno == ENOTDIR)
       return getFileType(filename.substr(0, filename.length() - 1));
+    else if (errno == ENAMETOOLONG)
+      throw RequestError(400, "Filename too long");
     throw RequestError(500, "Stat failed for unknown reason");
   }
 
