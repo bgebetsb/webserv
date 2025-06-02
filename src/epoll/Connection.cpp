@@ -38,6 +38,7 @@ Connection::~Connection()
   delete[] readbuf_;
 }
 
+// #include <iostream> // DEBUG
 EpollAction Connection::epollCallback(int event)
 {
   if (((event & EPOLLIN) | (event & EPOLLOUT)) != 0)
@@ -50,6 +51,7 @@ EpollAction Connection::epollCallback(int event)
     }
     catch (RequestError& e)
     {
+      // std::cerr << "RequestError: " << e.what() << std::endl; // DEBUG
       try
       {
         const Server& server = request_.getServer();
