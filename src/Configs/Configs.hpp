@@ -121,6 +121,7 @@ struct Redirection
 /// `____upload_dir` upload directory
 struct Location
 {
+  // TODO: Allow HTTP GET by default, if there is no http_Methods directive
   Location()
       : http_methods_set(false),
         GET(false),
@@ -172,6 +173,8 @@ class Configuration
   ServerVec server_configs_;
   size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
   size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  string php_path_;
+  string python_path_;
   LogSettings log_;
   const string config_file_;
 
