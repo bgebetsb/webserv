@@ -121,10 +121,9 @@ struct Redirection
 /// `____upload_dir` upload directory
 struct Location
 {
-  // TODO: Allow HTTP GET by default, if there is no http_Methods directive
   Location()
       : http_methods_set(false),
-        GET(false),
+        GET(true),
         POST(false),
         DELETE(false),
         DIR_LISTING(false, false),
@@ -171,8 +170,8 @@ class Configuration
 {
  private:
   ServerVec server_configs_;
-  size_pair cgi_timeout_;         // cgi_timeout //TODO: default config
-  size_pair keep_alive_timeout_;  // keep_alive_timeout //TODO: default config
+  size_pair cgi_timeout_;
+  size_pair keep_alive_timeout_;
   string php_path_;
   string python_path_;
   LogSettings log_;
@@ -181,7 +180,6 @@ class Configuration
  public:
   // ── ◼︎ Constructors / Destructor ───────────
   Configuration();
-  Configuration(const std::string& config_file);
   ~Configuration();
 
   // ── ◼︎ Config file parsing ─────────────────
@@ -204,6 +202,16 @@ class Configuration
   const LogSettings& getLogsettings() const
   {
     return log_;
+  }
+
+  size_t getCgiTimeout() const
+  {
+    return cgi_timeout_.first;
+  }
+
+  size_t getKeepAliveTimeout() const
+  {
+    return keep_alive_timeout_.first;
   }
 
   // ── ◼︎ Utilities  ───────────────────────
