@@ -7,9 +7,9 @@
 #include "exceptions/ExitExc.hpp"
 
 PipeFd::PipeFd(std::string& write_buffer,
-               std::string& skript_path,
-               std::string& cgi_path,
-               std::string& file_path,
+               const std::string& skript_path,
+               const std::string& cgi_path,
+               const std::string& file_path,
                Response* cgi_response,
                char** envp)
     : EpollFd(),
@@ -68,6 +68,8 @@ PipeFd::PipeFd(std::string& write_buffer,
     fd_ = read_end_;
   }
 }
+
+PipeFd::~PipeFd() {}
 
 void PipeFd::closePipe()
 {

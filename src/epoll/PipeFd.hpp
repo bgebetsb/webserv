@@ -14,9 +14,9 @@ class PipeFd : public EpollFd
  public:
   // ── ◼︎ constructor, destructor ───────────────────────
   PipeFd(std::string& write_buffer,
-         std::string& skript_path,
-         std::string& cgi_path,
-         std::string& file_path,
+         const std::string& skript_path,
+         const std::string& cgi_path,
+         const std::string& file_path,
          Response* cgi_response,
          char** envp);
   ~PipeFd();
@@ -32,13 +32,14 @@ class PipeFd : public EpollFd
   char read_buffer_[CHUNK_SIZE];
   size_t bytes_read_;
   std::string& write_buffer_;
-  std::string& bin_path_;
-  std::string& skript_path_;
-  std::string& file_path_;
+  std::string bin_path_;
+  std::string skript_path_;
+  std::string file_path_;
   Response* cgi_response_;
 
   // ── ◼︎ utils ───────────────────────
   void closePipe();
+  void spawnCGI(char** envp);
 
   // ── ◼︎ disabled ───────────────────────
   PipeFd();
