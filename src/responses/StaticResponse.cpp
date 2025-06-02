@@ -1,6 +1,7 @@
 #include "StaticResponse.hpp"
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <map>
 #include <sstream>
 #include "responses/Response.hpp"
 
@@ -24,10 +25,12 @@ StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
   full_response_ = response.str();
 }
 
-StaticResponse::StaticResponse(int client_fd,
-                               int response_code,
-                               bool close,
-                               const std::string& content)
+StaticResponse::StaticResponse(
+    int client_fd,
+    int response_code,
+    bool close,
+    const std::string& content,
+    const std::map< std::string, std::string > addHeaders)
     : Response(client_fd, response_code, close)
 {
   std::ostringstream response;
@@ -35,13 +38,18 @@ StaticResponse::StaticResponse(int client_fd,
            << "Content-Length: " << content.length() << "\r\n";
   if (!content.empty())
     response << "Content-Type: text/html\r\n";
+  for (std::map< std::string, std::string >::const_iterator it =
+           addHeaders.begin();
+       it != addHeaders.end(); ++it)
+  {
+    response << it->first << ": " << it->second << "\r\n";
+  }
   response << "Connection: ";
   if (close_connection_)
     response << "close\r\n\r\n";
   else
     response << "keep-alive\r\n\r\n";
   response << content;
-
   full_response_ = response.str();
 }
 
