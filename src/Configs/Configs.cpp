@@ -496,38 +496,17 @@ void Configuration::process_location_item(std::stringstream& item,
 
 static void insert_ip(IpSet& ips, const string& token)
 {
-  if (token.find_first_of(".:[]") == string::npos)
+  string::size_type pos = token.find_last_of(':');
+  string ip;
+  u_int16_t port;
+  IpAddress* addr;
+
+  if (pos == string::npos)
   {
-    u_int16_t port = Utils::ipStrToUint16(token);
+    port = Utils::ipStrToUint16(token);
     if (port == 0)
       throw Fatal("Invalid config file format: port cannot be 0");
-    Ipv4Address* addr = new Ipv4Address(0, port);
-    if (!ips.insert(addr).second)
-    {
-      delete addr;
-      throw Fatal("Invalid config file format: duplicate IP address");
-    }
-  }
-  else if (token.find("[::]:") != string::npos)
-  {
-    string::size_type pos = token.find("[::]:");
-    if (pos != 0)
-      throw Fatal("Invalid config file format: [::]: needs to be at the "
-                  "beginning");
-    std::string port = token.substr(pos + 5);
-    u_int16_t port_num = Utils::ipStrToUint16(port);
-    if (port_num == 0)
-      throw Fatal("Invalid config file format: port cannot be 0");
-    Ipv6Address* addr = new Ipv6Address(port_num);
-    if (!ips.insert(addr).second)
-    {
-      delete addr;
-      throw Fatal("Invalid config file format: duplicate IP address");
-    }
-  }
-  else if (token[0] == '[')
-  {
-    Ipv6Address* addr = new Ipv6Address(token);
+    addr = new Ipv4Address(0, port);
     if (!ips.insert(addr).second)
     {
       delete addr;
@@ -536,20 +515,42 @@ static void insert_ip(IpSet& ips, const string& token)
   }
   else
   {
-    string::size_type pos = token.find(':');
-    if (pos == string::npos)
-      throw Fatal("Invalid config file format: Invalid Ipv4 Address format");
-    u_int16_t port = Utils::ipStrToUint16(token.substr(pos + 1));
-    typedef std::set< u_int32_t > IpSet;
-    IpSet ipSet = Utils::getIpv4Addresses(token.substr(0, pos));
-    IpSet::iterator it;
-    for (it = ipSet.begin(); it != ipSet.end(); ++it)
+    port = Utils::ipStrToUint16(token.substr(pos + 1));
+    if (port == 0)
+      throw Fatal("Invalid config file format: port cannot be 0");
+    if (token[0] == '[')
     {
-      Ipv4Address* addr = new Ipv4Address(*it, port);
-      if (!ips.insert(addr).second)
+      string::size_type pos2 = token.find(']');
+      if (pos2 != pos - 1)
+        throw Fatal("Invalid config file format: Malformed IPv6 address");
+      string remaining = token.substr(1, pos2 - 1);
+      typedef std::set< Ipv6 > IpSet;
+      IpSet ipSet = Utils::getIpv6Addresses(remaining);
+      IpSet::iterator it;
+      for (it = ipSet.begin(); it != ipSet.end(); ++it)
       {
-        delete addr;
-        throw Fatal("Invalid config file format: duplicate IP address");
+        Ipv6Address* addr = new Ipv6Address(*it, port);
+        if (!ips.insert(addr).second)
+        {
+          delete addr;
+          throw Fatal("Invalid config file format: duplicate IP address");
+        }
+      }
+    }
+    else
+    {
+      string remaining = token.substr(0, pos);
+      typedef std::set< u_int32_t > IpSet;
+      IpSet ipSet = Utils::getIpv4Addresses(remaining);
+      IpSet::iterator it;
+      for (it = ipSet.begin(); it != ipSet.end(); ++it)
+      {
+        Ipv4Address* addr = new Ipv4Address(*it, port);
+        if (!ips.insert(addr).second)
+        {
+          delete addr;
+          throw Fatal("Invalid config file format: duplicate IP address");
+        }
       }
     }
   }
