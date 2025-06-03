@@ -27,6 +27,12 @@ enum UploadMode
   CLEAN
 };
 
+enum CgiExtension
+{
+  PHP,
+  PYTHON
+};
+
 class Request
 {
   // ── ◼︎ member variables ───────────────────────
@@ -38,6 +44,7 @@ class Request
   std::string host_;  // TODO: Initialize the Values
   std::string path_;
   std::string startline_;
+  std::string query_string_;
   mHeader headers_;
   bool chunked_;
   Option< long > content_length_;
@@ -78,7 +85,7 @@ class Request
   std::string cgi_skript_path_;
   bool file_existed_;
   static std::set< std::string > current_upload_files_;
-
+  CgiExtension cgi_extension_;
   // ── ◼︎ Response ───────────────────────
  public:
   void sendResponse();

@@ -18,10 +18,11 @@ RESPONSES:=		responses/FileResponse.cpp \
 							responses/Response.cpp \
 							responses/StaticResponse.cpp \
 							responses/DirectoryListing.cpp \
+							responses/CgiResponse.cpp \
 							
 GLOBALS:=	main.cpp Webserv.cpp
 EPOLL:= epoll/EpollFd.cpp epoll/Connection.cpp epoll/Ipv4Connection.cpp epoll/Ipv6Connection.cpp \
-				epoll/Listener.cpp
+				epoll/Listener.cpp epoll/PipeFd.cpp
 IP:= ip/IpAddress.cpp ip/Ipv4Address.cpp ip/Ipv6Address.cpp ip/IpComparison.cpp
 SRC := $(UTILS) $(LOGGER) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES)
 SRCDIR := src

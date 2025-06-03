@@ -26,15 +26,21 @@
 
 #define KEEPALIVE_TIMEOUT_SECONDS 30
 
+EpollData& getEpollData()
+{
+  static EpollData ed;
+  return ed;
+}
+
 /*
  * The `size` argument in epoll_create is just for backwards compatibility.
  * Doesn't do anything since Linux kernel v2.6.8, only needs to be greater
  * than zero.
  */
-Webserv::Webserv(std::string config_file)
-    : epoll_fd_(epoll_create(1024)), events_(NULL)
+Webserv::Webserv(std::string config_file, Configuration& config)
+    : ed_(getEpollData()), events_(NULL), config_(config)
 {
-  if (epoll_fd_ == -1)
+  if (ed_.fd == -1)
   {
     throw std::runtime_error("Unable to create epoll fd");
   }
@@ -47,7 +53,7 @@ Webserv::Webserv(std::string config_file)
   {
     if (events_)
       delete[] events_;
-    close(epoll_fd_);
+    close(ed_.fd);
     throw;
   }
   servers_ = config_.getServerConfigs();
@@ -57,12 +63,12 @@ Webserv::~Webserv()
 {
   typedef std::map< const int, EpollFd* >::iterator iter_type;
 
-  for (iter_type it = fds_.begin(); it != fds_.end(); ++it)
+  for (iter_type it = ed_.fds.begin(); it != ed_.fds.end(); ++it)
   {
     delete it->second;
   }
   delete[] events_;
-  close(epoll_fd_);
+  close(ed_.fd);
 }
 
 void Webserv::addServer(const IpSet& listeners, const Server& server)
@@ -84,14 +90,14 @@ Listener& Webserv::getListener(IpAddress* addr)
 
   if (fd_it != listeners_.end())
   {
-    listener = static_cast< Listener* >(fds_[fd_it->second]);
+    listener = static_cast< Listener* >(ed_.fds[fd_it->second]);
   }
   else
   {
     listener = new Listener(addr);
     int fd = listener->getFd();
     listeners_[addr] = fd;
-    fds_[fd] = listener;
+    ed_.fds[fd] = listener;
   }
 
   return *listener;
@@ -99,17 +105,17 @@ Listener& Webserv::getListener(IpAddress* addr)
 
 void Webserv::addFd(int fd, struct epoll_event* event)
 {
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, event) == -1)
+  if (epoll_ctl(ed_.fd, EPOLL_CTL_ADD, fd, event) == -1)
   {
     throw std::runtime_error("Unable to add fd to epoll");
   }
 
-  fds_[fd] = static_cast< EpollFd* >(event->data.ptr);
+  ed_.fds[fd] = static_cast< EpollFd* >(event->data.ptr);
 }
 
 void Webserv::modifyFd(int fd, struct epoll_event* event) const
 {
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, event) == -1)
+  if (epoll_ctl(ed_.fd, EPOLL_CTL_MOD, fd, event) == -1)
   {
     throw std::runtime_error("Unable to modify epoll event");
   }
@@ -117,13 +123,13 @@ void Webserv::modifyFd(int fd, struct epoll_event* event) const
 
 void Webserv::deleteFd(int fd)
 {
-  if (epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, NULL) == -1)
+  if (epoll_ctl(ed_.fd, EPOLL_CTL_DEL, fd, NULL) == -1)
   {
     throw std::runtime_error("Unable to remove fd from epoll");
   }
 
-  delete fds_[fd];
-  fds_.erase(fd);
+  delete ed_.fds[fd];
+  ed_.fds.erase(fd);
 }
 
 void Webserv::addServers()
@@ -140,9 +146,9 @@ void Webserv::addFdsToEpoll() const
 {
   typedef std::map< int, EpollFd* >::const_iterator iter_type;
 
-  for (iter_type it = fds_.begin(); it != fds_.end(); ++it)
+  for (iter_type it = ed_.fds.begin(); it != ed_.fds.end(); ++it)
   {
-    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, it->first, it->second->getEvent());
+    epoll_ctl(ed_.fd, EPOLL_CTL_ADD, it->first, it->second->getEvent());
   }
 }
 
@@ -161,7 +167,7 @@ void Webserv::mainLoop()
 
   while (true)
   {
-    int count = epoll_wait(epoll_fd_, events_, MAX_EVENTS, 1000);
+    int count = epoll_wait(ed_.fd, events_, MAX_EVENTS, 1000);
 
     if (g_signal || count == -1)
     {
@@ -177,6 +183,16 @@ void Webserv::mainLoop()
 
       try
       {
+        std::cout << "Epoll event for fd: " << fd->getFd()
+                  << ", events: " << events_[j].events << std::endl;
+        if (events_[j].events == EPOLLHUP)
+        {
+          fd->epollCallback(events_[j].events);
+          deleteFd(fd->getFd());
+          continue;
+        }
+        std::cout << "Epoll event2 for fd: " << fd->getFd()
+                  << ", events: " << events_[j].events << std::endl;
         EpollAction action = fd->epollCallback(events_[j].events);
 
         switch (action.op)
@@ -226,7 +242,7 @@ void Webserv::pingAllClients(size_t needed_fds)
   EpollMap::iterator it;
   MMKeepAlive keepalive_fds;
 
-  for (it = fds_.begin(); it != fds_.end(); ++it)
+  for (it = ed_.fds.begin(); it != ed_.fds.end(); ++it)
   {
     Connection* c = dynamic_cast< Connection* >(it->second);
     if (c)

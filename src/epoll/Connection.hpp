@@ -9,7 +9,9 @@
 #include "epoll/EpollFd.hpp"
 #include "requests/Request.hpp"
 
-#define CHUNK_SIZE 4096
+#ifndef CHUNK_SIZE
+#  define CHUNK_SIZE 4096
+#endif
 
 #define REQUEST_TIMEOUT_SECONDS 30
 #define SEND_RECEIVE_TIMEOUT 60
