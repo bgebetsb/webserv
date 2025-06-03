@@ -3,8 +3,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <iostream>
 #include "../exceptions/RequestError.hpp"
+#include "epoll/EpollAction.hpp"
 #include "exceptions/ExitExc.hpp"
+#include "responses/CgiResponse.hpp"
+#include "utils/Utils.hpp"
 
 PipeFd::PipeFd(std::string& write_buffer,
                const std::string& skript_path,
@@ -20,7 +24,8 @@ PipeFd::PipeFd(std::string& write_buffer,
       bin_path_(cgi_path),
       skript_path_(skript_path),
       file_path_(file_path),
-      cgi_response_(cgi_response)
+      cgi_response_(cgi_response),
+      start_time_(Utils::getCurrentTime())
 {
   int fds[2];
   if (pipe(fds) == -1)
@@ -34,11 +39,11 @@ PipeFd::PipeFd(std::string& write_buffer,
     closePipe();
     throw(RequestError(500, "fcntl failed on read end of pipe"));
   }
-  if (fcntl(fds[1], F_SETFL, O_NONBLOCK))
-  {
-    closePipe();
-    throw(RequestError(500, "fcntl failed on write end of pipe"));
-  }
+  // if (fcntl(fds[1], F_SETFL, O_NONBLOCK))
+  // {
+  //   closePipe();
+  //   throw(RequestError(500, "fcntl failed on write end of pipe"));
+  // }
 
   process_id_ = fork();
   if (process_id_ == -1)
@@ -58,15 +63,14 @@ PipeFd::PipeFd(std::string& write_buffer,
     close(fds[1]);
     fds[1] = -1;
   }
+  fd_ = read_end_;
   if (waitpid(process_id_, NULL, WNOHANG) == process_id_)
   {
     closePipe();
     throw(RequestError(500, "CGI process finished before reading started"));
   }
   else
-  {
-    fd_ = read_end_;
-  }
+  {}
 }
 
 PipeFd::~PipeFd() {}
@@ -113,7 +117,77 @@ void PipeFd::spawnCGI(char** envp)
     write_end_ = -1;
     throw(ExitExc());
   }
+  for (int i = 0; argv[i]; i++)
+  {
+    std::cerr << "argv[" << i << "] = " << argv[i] << std::endl;
+  }
+
+  for (int i = 0; envp[i]; i++)
+  {
+    std::cerr << "envp[" << i << "] = " << envp[i] << std::endl;
+  }
   execve(bin_path_.c_str(), argv, envp);
   close(write_end_);
   write_end_ = -1;
+}
+
+EpollAction PipeFd::epollCallback(int event)
+{
+  std::cout << "PipeFd::epollCallback called for fd: " << fd_ << std::endl;
+  EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
+
+  CgiResponse* response = dynamic_cast< CgiResponse* >(cgi_response_);
+
+  if (event & EPOLLIN)
+  {
+    ssize_t bytes_read_ = read(read_end_, read_buffer_, CHUNK_SIZE);
+    std::cout << "PipeFd::epollCallback read " << bytes_read_
+              << " bytes from pipe" << std::endl;
+    if (bytes_read_ == -1)
+    {
+      (void)response;
+      process_finished_ = true;
+      kill(process_id_, SIGKILL);
+      response->setCloseConnectionHeader();
+      return action;  // Error reading from pipe
+    }
+    write_buffer_.append(read_buffer_, bytes_read_);
+    int status_code;
+    if (waitpid(process_id_, &status_code, WNOHANG) == process_id_)
+    {
+      if (WIFEXITED(status_code))
+      {
+        process_finished_ = true;
+        if (WEXITSTATUS(status_code) != 0)
+          response->setCloseConnectionHeader();
+      }
+      else
+      {
+        process_finished_ = true;
+        kill(process_id_, SIGKILL);
+        response->setCloseConnectionHeader();
+      }
+    }
+  }
+  else if (event & EPOLLHUP)
+  {
+    if (!process_finished_)
+    {
+      process_finished_ = true;
+      kill(process_id_, SIGKILL);
+      response->setCloseConnectionHeader();
+    }
+    else
+    {
+      process_finished_ = true;
+      kill(process_id_, SIGKILL);
+      response->setCloseConnectionHeader();
+    }
+  }
+  else
+  {
+    std::cout << "PipeFd::epollCallback called for fd: " << fd_
+              << " but no EPOLLIN event(" << event << ")" << std::endl;
+  }
+  return action;
 }

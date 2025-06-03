@@ -17,10 +17,21 @@ typedef std::map< const filedescriptor, EpollFd* > EpollMap;
 typedef std::vector< Server > VServers;
 typedef std::multimap< u_int64_t, int, std::greater< u_int64_t > > MMKeepAlive;
 
+struct EpollData
+{
+  int fd;
+  EpollMap fds;
+
+  EpollData() : fd(epoll_create(1024)) {}
+};
+
+EpollData& getEpollData();
+
 class Webserv
 {
  public:
-  Webserv(std::string config_file = "webserv.conf");
+  Webserv(std::string config_file = "webserv.conf",
+          Configuration& config = Configuration::getInstance());
   ~Webserv();
 
   void initialize_servas();
@@ -29,11 +40,10 @@ class Webserv
 
  private:
   ListenerMap listeners_;
-  EpollMap fds_;
-  const int epoll_fd_;
+  EpollData& ed_;
   struct epoll_event* events_;
   VServers servers_;
-  Configuration config_;
+  Configuration& config_;
 
   // Copy constructor and copy assignment are unused anyway, thus private
   Webserv(const Server& other);

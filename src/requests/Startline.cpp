@@ -50,6 +50,11 @@ void Request::parsePath(std::istringstream& stream)
 
   if (!(stream >> path_))
     throw RequestError(400, "Unable to parse path");
+  if (path_.find("?") != std::string::npos)
+  {
+    query_string_ = path_.substr(path_.find("?") + 1);
+    path_ = path_.substr(0, path_.find("?"));
+  }
 
   path_ = processURLEncoding(path_);
 

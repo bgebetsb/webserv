@@ -208,6 +208,14 @@ class Configuration
   {
     return cgi_timeout_.first;
   }
+  std::string getPhpPath() const
+  {
+    return php_path_;
+  }
+  std::string getPythonPath() const
+  {
+    return python_path_;
+  }
 
   size_t getKeepAliveTimeout() const
   {
@@ -241,6 +249,12 @@ class Configuration
         return true;
     }
     return false;
+  }
+
+  static Configuration& getInstance()
+  {
+    static Configuration instance;
+    return instance;
   }
 };
 

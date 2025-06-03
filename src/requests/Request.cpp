@@ -85,6 +85,12 @@ Request::~Request()
       std::remove(absolute_path_.c_str());
     }
   }
+  else if (is_cgi_)
+  {
+    PathInfos infos = getFileType(absolute_path_);
+    if (infos.exists && infos.types == REGULAR_FILE)
+      std::remove(absolute_path_.c_str());
+  }
 }
 
 void Request::addHeaderLine(const std::string& line)
@@ -197,7 +203,7 @@ void Request::processFilePath(const std::string& path, const Location& location)
       setResponse(new FileResponse(fd_, path, 200, closing_));
     else if (method_ == DELETE)
     {
-      if (unlink(path.c_str()) == 0)
+      if (std::remove(path.c_str()) == 0)
         setResponse(new StaticResponse(fd_, 204, false, ""));
       else
         throw RequestError(403, "Unable to delete file");
@@ -355,10 +361,14 @@ bool Request::CgiOrUpload(const Location& loc)
   for (VDefaultFiles::const_iterator it = loc.default_files.begin();
        it != loc.default_files.end(); ++it)
   {
-    std::string file_extension = it->substr(it->find_last_of(".") + 1);
+    std::string file_extension = it->substr(it->find_last_of("."));
     if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
     {
       is_cgi_ = true;
+      if (file_extension == ".php")
+        cgi_extension_ = PHP;
+      else if (file_extension == ".py")
+        cgi_extension_ = PYTHON;
       cgi_skript_path_ = loc.root + "/" + *it;
       return false;  // CGI found, no upload
     }
@@ -410,12 +420,15 @@ bool Request::isFileUpload(const Location& loc)
     return CgiOrUpload(loc);
 
   // ── ◼︎ check for cgi extension in filename ─────────────────────────────
-  std::string file_extension =
-      filename_.substr(filename_.find_last_of(".") + 1);
+  std::string file_extension = filename_.substr(filename_.find_last_of("."));
   if (!file_extension.empty() &&
       loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
   {
     is_cgi_ = true;
+    if (file_extension == ".php")
+      cgi_extension_ = PHP;
+    else if (file_extension == ".py")
+      cgi_extension_ = PYTHON;
     cgi_skript_path_ = loc.root + "/" + filename_;
     return false;
   }
@@ -469,8 +482,7 @@ void Request::setupCgi()
   PathInfos infos = getFileType(cgi_skript_path_);
   if (!infos.exists || infos.types != REGULAR_FILE)
     throw RequestError(404, "CGI Skript not found");
-  if (!infos.executable)
-    throw RequestError(403, "CGI Skript not executable");
+  // PathInfos
   while (1)
   {
     filename_ = generateRandomFilename();
@@ -480,8 +492,11 @@ void Request::setupCgi()
       break;  // Found a random filename that does not exist
     // else continue to generate a new random filename
   }
+  std::cout << "Setting up CGI for: " << absolute_path_ << std::endl;
+  current_upload_files_.insert(absolute_path_);
   upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
   total_written_bytes_ = 0;
+  status_ = READING_BODY;
 }
 
 const Server& Request::getServer() const

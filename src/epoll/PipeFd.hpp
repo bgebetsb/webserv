@@ -30,13 +30,12 @@ class PipeFd : public EpollFd
   int process_id_;
   bool process_finished_;
   char read_buffer_[CHUNK_SIZE];
-  size_t bytes_read_;
   std::string& write_buffer_;
   std::string bin_path_;
   std::string skript_path_;
   std::string file_path_;
   Response* cgi_response_;
-
+  size_t start_time_;
   // ── ◼︎ utils ───────────────────────
   void closePipe();
   void spawnCGI(char** envp);
