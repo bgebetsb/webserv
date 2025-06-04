@@ -23,6 +23,7 @@ PathInfos getFileType(const std::string& filename)
       infos.types = OTHER;
       infos.readable = false;
       infos.writable = false;
+      infos.executable = false;
       infos.size = -1;
       return (infos);
     }
