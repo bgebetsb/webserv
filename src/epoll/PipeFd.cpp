@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <iostream>
+#include <sstream>
 #include "../exceptions/RequestError.hpp"
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
@@ -164,7 +165,21 @@ EpollAction PipeFd::epollCallback(int event)
     }
     else
     {
-      write_buffer_.append(read_buffer_, bytes_read_);
+      if (bytes_read_ > 0)
+      {
+        if (response->getHeadersCreated())
+        {
+          std::ostringstream ss;
+          ss << std::hex << bytes_read_ << "\r\n";
+          write_buffer_.append(ss.str());
+          write_buffer_.append(read_buffer_, bytes_read_);
+          write_buffer_.append("\r\n");
+        }
+        else
+        {
+          write_buffer_.append(read_buffer_, bytes_read_);
+        }
+      }
       checkExited(response);
     }
   }

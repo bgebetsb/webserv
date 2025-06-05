@@ -35,7 +35,8 @@ CgiResponse::CgiResponse(int client_fd,
       script_path_(script_path),
       file_path_(file_path),
       method_(method),
-      query_string_(query_string)
+      query_string_(query_string),
+      last_chunk_sent_(false)
 {
   meta_variables_ = implementMetaVariables();
 
@@ -107,8 +108,13 @@ void CgiResponse::addHeaderLine(const std::string& line)
       if (it->first != "content-length" && it->first != "transfer-encoding")
         full_response_ += it->first + ": " + it->second + "\r\n";
     }
-    // full_response_ += "Transfer-Encoding: chunked\r\n"; / TODO:
-    full_response_ += "\r\n" + rest;
+    full_response_ += "Transfer-Encoding: chunked\r\n";
+    full_response_ += "\r\n";
+
+    std::ostringstream ss;
+    ss << std::hex << rest.length() << "\r\n";
+
+    full_response_ += ss.str() + rest + "\r\n";
     headers_created_ = true;
     return;
   }
@@ -151,6 +157,20 @@ void CgiResponse::sendResponse(void)
       return;  // Don't send anything back until we have at least the headers
   }
 
+  if (full_response_.empty())
+  {
+    if (pipe_fd_)
+      return;
+
+    if (last_chunk_sent_)
+    {
+      complete_ = true;
+      return;
+    }
+
+    full_response_ += "0\r\n\r\n";
+    last_chunk_sent_ = true;
+  }
   size_t amount =
       std::min(static_cast< size_t >(CHUNK_SIZE), full_response_.length());
   std::cout << "Amount to send: " << amount << std::endl;
@@ -207,4 +227,9 @@ char** CgiResponse::implementMetaVariables()
 void CgiResponse::unsetPipeFd(void)
 {
   pipe_fd_ = NULL;
+}
+
+bool CgiResponse::getHeadersCreated() const
+{
+  return headers_created_;
 }

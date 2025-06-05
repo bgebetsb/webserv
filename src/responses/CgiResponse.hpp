@@ -18,6 +18,7 @@ class CgiResponse : public Response
 
   void sendResponse(void);
   void unsetPipeFd(void);
+  bool getHeadersCreated(void) const;
 
  private:
   EpollFd* pipe_fd_;
@@ -31,6 +32,7 @@ class CgiResponse : public Response
   const std::string& file_path_;
   const std::string& method_;
   const std::string& query_string_;
+  bool last_chunk_sent_;
   CgiResponse(const CgiResponse& other);
   CgiResponse& operator=(const CgiResponse& other);
   char** implementMetaVariables();
