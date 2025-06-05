@@ -12,7 +12,6 @@
 
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <cerrno>
 #include <cstddef>
 #include <cstdlib>
 #include <string>

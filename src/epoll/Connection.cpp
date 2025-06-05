@@ -147,16 +147,19 @@ EpollAction Connection::processFileUpload()
       return action;  // No data to process
     while (1)
     {
-      size_t pos = buffer_.find("\r\n");
+      size_t pos = buffer_.find("\n");
       if (pos == std::string::npos && write_buffer.empty())
         return action;  // Not enough data for a chunk
       if (pos == std::string::npos)
         break;
-      std::string chunk_size_str(buffer_, 0, pos);
+      size_t pos2 = pos;
+      if (pos2 > 0 && buffer_[pos2 - 1] == '\r')
+        pos--;
+      std::string chunk_size_str(buffer_, 0, pos2);
       size_t chunk_size;
       try
       {
-        chunk_size = Utils::strToIntHex(chunk_size_str);
+        chunk_size = Utils::parseChunkSize(chunk_size_str);
       }
       catch (std::exception& e)
       {
