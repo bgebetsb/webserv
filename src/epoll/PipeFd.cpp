@@ -106,23 +106,31 @@ void PipeFd::spawnCGI(char** envp)
   argv[1] = const_cast< char* >(skript_path_.c_str());
   argv[2] = NULL;
 
-  int file_fd = open(file_path_.c_str(), O_RDONLY);
-  if (file_fd == -1)
+  int file_fd = -1;
+  if (!file_path_.empty())
   {
-    close(write_end_);
-    write_end_ = -1;
-    throw(ExitExc());
+    file_fd = open(file_path_.c_str(), O_RDONLY);
+    if (file_fd == -1)
+    {
+      close(write_end_);
+      write_end_ = -1;
+      throw(ExitExc());
+    }
+    if (dup2(file_fd, STDIN_FILENO) == -1)
+    {
+      close(file_fd);
+      close(write_end_);
+      write_end_ = -1;
+      throw(ExitExc());
+    }
   }
-  if (dup2(file_fd, STDIN_FILENO) == -1)
-  {
-    close(file_fd);
-    close(write_end_);
-    write_end_ = -1;
-    throw(ExitExc());
-  }
+  else
+    close(STDIN_FILENO);
+
   if (dup2(write_end_, STDOUT_FILENO) == -1)
   {
-    close(file_fd);
+    if (file_fd != -1)
+      close(file_fd);
     close(write_end_);
     write_end_ = -1;
     throw(ExitExc());
