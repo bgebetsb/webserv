@@ -109,7 +109,11 @@ void CgiResponse::addHeaderLine(const std::string& line)
         full_response_ += it->first + ": " + it->second + "\r\n";
     }
     full_response_ += "Transfer-Encoding: chunked\r\n";
-    full_response_ += "\r\n";
+    full_response_ += "Connection: ";
+    if (close_connection_)
+      full_response_ += "close\r\n\r\n";
+    else
+      full_response_ += "keep-alive\r\n\r\n";
 
     std::ostringstream ss;
     ss << std::hex << rest.length() << "\r\n";

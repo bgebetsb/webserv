@@ -330,12 +330,15 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
 
   action.event = getEvent();
   action.fd = fd_;
+  action.op = EPOLL_ACTION_UNCHANGED;
 
   current_time = Utils::getCurrentTime();
-  if ((request_timeout_ping_ > 0 &&
-       current_time >=
-           request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000) ||
-      current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT * 1000)
+  if (keepalive_last_ping_ > 0)
+    time_diff = current_time - keepalive_last_ping_;
+  else if ((request_timeout_ping_ > 0 &&
+            current_time >=
+                request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000) ||
+           current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT * 1000)
   {
     if (request_.getStatus() < SENDING_RESPONSE)
     {
@@ -348,12 +351,6 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
     {
       action.op = EPOLL_ACTION_DEL;
     }
-  }
-  else
-  {
-    action.op = EPOLL_ACTION_UNCHANGED;
-    if (keepalive_last_ping_ > 0)
-      time_diff = current_time - keepalive_last_ping_;
   }
 
   return std::make_pair(action, time_diff);
