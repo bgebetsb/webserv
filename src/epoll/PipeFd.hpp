@@ -3,6 +3,7 @@
 #include <string>
 #include "EpollFd.hpp"
 #include "epoll/Connection.hpp"
+#include "responses/CgiResponse.hpp"
 #include "responses/Response.hpp"
 
 #ifndef CHUNK_SIZE
@@ -22,6 +23,7 @@ class PipeFd : public EpollFd
   ~PipeFd();
 
   EpollAction epollCallback(int event);
+  void unsetResponse(void);
 
  private:
   // ── ◼︎ member variables ───────────────────────
@@ -39,6 +41,8 @@ class PipeFd : public EpollFd
   // ── ◼︎ utils ───────────────────────
   void closePipe();
   void spawnCGI(char** envp);
+  void checkExited(CgiResponse* response);
+  void killProcess();
 
   // ── ◼︎ disabled ───────────────────────
   PipeFd();

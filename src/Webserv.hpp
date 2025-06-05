@@ -26,6 +26,9 @@ struct EpollData
 };
 
 EpollData& getEpollData();
+std::vector< pid_t >& getKilledPids();
+bool processExited(pid_t pid);
+void waitForPid(pid_t pid);
 
 class Webserv
 {

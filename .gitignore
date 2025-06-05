@@ -7,3 +7,4 @@ a.out
 test*
 Doxyfile
 *.o
+webserv.log

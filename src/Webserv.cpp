@@ -4,9 +4,12 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <algorithm>
 #include <csignal>
 #include <cstddef>
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
@@ -30,6 +33,23 @@ EpollData& getEpollData()
 {
   static EpollData ed;
   return ed;
+}
+
+std::vector< pid_t >& getKilledPids()
+{
+  static std::vector< pid_t > pids;
+
+  return pids;
+}
+
+bool processExited(pid_t pid)
+{
+  return (waitpid(pid, NULL, WNOHANG) != 0);
+}
+
+void waitForPid(pid_t pid)
+{
+  waitpid(pid, NULL, 0);
 }
 
 /*
@@ -185,12 +205,6 @@ void Webserv::mainLoop()
       {
         std::cout << "Epoll event for fd: " << fd->getFd()
                   << ", events: " << events_[j].events << std::endl;
-        if (events_[j].events == EPOLLHUP)
-        {
-          fd->epollCallback(events_[j].events);
-          deleteFd(fd->getFd());
-          continue;
-        }
         std::cout << "Epoll event2 for fd: " << fd->getFd()
                   << ", events: " << events_[j].events << std::endl;
         EpollAction action = fd->epollCallback(events_[j].events);
@@ -226,8 +240,15 @@ void Webserv::mainLoop()
       }
     }
 
+    std::vector< pid_t >& killed_pids = getKilledPids();
+    std::vector< pid_t >::iterator end =
+        std::remove_if(killed_pids.begin(), killed_pids.end(), processExited);
+    killed_pids.erase(end, killed_pids.end());
     pingAllClients(needed_fds);
   }
+
+  std::vector< pid_t >& killed_pids = getKilledPids();
+  std::for_each(killed_pids.begin(), killed_pids.end(), waitForPid);
 }
 
 /*

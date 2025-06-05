@@ -17,6 +17,7 @@ class CgiResponse : public Response
   ~CgiResponse();
 
   void sendResponse(void);
+  void unsetPipeFd(void);
 
  private:
   EpollFd* pipe_fd_;
@@ -35,4 +36,5 @@ class CgiResponse : public Response
   char** implementMetaVariables();
   void processBuffer(void);
   void addHeaderLine(const std::string& line);
+  void deleteMetaVariables(void);
 };
