@@ -9,7 +9,6 @@
 #include <sstream>
 #include <string>
 #include "Configs/Configs.hpp"
-#include "Webserv.hpp"
 #include "epoll/PipeFd.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/RequestError.hpp"
@@ -38,30 +37,32 @@ CgiResponse::CgiResponse(int client_fd,
       method_(method),
       query_string_(query_string)
 {
-  // TODO: Give it the actual environment we want to pass to the CGI
   meta_variables_ = implementMetaVariables();
 
-  pipe_fd_ = new PipeFd(full_response_, script_path, cgi_path, file_path, this,
-                        meta_variables_);
-  EpollData& ed = getEpollData();
-  if (epoll_ctl(ed.fd, EPOLL_CTL_ADD, pipe_fd_->getFd(),
-                pipe_fd_->getEvent()) == -1)
+  try
   {
-    delete pipe_fd_;
-    for (size_t i = 0; meta_variables_[i] != NULL; ++i)
-    {
-      delete[] meta_variables_[i];
-    }
-    delete[] meta_variables_;
-    throw RequestError(500, "Failed to add CGI pipe to epoll");
+    pipe_fd_ = new PipeFd(full_response_, script_path, cgi_path, file_path,
+                          this, meta_variables_);
   }
-  ed.fds[pipe_fd_->getFd()] = pipe_fd_;
+  catch (std::exception& e)
+  {
+    deleteMetaVariables();
+    throw;
+  }
 }
 
 CgiResponse::~CgiResponse()
 {
-  if (!meta_variables_)
-    return;
+  deleteMetaVariables();
+  if (pipe_fd_)
+  {
+    PipeFd* converted = reinterpret_cast< PipeFd* >(pipe_fd_);
+    converted->unsetResponse();
+  }
+}
+
+void CgiResponse::deleteMetaVariables(void)
+{
   for (size_t i = 0; meta_variables_[i] != NULL; ++i)
   {
     delete[] meta_variables_[i];
@@ -149,6 +150,7 @@ void CgiResponse::sendResponse(void)
     if (!headers_created_)
       return;  // Don't send anything back until we have at least the headers
   }
+
   size_t amount =
       std::min(static_cast< size_t >(CHUNK_SIZE), full_response_.length());
   std::cout << "Amount to send: " << amount << std::endl;
@@ -200,4 +202,9 @@ char** CgiResponse::implementMetaVariables()
     throw;
   }
   return envp;
+}
+
+void CgiResponse::unsetPipeFd(void)
+{
+  pipe_fd_ = NULL;
 }

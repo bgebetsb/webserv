@@ -1,10 +1,12 @@
 #include "PipeFd.hpp"
 #include <fcntl.h>
+#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <iostream>
 #include "../exceptions/RequestError.hpp"
+#include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ExitExc.hpp"
 #include "responses/CgiResponse.hpp"
@@ -39,11 +41,6 @@ PipeFd::PipeFd(std::string& write_buffer,
     closePipe();
     throw(RequestError(500, "fcntl failed on read end of pipe"));
   }
-  // if (fcntl(fds[1], F_SETFL, O_NONBLOCK))
-  // {
-  //   closePipe();
-  //   throw(RequestError(500, "fcntl failed on write end of pipe"));
-  // }
 
   process_id_ = fork();
   if (process_id_ == -1)
@@ -51,7 +48,7 @@ PipeFd::PipeFd(std::string& write_buffer,
     closePipe();
     throw(RequestError(500, "Fork failed"));
   }
-  if (process_id_ == 0)
+  else if (process_id_ == 0)
   {
     close(fds[0]);
     fds[0] = -1;
@@ -62,18 +59,30 @@ PipeFd::PipeFd(std::string& write_buffer,
   {
     close(fds[1]);
     fds[1] = -1;
+
+    EpollData& ed = getEpollData();
+
+    if (epoll_ctl(ed.fd, EPOLL_CTL_ADD, read_end_, getEvent()) == -1)
+    {
+      close(fds[0]);
+      killProcess();
+      throw RequestError(500, "Unable to add FD of pipe to epoll");
+    }
+    ed.fds[read_end_] = this;
   }
   fd_ = read_end_;
-  if (waitpid(process_id_, NULL, WNOHANG) == process_id_)
-  {
-    closePipe();
-    throw(RequestError(500, "CGI process finished before reading started"));
-  }
-  else
-  {}
 }
 
-PipeFd::~PipeFd() {}
+PipeFd::~PipeFd()
+{
+  if (cgi_response_)
+  {
+    CgiResponse* converted = reinterpret_cast< CgiResponse* >(cgi_response_);
+    converted->unsetPipeFd();
+  }
+
+  killProcess();
+}
 
 void PipeFd::closePipe()
 {
@@ -133,55 +142,39 @@ void PipeFd::spawnCGI(char** envp)
 
 EpollAction PipeFd::epollCallback(int event)
 {
-  std::cout << "PipeFd::epollCallback called for fd: " << fd_ << std::endl;
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
 
-  CgiResponse* response = dynamic_cast< CgiResponse* >(cgi_response_);
+  CgiResponse* response = reinterpret_cast< CgiResponse* >(cgi_response_);
 
-  if (event & EPOLLIN)
+  if (!response)
+  {
+    killProcess();
+    process_finished_ = true;
+  }
+  else if (event & EPOLLIN)
   {
     ssize_t bytes_read_ = read(read_end_, read_buffer_, CHUNK_SIZE);
     std::cout << "PipeFd::epollCallback read " << bytes_read_
               << " bytes from pipe" << std::endl;
     if (bytes_read_ == -1)
     {
-      (void)response;
+      killProcess();
       process_finished_ = true;
-      kill(process_id_, SIGKILL);
-      response->setCloseConnectionHeader();
-      return action;  // Error reading from pipe
-    }
-    write_buffer_.append(read_buffer_, bytes_read_);
-    int status_code;
-    if (waitpid(process_id_, &status_code, WNOHANG) == process_id_)
-    {
-      if (WIFEXITED(status_code))
-      {
-        process_finished_ = true;
-        if (WEXITSTATUS(status_code) != 0)
-          response->setCloseConnectionHeader();
-      }
-      else
-      {
-        process_finished_ = true;
-        kill(process_id_, SIGKILL);
-        response->setCloseConnectionHeader();
-      }
-    }
-  }
-  else if (event & EPOLLHUP)
-  {
-    if (!process_finished_)
-    {
-      process_finished_ = true;
-      kill(process_id_, SIGKILL);
       response->setCloseConnectionHeader();
     }
     else
     {
+      write_buffer_.append(read_buffer_, bytes_read_);
+      checkExited(response);
+    }
+  }
+  else if (event & EPOLLHUP)
+  {
+    checkExited(response);
+    if (!process_finished_)
+    {
+      killProcess();
       process_finished_ = true;
-      kill(process_id_, SIGKILL);
-      response->setCloseConnectionHeader();
     }
   }
   else
@@ -189,5 +182,53 @@ EpollAction PipeFd::epollCallback(int event)
     std::cout << "PipeFd::epollCallback called for fd: " << fd_
               << " but no EPOLLIN event(" << event << ")" << std::endl;
   }
+
+  if (process_finished_)
+    action.op = EPOLL_ACTION_DEL;
   return action;
+}
+
+void PipeFd::unsetResponse(void)
+{
+  cgi_response_ = NULL;
+}
+
+void PipeFd::checkExited(CgiResponse* response)
+{
+  if (process_id_ == -1)
+    return;
+
+  int status_code;
+  if (waitpid(process_id_, &status_code, WNOHANG) == process_id_)
+  {
+    if (WIFEXITED(status_code))
+    {
+      if (WEXITSTATUS(status_code) != 0)
+        response->setCloseConnectionHeader();
+      process_id_ = -1;
+    }
+    else if (WIFSIGNALED(status_code))
+    {
+      response->setCloseConnectionHeader();
+      process_id_ = -1;
+    }
+    else
+    {
+      killProcess();
+      response->setCloseConnectionHeader();
+    }
+  }
+}
+
+void PipeFd::killProcess()
+{
+  if (process_id_ != -1)
+  {
+    kill(process_id_, SIGKILL);
+    if (waitpid(process_id_, NULL, WNOHANG) == 0)
+    {
+      std::vector< pid_t >& killed_pids = getKilledPids();
+      killed_pids.push_back(process_id_);
+    }
+  }
 }

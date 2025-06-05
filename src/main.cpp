@@ -20,7 +20,7 @@ void handle_signal(int signum)
 void setup_signals(void)
 {
   int catch_signals[] = {SIGINT, SIGQUIT, SIGHUP, SIGTERM, 0};
-  int ignore_signals[] = {SIGUSR1, SIGUSR2, 0};
+  int ignore_signals[] = {SIGUSR1, SIGUSR2, SIGPIPE, 0};
 
   for (size_t i = 0; catch_signals[i]; ++i)
   {
