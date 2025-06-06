@@ -16,7 +16,6 @@ namespace Utils
   u_int16_t ipStrToUint16(const std::string& str);
   u_int64_t strToMaxBodySize(const std::string& str);
   u_int16_t errStrToUint16(const std::string& str);
-  int parseChunkSize(const std::string& str);
 
   // ── ◼︎ String utils ───────────────────────────────
   std::string trimString(const std::string& input);

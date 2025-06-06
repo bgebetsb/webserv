@@ -13,6 +13,7 @@
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/RequestError.hpp"
+#include "parsing/Parsing.hpp"
 #include "requests/Request.hpp"
 #include "requests/RequestStatus.hpp"
 #include "responses/FileResponse.hpp"
@@ -152,14 +153,12 @@ EpollAction Connection::processFileUpload()
         return action;  // Not enough data for a chunk
       if (pos == std::string::npos)
         break;
-      size_t pos2 = pos;
-      if (pos2 > 0 && buffer_[pos2 - 1] == '\r')
-        pos--;
-      std::string chunk_size_str(buffer_, 0, pos2);
+      bool carriage_return = (pos != 0 && buffer_[pos - 1] == '\r');
+      std::string chunk_size_str(buffer_, 0, pos - carriage_return);
       size_t chunk_size;
       try
       {
-        chunk_size = Utils::parseChunkSize(chunk_size_str);
+        chunk_size = Parsing::getChunkHeaderSize(chunk_size_str);
       }
       catch (std::exception& e)
       {
@@ -171,8 +170,8 @@ EpollAction Connection::processFileUpload()
       if (chunk_size == 0)
       {
         //       ○      Setup for the next request
-        if (buffer_.size() > pos + 2)
-          buffer_ = std::string(buffer_, pos + 2);
+        if (buffer_.size() > pos + 1)
+          buffer_ = std::string(buffer_, pos + 1);
         else
           buffer_.clear();
         mode = END;
@@ -180,11 +179,11 @@ EpollAction Connection::processFileUpload()
       }
 
       //       ○      Check if chunk available
-      if (pos + 2 + chunk_size > buffer_.size())
+      if (pos + 1 + chunk_size > buffer_.size())
         return action;
 
       //       ○      Extract the chunk
-      write_buffer.append(buffer_, pos + 2, chunk_size);
+      write_buffer.append(buffer_, pos + 1, chunk_size);
 
       //       ○      Update the total written bytes
       total_written_bytes_ += chunk_size;
@@ -196,8 +195,8 @@ EpollAction Connection::processFileUpload()
         break;
       }
       // Remove the chunk size and CRLF from the buffer
-      if (buffer_.size() > pos + 4 + chunk_size)
-        buffer_ = std::string(buffer_, pos + 4 + chunk_size);
+      if (buffer_.size() > pos + 2 + carriage_return + chunk_size)
+        buffer_ = std::string(buffer_, pos + 2 + carriage_return + chunk_size);
       else
         buffer_.clear();
     }
