@@ -6,39 +6,24 @@
 #include "parsing/Parsing.hpp"
 
 static bool isStandardHeader(const std::string& key);
+static std::string getFieldContent(std::istringstream& stream);
 
 void Request::parseHeaderLine(const std::string& line)
 {
-  std::string charset("!#$%&'*+-.^_`|~");
-  typedef std::string::const_iterator iter_type;
-  std::string name;
-  std::string value;
-
   if (line.empty())
   {
     validateHeaders();
     return processRequest();
   }
 
-  size_t pos = line.find(':');
-  if (pos == std::string::npos)
-    throw RequestError(400, "Header does not contain a ':' character");
-
-  name = line.substr(0, pos);
-  value = Utils::trimString(line.substr(pos + 1));
+  std::istringstream ss(line);
+  std::string name = Parsing::get_token(ss);
+  Parsing::skip_character(ss, ':');
+  Parsing::skip_ows(ss);
+  std::string value = getFieldContent(ss);
 
   std::for_each(name.begin(), name.end(), Utils::toLower);
 
-  for (iter_type it = name.begin(); it < name.end(); ++it)
-  {
-    char c = *it;
-
-    if (charset.find(c) == std::string::npos && !std::isalpha(c) &&
-        !std::isdigit(c))
-    {
-      throw RequestError(400, "Invalid character in header name");
-    }
-  }
   insertHeader(name, value);
 }
 
@@ -171,4 +156,30 @@ void Request::processConnectionHeader(void)
       closing_ = false;
     // Ignore everything else since that seems to be nginx behavior
   }
+}
+
+static std::string getFieldContent(std::istringstream& stream)
+{
+  std::string content;
+  std::string::size_type pos;
+  int c;
+
+  c = stream.get();
+  if (stream.fail())
+    throw RequestError(400, "Missing field content");
+
+  do
+  {
+    if (!Parsing::is_vchar(c) && !Parsing::is_space(c))
+      throw RequestError(400, "Invalid character in field value");
+
+    content += c;
+    c = stream.get();
+  } while (stream.good());
+
+  pos = content.find_last_not_of("\t ");
+  if (pos != std::string::npos)
+    content = content.substr(0, pos + 1);
+
+  return content;
 }

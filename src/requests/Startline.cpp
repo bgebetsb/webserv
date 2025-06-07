@@ -18,9 +18,9 @@ void Request::readStartLine(const std::string& line)
   std::istringstream stream(line);
 
   parseMethod(stream);
-  Parsing::skip_sp(stream);
+  Parsing::skip_character(stream, ' ');
   parsePath(stream);
-  Parsing::skip_sp(stream);
+  Parsing::skip_character(stream, ' ');
   parseHTTPVersion(stream);
 
   status_ = READING_HEADERS;

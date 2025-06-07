@@ -17,7 +17,7 @@ namespace Parsing
   char read_pct_encoded(std::istringstream& stream);
   void skip_ows(std::istringstream& stream);
   void skip_token(std::istringstream& stream);
-  void skip_sp(std::istringstream& stream);
+  void skip_character(std::istringstream& stream, char expected);
 
   size_t getChunkHeaderSize(const std::string& line);
   std::string get_token(std::istringstream& stream);

@@ -176,15 +176,15 @@ namespace Parsing
     return token;
   }
 
-  void skip_sp(istringstream& stream)
+  void skip_character(istringstream& stream, char expected)
   {
     int c;
 
     c = stream.get();
     if (stream.fail())
-      throw RequestError(400, "skip_sp: Already at EOF");
-    if (c != ' ')
-      throw RequestError(400, "skip_sp: Character not a SP");
+      throw RequestError(400, "skip_character: Already at EOF");
+    if (c != expected)
+      throw RequestError(400, "skip_character: Wrong character");
   }
 
   bool get_pchar(std::istringstream& stream, int& c)
