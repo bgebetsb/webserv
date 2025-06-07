@@ -114,9 +114,17 @@ namespace Parsing
   {
     int c;
 
-    c = stream.get();
-    if (stream.good() && !is_space(c))
-      stream.unget();
+    while (true)
+    {
+      c = stream.get();
+      if (stream.fail())
+        break;
+      if (!is_space(c))
+      {
+        stream.unget();
+        break;
+      }
+    }
   }
 
   void skip_token(istringstream& stream)
