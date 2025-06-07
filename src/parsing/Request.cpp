@@ -20,6 +20,8 @@ namespace Parsing
   static void validateIpv6(const std::string& ipv6);
   static string escapeHostname(const std::string& hostname);
   static u_int16_t parsePort(const std::string& host);
+  static void parseCookiePair(istringstream& stream);
+  static void skipCookieOctets(istringstream& stream);
 
   string processQueryString(const string query)
   {
@@ -194,5 +196,66 @@ namespace Parsing
     if (!ss.eof())
       throw RequestError(400, "parsePort: unexpected content after port");
     return port;
+  }
+
+  void validateCookies(const std::string& cookies)
+  {
+    int c;
+    istringstream ss(cookies);
+
+    parseCookiePair(ss);
+    while (true)
+    {
+      c = ss.get();
+      if (ss.fail())
+        break;
+      if (c != ';')
+        throw RequestError(
+            400, "validateCookies: Invalid character, expected semicolon");
+      skip_character(ss, ' ');
+      parseCookiePair(ss);
+    }
+  }
+
+  static void parseCookiePair(istringstream& stream)
+  {
+    int c;
+
+    skip_token(stream);
+    c = stream.get();
+    if (stream.fail())
+      throw("parseCookiePair: EOF reached, expected =");
+    if (c != '=')
+      throw("parseCookiePair: Invalid character, expected =");
+    c = stream.get();
+    if (stream.fail())
+      return;
+    if (c == '"')
+    {
+      skipCookieOctets(stream);
+      c = stream.get();
+      if (stream.fail() || c != '"')
+        throw("parseCookiePair: Unclosed double quote");
+    }
+    else
+      skipCookieOctets(stream);
+  }
+
+  static void skipCookieOctets(istringstream& stream)
+  {
+    int c;
+
+    while (true)
+    {
+      c = stream.get();
+      if (stream.fail())
+        break;
+      if (c < 0x21 || c > 0x7E || c == 0x22 || c == 0x2C || c == 0x3B ||
+          c == 0x5C)
+      {
+        stream.unget();
+        break;
+      }
+    }
   }
 }  // namespace Parsing

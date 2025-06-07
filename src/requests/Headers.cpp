@@ -37,14 +37,13 @@ void Request::insertHeader(const std::string& key, const std::string& value)
   if (isStandardHeader(key) && existing.is_some())
     throw RequestError(400, "Standard Header redefined");
 
-  if (existing.is_none())
-  {
-    if (key == "host")
-      headers_[key] = Parsing::parseHost(value).first;
-    else
-      // TODO: Check which standard headers also need special processing
-      headers_[key] = value;
-  }
+  if (key == "cookie")
+    Parsing::validateCookies(value);
+
+  if (key == "host")
+    headers_[key] = Parsing::parseHost(value).first;
+  else if (existing.is_none())
+    headers_[key] = value;
   else
   {
     std::string delim = (key != "cookie") ? ", " : "; ";

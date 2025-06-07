@@ -27,4 +27,5 @@ namespace Parsing
   std::string processPath(const std::string path);
   std::pair< std::string, u_int16_t > parseHost(const std::string& host);
   void validateUserinfo(const std::string& userinfo);
+  void validateCookies(const std::string& cookies);
 }  // namespace Parsing
