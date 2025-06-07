@@ -111,7 +111,7 @@ class Request
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
   void parsePath(std::istringstream& stream);
-  bool parseAbsoluteForm(const std::string& path);
+  void parseAbsoluteForm(const std::string& path);
 
   // ── ◼︎ Header ───────────────────────
   Option< std::string > getHeader(const std::string& name) const;

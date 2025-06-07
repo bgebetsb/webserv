@@ -20,7 +20,7 @@ RESPONSES:=		responses/FileResponse.cpp \
 							responses/DirectoryListing.cpp \
 							responses/CgiResponse.cpp \
 
-PARSING := parsing/Parsing.cpp parsing/Chunked.cpp
+PARSING := parsing/Parsing.cpp parsing/Chunked.cpp parsing/Request.cpp
 							
 GLOBALS:=	main.cpp Webserv.cpp
 EPOLL:= epoll/EpollFd.cpp epoll/Connection.cpp epoll/Ipv4Connection.cpp epoll/Ipv6Connection.cpp \

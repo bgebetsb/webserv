@@ -3,6 +3,7 @@
 #include "../exceptions/RequestError.hpp"
 #include "../utils/Utils.hpp"
 #include "Request.hpp"
+#include "parsing/Parsing.hpp"
 
 static bool isStandardHeader(const std::string& key);
 
@@ -53,9 +54,11 @@ void Request::insertHeader(const std::string& key, const std::string& value)
 
   if (existing.is_none())
   {
-    // TODO: Special processing if we get standard headers like Host or
-    // Content-Length since they have some extra requirements
-    headers_[key] = value;
+    if (key == "host")
+      headers_[key] = Parsing::parseHost(value).first;
+    else
+      // TODO: Check which standard headers also need special processing
+      headers_[key] = value;
   }
   else
   {

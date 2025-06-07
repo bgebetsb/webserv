@@ -24,6 +24,7 @@ std::set< std::string > Request::current_upload_files_;
 
 Request::Request(const int fd, const std::vector< Server >& servers)
     : fd_(fd),
+      server_(NULL),
       status_(READING_START_LINE),
       chunked_(false),
       content_length_(Option< long >()),
@@ -37,6 +38,7 @@ Request::Request(const int fd, const std::vector< Server >& servers)
 
 Request::Request(const Request& other)
     : fd_(other.fd_),
+      server_(other.server_),
       status_(other.status_),
       chunked_(other.chunked_),
       content_length_(other.content_length_),
@@ -52,6 +54,7 @@ Request& Request::operator=(const Request& other)
   if (this != &other)
   {
     fd_ = other.fd_;
+    server_ = other.server_;
     status_ = other.status_;
     method_ = other.method_;
     host_ = other.host_;
@@ -156,6 +159,8 @@ void Request::processRequest(void)
 
   processConnectionHeader();
 
+  if (method_ == INVALID)
+    throw RequestError(501, "Method not recognized");
   if (!methodAllowed(location))
     throw RequestError(405, "Method now allowed");
 
