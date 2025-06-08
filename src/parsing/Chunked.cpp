@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sstream>
 #include <string>
 #include "Parsing.hpp"
@@ -11,7 +10,6 @@ namespace Parsing
 
   size_t getChunkHeaderSize(const std::string& line)
   {
-    std::cout << "Line: '" << line << "'\n";
     std::istringstream ss(line);
     int c;
 
