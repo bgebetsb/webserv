@@ -1,6 +1,5 @@
 #include <sys/types.h>
 #include <cerrno>
-#include <climits>
 #include <cstdlib>
 #include <string>
 #include "../exceptions/Fatal.hpp"
@@ -72,27 +71,5 @@ namespace Utils
     if (*endptr != '\0' || value < 0 || value > 65535 || errno == ERANGE)
       throw Fatal("Invalid config file format: expected error code");
     return static_cast< u_int16_t >(value);
-  }
-
-  int parseChunkSize(const std::string& str)
-  {
-    const char* startptr;
-    char* endptr;
-    if (str.empty())
-      throw Fatal("Empty string to convert to int");
-    errno = 0;
-    startptr = str.c_str();
-    long value = strtol(startptr, &endptr, 16);
-    if (startptr == endptr || errno == ERANGE)
-      throw Fatal("Invalid string to convert to int");
-    if (value < 0 || value > INT_MAX)
-      throw Fatal("Negative chunk size or greater than INT_MAX");
-    if (*endptr != '\0')
-    {
-      if (*endptr != ';' &&
-          ((*endptr != ' ' && *endptr != '\t') || *(endptr + 1) != ';'))
-        throw Fatal("Malformed chunk extension");
-    }
-    return static_cast< int >(value);
   }
 }  // namespace Utils

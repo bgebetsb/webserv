@@ -3,41 +3,24 @@
 #include "../exceptions/RequestError.hpp"
 #include "../utils/Utils.hpp"
 #include "Request.hpp"
+#include "parsing/Parsing.hpp"
 
 static bool isStandardHeader(const std::string& key);
 
-void Request::parseHeaderLine(const std::string& line)
+void Request::processHeaderLine(const std::string& line)
 {
-  std::string charset("!#$%&'*+-.^_`|~");
-  typedef std::string::const_iterator iter_type;
-  std::string name;
-  std::string value;
-
   if (line.empty())
   {
     validateHeaders();
     return processRequest();
   }
 
-  size_t pos = line.find(':');
-  if (pos == std::string::npos)
-    throw RequestError(400, "Header does not contain a ':' character");
-
-  name = line.substr(0, pos);
-  value = Utils::trimString(line.substr(pos + 1));
+  std::pair< string, string > name_value = Parsing::parseFieldLine(line);
+  string name = name_value.first;
+  string value = name_value.second;
 
   std::for_each(name.begin(), name.end(), Utils::toLower);
 
-  for (iter_type it = name.begin(); it < name.end(); ++it)
-  {
-    char c = *it;
-
-    if (charset.find(c) == std::string::npos && !std::isalpha(c) &&
-        !std::isdigit(c))
-    {
-      throw RequestError(400, "Invalid character in header name");
-    }
-  }
   insertHeader(name, value);
 }
 
@@ -51,12 +34,13 @@ void Request::insertHeader(const std::string& key, const std::string& value)
   if (isStandardHeader(key) && existing.is_some())
     throw RequestError(400, "Standard Header redefined");
 
-  if (existing.is_none())
-  {
-    // TODO: Special processing if we get standard headers like Host or
-    // Content-Length since they have some extra requirements
+  if (key == "cookie")
+    Parsing::validateCookies(value);
+
+  if (key == "host")
+    headers_[key] = Parsing::parseHost(value).first;
+  else if (existing.is_none())
     headers_[key] = value;
-  }
   else
   {
     std::string delim = (key != "cookie") ? ", " : "; ";

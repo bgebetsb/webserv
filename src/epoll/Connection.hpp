@@ -42,6 +42,7 @@ class Connection : public EpollFd
   long content_length_;
   long total_written_bytes_;
   bool chunked_;
+  UploadMode mode_;
 
   Connection(const Connection& other);
   Connection& operator=(const Connection& other);
