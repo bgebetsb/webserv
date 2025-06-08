@@ -13,20 +13,23 @@
 class PipeFd : public EpollFd
 {
  public:
-  // ── ◼︎ constructor, destructor ───────────────────────
+  // ── ◼︎ constructor, destructor
+  // ───────────────────────
   PipeFd(std::string& write_buffer,
          const std::string& skript_path,
          const std::string& cgi_path,
          const std::string& file_path,
          Response* cgi_response,
-         char** envp);
+         char** envp,
+         RequestMethod method);
   ~PipeFd();
 
   EpollAction epollCallback(int event);
   void unsetResponse(void);
 
  private:
-  // ── ◼︎ member variables ───────────────────────
+  // ── ◼︎ member variables
+  // ───────────────────────
   int read_end_;
   int write_end_;
   int process_id_;
@@ -38,13 +41,16 @@ class PipeFd : public EpollFd
   std::string file_path_;
   Response* cgi_response_;
   size_t start_time_;
-  // ── ◼︎ utils ───────────────────────
+  RequestMethod method_;
+  // ── ◼︎ utils
+  // ───────────────────────
   void closePipe();
   void spawnCGI(char** envp);
   void checkExited(CgiResponse* response);
   void killProcess();
 
-  // ── ◼︎ disabled ───────────────────────
+  // ── ◼︎ disabled
+  // ───────────────────────
   PipeFd();
   PipeFd(const PipeFd& other);
   PipeFd& operator=(const PipeFd& other);

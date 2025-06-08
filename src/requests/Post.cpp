@@ -97,7 +97,7 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
       }
       response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
                                   absolute_path_, method_str, query_string_,
-                                  total_written_bytes_);
+                                  total_written_bytes_, POST);
       status_ = SENDING_RESPONSE;
       upload_file_.close();
       return;

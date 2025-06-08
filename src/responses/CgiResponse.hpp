@@ -2,6 +2,7 @@
 
 #include "epoll/EpollFd.hpp"
 #include "requests/Request.hpp"
+#include "requests/RequestMethods.hpp"
 #include "responses/Response.hpp"
 class CgiResponse : public Response
 {
@@ -13,7 +14,8 @@ class CgiResponse : public Response
               const std::string& file_path,
               const std::string& method,
               const std::string& query_string,
-              long file_size);
+              long file_size,
+              RequestMethod method_enum);
   ~CgiResponse();
 
   void sendResponse(void);
@@ -33,6 +35,7 @@ class CgiResponse : public Response
   const std::string& method_;
   const std::string& query_string_;
   bool last_chunk_sent_;
+  RequestMethod method_enum_;
   CgiResponse(const CgiResponse& other);
   CgiResponse& operator=(const CgiResponse& other);
   char** implementMetaVariables();

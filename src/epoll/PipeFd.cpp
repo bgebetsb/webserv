@@ -10,15 +10,16 @@
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ExitExc.hpp"
+#include "requests/RequestMethods.hpp"
 #include "responses/CgiResponse.hpp"
 #include "utils/Utils.hpp"
-
 PipeFd::PipeFd(std::string& write_buffer,
                const std::string& skript_path,
                const std::string& cgi_path,
                const std::string& file_path,
                Response* cgi_response,
-               char** envp)
+               char** envp,
+               RequestMethod method)
     : EpollFd(),
       read_end_(-1),
       write_end_(-1),
@@ -28,7 +29,8 @@ PipeFd::PipeFd(std::string& write_buffer,
       skript_path_(skript_path),
       file_path_(file_path),
       cgi_response_(cgi_response),
-      start_time_(Utils::getCurrentTime())
+      start_time_(Utils::getCurrentTime()),
+      method_(method)
 {
   int fds[2];
   if (pipe(fds) == -1)
@@ -107,7 +109,7 @@ void PipeFd::spawnCGI(char** envp)
   argv[2] = NULL;
 
   int file_fd = -1;
-  if (!file_path_.empty())
+  if (!file_path_.empty() && method_ == POST)
   {
     file_fd = open(file_path_.c_str(), O_RDONLY);
     if (file_fd == -1)

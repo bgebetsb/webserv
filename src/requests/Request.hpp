@@ -35,7 +35,8 @@ enum CgiExtension
 
 class Request
 {
-  // ── ◼︎ member variables ───────────────────────
+  // ── ◼︎ member variables
+  // ───────────────────────
  private:
   int fd_;
   const Server* server_;
@@ -53,25 +54,27 @@ class Request
   size_t total_header_size_;
   Response* response_;
 
-  // ── ◼︎ constructors, destructors, assignment ───────────────────────
+  // ── ◼︎ constructors, destructors, assignment
+  // ───────────────────────
  public:
   Request(int fd, const std::vector< Server >& servers);
   Request(const Request& other);
   Request& operator=(const Request& other);
   ~Request();
 
-  // ── ◼︎ Request ───────────────────────
+  // ── ◼︎ Request
+  // ───────────────────────
   void addHeaderLine(const std::string& line);
   void processRequest(void);
 
  private:
-  bool CgiOrUpload(const Location& loc);
   bool isFileUpload(const Location& loc);
   void setupFileUpload();
   void setupCgi();
 
   std::string generateRandomFilename();
-  // ── ◼︎ POST ───────────────────────
+  // ── ◼︎ POST
+  // ───────────────────────
  public:
   void uploadBody(const std::string& body, UploadMode mode = NORM);
 
@@ -86,13 +89,15 @@ class Request
   bool file_existed_;
   static std::set< std::string > current_upload_files_;
   CgiExtension cgi_extension_;
-  // ── ◼︎ Response ───────────────────────
+  // ── ◼︎ Response
+  // ───────────────────────
  public:
   void sendResponse();
   void timeout();
   void setResponse(Response* response);
 
-  // ── ◼︎ getters ───────────────────────
+  // ── ◼︎ getters
+  // ───────────────────────
   RequestStatus getStatus() const;
   bool closingConnection() const;
   const Server& getServer() const;
@@ -103,24 +108,30 @@ class Request
   bool isChunked() const;
   long getContentLength() const;
 
-  // ── ◼︎ utils ────────────────────────────────────────────────────────
+  // ── ◼︎ utils
+  // ────────────────────────────────────────────────────────
   static const Location& findMatchingLocationBlock(const MLocations& locations,
                                                    const std::string& path);
 
-  // ── ◼︎ Start Line ───────────────────────
+  // ── ◼︎ Start Line
+  // ───────────────────────
   void readStartLine(const std::string& line);
   void parseMethod(std::istringstream& stream);
   void parsePath(std::istringstream& stream);
   bool parseAbsoluteForm(const std::string& path);
 
-  // ── ◼︎ Header ───────────────────────
+  // ── ◼︎ Header
+  // ───────────────────────
   Option< std::string > getHeader(const std::string& name) const;
   void parseHeaderLine(const std::string& line);
   void insertHeader(const std::string& key, const std::string& value);
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  // ── ◼︎ xxx ─────────────────────── //TODO: rename this
+  // ── ◼︎ xxx
+  // ───────────────────────
+  // //TODO: rename this
+  void checkForCgi(const Location& loc);
   void processFilePath(const std::string& path, const Location& location);
   int openFile(const std::string& path) const;
   void openDirectory(const std::string& path, const Location& location);
