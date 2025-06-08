@@ -114,13 +114,12 @@ EpollAction Connection::processFileUpload()
 {
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
   std::string write_buffer;
-  UploadMode mode = NORM;
   // ── ◼︎ Content Length Upload ───────────────────────
   if (!chunked_)
   {
     if (content_length_ > max_body_size_)
-      mode = ERROR_LENGTH;
-    if (mode != ERROR_LENGTH)
+      mode_ = ERROR_LENGTH;
+    if (mode_ != ERROR_LENGTH)
     {
       if (static_cast< long >(buffer_.size()) > content_length_)
       {
@@ -135,9 +134,9 @@ EpollAction Connection::processFileUpload()
         total_written_bytes_ += write_buffer.size();
       }
       if (total_written_bytes_ > max_body_size_)
-        mode = ERROR_LENGTH;  // Indicate an error
+        mode_ = ERROR_LENGTH;  // Indicate an error
       else if (total_written_bytes_ == content_length_)
-        mode = END;  // Indicate end of upload
+        mode_ = END;  // Indicate end of upload
     }
   }
 
@@ -158,50 +157,83 @@ EpollAction Connection::processFileUpload()
       size_t chunk_size;
       try
       {
-        chunk_size = Parsing::getChunkHeaderSize(chunk_size_str);
+        if (mode_ == TRAILER)
+        {
+          buffer_ = buffer_.substr(pos + 1);
+          if (chunk_size_str.empty())
+          {
+            mode_ = END;
+            break;
+          }
+          else
+          {
+            Parsing::validateChunkTrailer(chunk_size_str);
+          }
+        }
+        else if (mode_ == NORM)
+          chunk_size = Parsing::getChunkHeaderSize(chunk_size_str);
+      }
+      catch (RequestError& e)
+      {
+        throw;
       }
       catch (std::exception& e)
       {
-        mode = ERROR_CHUNKSIZE;
+        mode_ = ERROR_CHUNKSIZE;
         break;
       }
 
       //       ○      End of chunked transfer encoding
-      if (chunk_size == 0)
+      if (mode_ == NORM)
       {
-        //       ○      Setup for the next request
-        if (buffer_.size() > pos + 1)
-          buffer_ = std::string(buffer_, pos + 1);
+        if (chunk_size == 0)
+        {
+          //       ○      Setup for the next request
+          if (buffer_.size() > pos + 1)
+            buffer_ = std::string(buffer_, pos + 1);
+          else
+            buffer_.clear();
+          mode_ = TRAILER;
+          continue;
+        }
+
+        //       ○      Check if chunk available
+        if (pos + 1 + chunk_size > buffer_.size())
+          return action;
+        if (buffer_[pos + 1 + chunk_size] == '\n')
+          carriage_return = false;
+        else if (buffer_[pos + 1 + chunk_size] != '\r')
+          throw RequestError(400, "Invalid chunk, expected carriage return");
+        else if (pos + 2 + chunk_size > buffer_.size())
+          return action;
+        else if (buffer_.substr(pos + 1 + chunk_size, 2) == "\r\n")
+          carriage_return = true;
+        else
+          throw RequestError(400, "Chunk longer than expected");
+
+        //       ○      Extract the chunk
+        write_buffer.append(buffer_, pos + 1, chunk_size);
+
+        //       ○      Update the total written bytes
+        total_written_bytes_ += chunk_size;
+
+        //       ○      Check if total written bytes exceed max body size
+        if (total_written_bytes_ > max_body_size_)
+        {
+          mode_ = ERROR_LENGTH;  // Indicate an error
+          break;
+        }
+        // Remove the chunk size and CRLF from the buffer
+        if (buffer_.size() > pos + 2 + carriage_return + chunk_size)
+          buffer_ =
+              std::string(buffer_, pos + 2 + carriage_return + chunk_size);
         else
           buffer_.clear();
-        mode = END;
-        break;
       }
-
-      //       ○      Check if chunk available
-      if (pos + 1 + chunk_size > buffer_.size())
-        return action;
-
-      //       ○      Extract the chunk
-      write_buffer.append(buffer_, pos + 1, chunk_size);
-
-      //       ○      Update the total written bytes
-      total_written_bytes_ += chunk_size;
-
-      //       ○      Check if total written bytes exceed max body size
-      if (total_written_bytes_ > max_body_size_)
-      {
-        mode = ERROR_LENGTH;  // Indicate an error
-        break;
-      }
-      // Remove the chunk size and CRLF from the buffer
-      if (buffer_.size() > pos + 2 + carriage_return + chunk_size)
-        buffer_ = std::string(buffer_, pos + 2 + carriage_return + chunk_size);
-      else
-        buffer_.clear();
     }
   }
-  request_.uploadBody(write_buffer, mode);
+  if (mode_ != TRAILER)
+    request_.uploadBody(write_buffer, mode_);
   if (!polling_write_ && request_.getStatus() == SENDING_RESPONSE)
   {
     ep_event_->events = EPOLLOUT | EPOLLRDHUP;
@@ -236,6 +268,7 @@ EpollAction Connection::processBuffer()
     request_.addHeaderLine(line);
     if (request_.getStatus() == READING_BODY)
     {
+      mode_ = NORM;
       total_written_bytes_ = 0;
       if (request_.isChunked())
       {

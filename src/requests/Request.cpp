@@ -111,7 +111,7 @@ void Request::addHeaderLine(const std::string& line)
     case READING_START_LINE:
       return readStartLine(line);
     case READING_HEADERS:
-      return parseHeaderLine(line);
+      return processHeaderLine(line);
     default:
       // In any other case it should not go here
       throw;

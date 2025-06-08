@@ -1,6 +1,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -9,6 +10,7 @@
 #include <vector>
 #include "Parsing.hpp"
 #include "exceptions/RequestError.hpp"
+#include "utils/Utils.hpp"
 
 namespace Parsing
 {
@@ -22,6 +24,7 @@ namespace Parsing
   static u_int16_t parsePort(const std::string& host);
   static void parseCookiePair(istringstream& stream);
   static void skipCookieOctets(istringstream& stream);
+  static std::string getFieldContent(std::istringstream& stream);
 
   string processQueryString(const string query)
   {
@@ -257,5 +260,43 @@ namespace Parsing
         break;
       }
     }
+  }
+
+  pair< string, string > parseFieldLine(const std::string& line)
+  {
+    std::istringstream ss(line);
+    std::string name = Parsing::get_token(ss);
+    Parsing::skip_character(ss, ':');
+    Parsing::skip_ows(ss);
+    std::string value = getFieldContent(ss);
+
+    std::for_each(name.begin(), name.end(), Utils::toLower);
+    return std::make_pair(name, value);
+  }
+
+  static std::string getFieldContent(std::istringstream& stream)
+  {
+    std::string content;
+    std::string::size_type pos;
+    int c;
+
+    c = stream.get();
+    if (stream.fail())
+      throw RequestError(400, "Missing field content");
+
+    do
+    {
+      if (!Parsing::is_vchar(c) && !Parsing::is_space(c))
+        throw RequestError(400, "Invalid character in field value");
+
+      content += c;
+      c = stream.get();
+    } while (stream.good());
+
+    pos = content.find_last_not_of("\t ");
+    if (pos != std::string::npos)
+      content = content.substr(0, pos + 1);
+
+    return content;
   }
 }  // namespace Parsing

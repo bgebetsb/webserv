@@ -20,9 +20,11 @@ namespace Parsing
   void skip_character(std::istringstream& stream, char expected);
 
   size_t getChunkHeaderSize(const std::string& line);
+  void validateChunkTrailer(const std::string& line);
   std::string get_token(std::istringstream& stream);
   std::string get_segment(std::istringstream& stream);
 
+  std::pair< std::string, std::string > parseFieldLine(const std::string& line);
   std::string processQueryString(const std::string query);
   std::string processPath(const std::string path);
   std::pair< std::string, u_int16_t > parseHost(const std::string& host);

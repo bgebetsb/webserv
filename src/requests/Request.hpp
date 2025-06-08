@@ -21,6 +21,7 @@ const static std::string STANDARD_HEADERS[] = {"host", "content-length",
 enum UploadMode
 {
   NORM,
+  TRAILER,
   END,
   ERROR_LENGTH,
   ERROR_CHUNKSIZE,
@@ -115,7 +116,7 @@ class Request
 
   // ── ◼︎ Header ───────────────────────
   Option< std::string > getHeader(const std::string& name) const;
-  void parseHeaderLine(const std::string& line);
+  void processHeaderLine(const std::string& line);
   void insertHeader(const std::string& key, const std::string& value);
   void validateHeaders(void);
   void processConnectionHeader(void);

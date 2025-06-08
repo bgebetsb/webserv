@@ -84,4 +84,11 @@ namespace Parsing
         throw RequestError(400, "Invalid character in quoted string");
     }
   }
+
+  // Just ignore return value since we most likely don't have a use for the
+  // trailing section anyway
+  void validateChunkTrailer(const std::string& line)
+  {
+    Parsing::parseFieldLine(line);
+  }
 }  // namespace Parsing
