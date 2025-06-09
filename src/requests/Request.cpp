@@ -16,6 +16,7 @@
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
+#include "exceptions/ExitExc.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/RequestMethods.hpp"
 #include "responses/FileResponse.hpp"
@@ -120,11 +121,19 @@ void Request::addHeaderLine(const std::string& line)
 
 void Request::sendResponse()
 {
-  response_->sendResponse();
-  if (response_->isComplete())
+  try
   {
-    status_ = COMPLETED;
-    closing_ = response_->getClosing();
+    response_->sendResponse();
+    if (response_->isComplete())
+    {
+      status_ = COMPLETED;
+      closing_ = response_->getClosing();
+    }
+  }
+  catch (ExitExc& e)
+  {
+    delete response_;
+    response_ = new StaticResponse(fd_, 500, true);
   }
 }
 
