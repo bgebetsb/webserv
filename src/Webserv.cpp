@@ -1,4 +1,6 @@
-#include "Webserv.hpp"
+#include "PidTracker.hpp"
+#include "epoll/EpollData.hpp"
+
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
@@ -6,7 +8,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <algorithm>
 #include <csignal>
 #include <cstddef>
 #include <cstdio>
@@ -30,40 +31,6 @@
 #define MAX_EVENTS 1024
 
 #define KEEPALIVE_TIMEOUT_SECONDS 30
-
-EpollData& getEpollData()
-{
-  static EpollData ed;
-  return ed;
-}
-
-std::vector< std::pair< pid_t, unsigned int > >& getKilledPids()
-{
-  static std::vector< std::pair< pid_t, unsigned int > > pids;
-
-  return pids;
-}
-
-bool processExited(std::pair< pid_t, unsigned int >& pid)
-{
-  if (waitpid(pid.first, NULL, WNOHANG) == 0)
-  {
-    if (pid.second > 5)
-      kill(pid.first, SIGKILL);
-    else
-      pid.second++;
-
-    return false;
-  }
-
-  return true;
-}
-
-void waitForPid(std::pair< pid_t, unsigned int > pid)
-{
-  kill(pid.first, SIGKILL);
-  waitpid(pid.first, NULL, 0);
-}
 
 /*
  * The `size` argument in epoll_create is just for backwards compatibility.
@@ -238,17 +205,10 @@ void Webserv::mainLoop()
       }
     }
 
-    std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
-        getKilledPids();
-    std::vector< std::pair< pid_t, unsigned int > >::iterator end =
-        std::remove_if(killed_pids.begin(), killed_pids.end(), processExited);
-    killed_pids.erase(end, killed_pids.end());
+    PidTracker& pidtracker = getPidTracker();
+    pidtracker.ping();
     pingAllClients(needed_fds);
   }
-
-  std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
-      getKilledPids();
-  std::for_each(killed_pids.begin(), killed_pids.end(), waitForPid);
 }
 
 /*

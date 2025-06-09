@@ -9,8 +9,9 @@
 #include <sstream>
 #include "../exceptions/RequestError.hpp"
 #include "Logger/Logger.hpp"
-#include "Webserv.hpp"
+#include "PidTracker.hpp"
 #include "epoll/EpollAction.hpp"
+#include "epoll/EpollData.hpp"
 #include "exceptions/ExitExc.hpp"
 #include "responses/CgiResponse.hpp"
 #include "utils/Utils.hpp"
@@ -239,21 +240,9 @@ void PipeFd::checkExited(CgiResponse* response)
 
 void PipeFd::killProcess()
 {
-  std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
-      getKilledPids();
-  std::vector< std::pair< pid_t, unsigned int > >::iterator it;
-
   if (process_id_ != -1)
   {
-    for (it = killed_pids.begin(); it != killed_pids.end(); ++it)
-    {
-      if (it->first == process_id_)
-        return;
-    }
-    kill(process_id_, SIGTERM);
-    if (waitpid(process_id_, NULL, WNOHANG) == 0)
-    {
-      killed_pids.push_back(std::make_pair(process_id_, 0));
-    }
+    PidTracker& pidtracker = getPidTracker();
+    pidtracker.killPid(process_id_);
   }
 }
