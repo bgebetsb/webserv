@@ -6,20 +6,15 @@
 namespace Utils
 {
   /*
-   * Returns the current time in milliseconds
+   * Returns the current time in seconds
    */
   u_int64_t getCurrentTime()
   {
-    struct timespec time;
-    u_int64_t milliseconds;
+    std::time_t time = std::time(NULL);
 
-    if (clock_gettime(CLOCK_REALTIME, &time) == -1)
-    {
+    if (time == static_cast< std::time_t >(-1))
       throw std::runtime_error("Error retrieving current time");
-    }
 
-    milliseconds = time.tv_sec * 1000 + time.tv_nsec / 1000000;
-
-    return (milliseconds);
+    return (static_cast< u_int64_t >(time));
   }
 }  // namespace Utils
