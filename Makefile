@@ -3,7 +3,7 @@ CXXFLAGS := -Wall -Wextra -Werror -std=c++98 -pedantic -g
 
 NAME := webserv
 
-UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp
+UTILS := utils/Endianness.cpp utils/string.cpp utils/strtoint.cpp utils/time.cpp utils/fd.cpp
 LOGGER := Logger/Logger.cpp
 CONFIGS:= Configs/Configs.cpp Configs/configUtils.cpp
 REQUESTS:= 		requests/Request.cpp \

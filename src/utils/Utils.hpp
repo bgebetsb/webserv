@@ -27,4 +27,8 @@ namespace Utils
 
   // Time utils
   u_int64_t getCurrentTime();
+
+  // Fd Utils
+  int addCloExecFlag(int fd);
+  void ft_close(int& fd);
 }  // namespace Utils

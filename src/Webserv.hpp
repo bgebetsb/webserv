@@ -2,13 +2,16 @@
 
 #include <sys/epoll.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <map>
 #include <vector>
 #include "Configs/Configs.hpp"
 #include "epoll/EpollFd.hpp"
 #include "epoll/Listener.hpp"
+#include "exceptions/Fatal.hpp"
 #include "ip/IpAddress.hpp"
 #include "ip/IpComparison.hpp"
+#include "utils/Utils.hpp"
 
 typedef int filedescriptor;
 typedef std::set< IpAddress*, IpComparison > IpSet;
@@ -22,13 +25,33 @@ struct EpollData
   int fd;
   EpollMap fds;
 
-  EpollData() : fd(epoll_create(1024)) {}
+  EpollData() : fd(epoll_create(1024))
+  {
+    if (fd == -1)
+      throw Fatal("epoll_create failed");
+
+    if (Utils::addCloExecFlag(fd) == -1)
+    {
+      close(fd);
+      throw Fatal("Unable to set O_CLOEXEC to epoll fd");
+    }
+  }
+
+  ~EpollData()
+  {
+    typedef std::map< const int, EpollFd* >::iterator iter_type;
+
+    for (iter_type it = fds.begin(); it != fds.end(); ++it)
+      delete it->second;
+
+    close(fd);
+  }
 };
 
 EpollData& getEpollData();
-std::vector< pid_t >& getKilledPids();
-bool processExited(pid_t pid);
-void waitForPid(pid_t pid);
+std::vector< std::pair< pid_t, unsigned int > >& getKilledPids();
+bool processExited(std::pair< pid_t, unsigned int >& pid);
+void waitForPid(std::pair< pid_t, unsigned int > pid);
 
 class Webserv
 {

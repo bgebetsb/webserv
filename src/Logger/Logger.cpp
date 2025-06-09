@@ -84,3 +84,11 @@ std::string Logger::getCurrentTimestamp()
 
   return std::string(buffer);
 }
+
+void Logger::close()
+{
+  Logger& logger = Logger::instance();
+
+  if (logger.logfile_.is_open())
+    logger.logfile_.close();
+}

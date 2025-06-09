@@ -95,11 +95,11 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
         default:
           break;
       }
+      upload_file_.close();
       response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
                                   absolute_path_, method_str, query_string_,
                                   total_written_bytes_);
       status_ = SENDING_RESPONSE;
-      upload_file_.close();
       return;
     }
     std::map< std::string, std::string > additional_headers;
