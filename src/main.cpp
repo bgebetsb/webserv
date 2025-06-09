@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <csignal>
 #include <cstddef>
+#include <cstdlib>
+#include <ctime>
 #include <exception>
 #include <iostream>
 #include "Webserv.hpp"
@@ -37,6 +39,7 @@ int main(int argc, char* argv[])
 try
 {
   setup_signals();
+  std::srand(std::time(NULL));
   try
   {
     if (argc > 2)
