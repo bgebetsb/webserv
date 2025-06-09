@@ -6,22 +6,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
-#include <stdexcept>
 #include "Connection.hpp"
 #include "Ipv4Connection.hpp"
 #include "Ipv6Connection.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ConError.hpp"
+#include "exceptions/Fatal.hpp"
 #include "ip/IpAddress.hpp"
+#include "utils/Utils.hpp"
 
 Listener::Listener(IpAddress* address) : address_(address)
 {
   setup();
+
+  if (Utils::addCloExecFlag(fd_) == -1)
+  {
+    close(fd_);
+    throw Fatal("Unable to set O_CLOEXEC on Listener fd");
+  }
   // Second argument specifies how many pending connections it should keep in
   // the backlog
   if (::listen(fd_, SOMAXCONN) == -1)
   {
-    throw std::runtime_error("Unable to listen");
+    close(fd_);
+    throw Fatal("Unable to listen");
   }
 
   std::cerr << "Started listening on " << *address << "\n";
@@ -69,6 +77,11 @@ EpollAction Listener::acceptConnection()
       c = new Ipv4Connection(fd_, servers_);
     else
       c = new Ipv6Connection(fd_, servers_);
+    if (Utils::addCloExecFlag(c->getFd()) == -1)
+    {
+      delete c;
+      throw ConErr("Unable to set O_CLOEXEC on accepted client connection");
+    }
     EpollAction action = {c->getFd(), EPOLL_ACTION_ADD, c->getEvent()};
     return action;
   }

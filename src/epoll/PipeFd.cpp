@@ -4,9 +4,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <cstddef>
 #include <iostream>
 #include <sstream>
 #include "../exceptions/RequestError.hpp"
+#include "Logger/Logger.hpp"
 #include "Webserv.hpp"
 #include "epoll/EpollAction.hpp"
 #include "exceptions/ExitExc.hpp"
@@ -51,21 +53,25 @@ PipeFd::PipeFd(std::string& write_buffer,
   }
   else if (process_id_ == 0)
   {
-    close(fds[0]);
-    fds[0] = -1;
+    Utils::ft_close(fds[0]);
+    Logger::close();  // Needs to be closed manually because we can't set
+                      // O_CLOEXEC on ofstreams...
     spawnCGI(envp);
+    // Close stdin/stdout in child after execve failure, because they're fds
+    // associated with files now
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
     throw ExitExc();
   }
   else
   {
-    close(fds[1]);
-    fds[1] = -1;
+    Utils::ft_close(fds[1]);
 
     EpollData& ed = getEpollData();
 
     if (epoll_ctl(ed.fd, EPOLL_CTL_ADD, read_end_, getEvent()) == -1)
     {
-      close(fds[0]);
+      Utils::ft_close(fds[0]);
       killProcess();
       throw RequestError(500, "Unable to add FD of pipe to epoll");
     }
@@ -87,16 +93,8 @@ PipeFd::~PipeFd()
 
 void PipeFd::closePipe()
 {
-  if (read_end_ != -1)
-  {
-    close(read_end_);
-    read_end_ = -1;
-  }
-  if (write_end_ != -1)
-  {
-    close(write_end_);
-    write_end_ = -1;
-  }
+  Utils::ft_close(read_end_);
+  Utils::ft_close(write_end_);
 }
 
 void PipeFd::spawnCGI(char** envp)
@@ -112,29 +110,27 @@ void PipeFd::spawnCGI(char** envp)
     file_fd = open(file_path_.c_str(), O_RDONLY);
     if (file_fd == -1)
     {
-      close(write_end_);
-      write_end_ = -1;
+      Utils::ft_close(write_end_);
       throw(ExitExc());
     }
     if (dup2(file_fd, STDIN_FILENO) == -1)
     {
-      close(file_fd);
-      close(write_end_);
-      write_end_ = -1;
+      Utils::ft_close(file_fd);
+      Utils::ft_close(write_end_);
       throw(ExitExc());
     }
+    Utils::ft_close(file_fd);
   }
   else
     close(STDIN_FILENO);
 
   if (dup2(write_end_, STDOUT_FILENO) == -1)
   {
-    if (file_fd != -1)
-      close(file_fd);
-    close(write_end_);
-    write_end_ = -1;
+    close(STDIN_FILENO);
+    Utils::ft_close(write_end_);
     throw(ExitExc());
   }
+  Utils::ft_close(write_end_);
   for (int i = 0; argv[i]; i++)
   {
     std::cerr << "argv[" << i << "] = " << argv[i] << std::endl;
@@ -145,8 +141,6 @@ void PipeFd::spawnCGI(char** envp)
     std::cerr << "envp[" << i << "] = " << envp[i] << std::endl;
   }
   execve(bin_path_.c_str(), argv, envp);
-  close(write_end_);
-  write_end_ = -1;
 }
 
 EpollAction PipeFd::epollCallback(int event)
@@ -245,13 +239,21 @@ void PipeFd::checkExited(CgiResponse* response)
 
 void PipeFd::killProcess()
 {
+  std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
+      getKilledPids();
+  std::vector< std::pair< pid_t, unsigned int > >::iterator it;
+
   if (process_id_ != -1)
   {
-    kill(process_id_, SIGKILL);
+    for (it = killed_pids.begin(); it != killed_pids.end(); ++it)
+    {
+      if (it->first == process_id_)
+        return;
+    }
+    kill(process_id_, SIGTERM);
     if (waitpid(process_id_, NULL, WNOHANG) == 0)
     {
-      std::vector< pid_t >& killed_pids = getKilledPids();
-      killed_pids.push_back(process_id_);
+      killed_pids.push_back(std::make_pair(process_id_, 0));
     }
   }
 }

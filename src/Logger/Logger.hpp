@@ -14,6 +14,7 @@ class Logger
   static std::ostream& log();
   static void openFile(const std::string& filename);
   static void setLogMode(LogMode mode);
+  static void close();
 
  private:
   LogMode mode_;

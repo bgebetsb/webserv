@@ -9,7 +9,9 @@
 #include <algorithm>
 #include <csignal>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
@@ -35,21 +37,32 @@ EpollData& getEpollData()
   return ed;
 }
 
-std::vector< pid_t >& getKilledPids()
+std::vector< std::pair< pid_t, unsigned int > >& getKilledPids()
 {
-  static std::vector< pid_t > pids;
+  static std::vector< std::pair< pid_t, unsigned int > > pids;
 
   return pids;
 }
 
-bool processExited(pid_t pid)
+bool processExited(std::pair< pid_t, unsigned int >& pid)
 {
-  return (waitpid(pid, NULL, WNOHANG) != 0);
+  if (waitpid(pid.first, NULL, WNOHANG) == 0)
+  {
+    if (pid.second > 5)
+      kill(pid.first, SIGKILL);
+    else
+      pid.second++;
+
+    return false;
+  }
+
+  return true;
 }
 
-void waitForPid(pid_t pid)
+void waitForPid(std::pair< pid_t, unsigned int > pid)
 {
-  waitpid(pid, NULL, 0);
+  kill(pid.first, SIGKILL);
+  waitpid(pid.first, NULL, 0);
 }
 
 /*
@@ -60,10 +73,6 @@ void waitForPid(pid_t pid)
 Webserv::Webserv(std::string config_file, Configuration& config)
     : ed_(getEpollData()), events_(NULL), config_(config)
 {
-  if (ed_.fd == -1)
-  {
-    throw std::runtime_error("Unable to create epoll fd");
-  }
   try
   {
     events_ = new struct epoll_event[MAX_EVENTS];
@@ -81,14 +90,7 @@ Webserv::Webserv(std::string config_file, Configuration& config)
 
 Webserv::~Webserv()
 {
-  typedef std::map< const int, EpollFd* >::iterator iter_type;
-
-  for (iter_type it = ed_.fds.begin(); it != ed_.fds.end(); ++it)
-  {
-    delete it->second;
-  }
   delete[] events_;
-  close(ed_.fd);
 }
 
 void Webserv::addServer(const IpSet& listeners, const Server& server)
@@ -203,10 +205,6 @@ void Webserv::mainLoop()
 
       try
       {
-        std::cout << "Epoll event for fd: " << fd->getFd()
-                  << ", events: " << events_[j].events << std::endl;
-        std::cout << "Epoll event2 for fd: " << fd->getFd()
-                  << ", events: " << events_[j].events << std::endl;
         EpollAction action = fd->epollCallback(events_[j].events);
 
         switch (action.op)
@@ -240,14 +238,16 @@ void Webserv::mainLoop()
       }
     }
 
-    std::vector< pid_t >& killed_pids = getKilledPids();
-    std::vector< pid_t >::iterator end =
+    std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
+        getKilledPids();
+    std::vector< std::pair< pid_t, unsigned int > >::iterator end =
         std::remove_if(killed_pids.begin(), killed_pids.end(), processExited);
     killed_pids.erase(end, killed_pids.end());
     pingAllClients(needed_fds);
   }
 
-  std::vector< pid_t >& killed_pids = getKilledPids();
+  std::vector< std::pair< pid_t, unsigned int > >& killed_pids =
+      getKilledPids();
   std::for_each(killed_pids.begin(), killed_pids.end(), waitForPid);
 }
 
