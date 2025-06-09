@@ -4,6 +4,7 @@
 #include <ios>
 #include <iostream>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include "exceptions/Fatal.hpp"
 
@@ -69,8 +70,14 @@ void Logger::setLogMode(LogMode mode)
 
 std::string Logger::getCurrentTimestamp()
 {
-  time_t current = std::time(0);
+  std::time_t current = std::time(NULL);
+
+  if (current == static_cast< std::time_t >(-1))
+    throw std::runtime_error("Unable to get current timestamp");
+
   tm* local = std::localtime(&current);
+  if (!local)
+    throw std::runtime_error("Unable to convert timestamp to localtime");
 
   char buffer[22];
   std::strftime(buffer, sizeof(buffer), "[%Y-%m-%d %H:%M:%S]", local);

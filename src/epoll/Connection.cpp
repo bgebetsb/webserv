@@ -371,9 +371,8 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
   if (keepalive_last_ping_ > 0)
     time_diff = current_time - keepalive_last_ping_;
   else if ((request_timeout_ping_ > 0 &&
-            current_time >=
-                request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS * 1000) ||
-           current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT * 1000)
+            current_time >= request_timeout_ping_ + REQUEST_TIMEOUT_SECONDS) ||
+           current_time >= send_receive_ping_ + SEND_RECEIVE_TIMEOUT)
   {
     if (request_.getStatus() < SENDING_RESPONSE)
     {

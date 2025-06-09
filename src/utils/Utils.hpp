@@ -26,5 +26,5 @@ namespace Utils
                             const std::string& replace);
 
   // Time utils
-  size_t getCurrentTime();
+  u_int64_t getCurrentTime();
 }  // namespace Utils
