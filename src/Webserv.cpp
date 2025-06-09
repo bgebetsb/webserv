@@ -49,7 +49,6 @@ Webserv::Webserv(std::string config_file, Configuration& config)
   {
     if (events_)
       delete[] events_;
-    close(ed_.fd);
     throw;
   }
   servers_ = config_.getServerConfigs();
