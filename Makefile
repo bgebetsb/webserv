@@ -22,9 +22,9 @@ RESPONSES:=		responses/FileResponse.cpp \
 
 PARSING := parsing/Parsing.cpp parsing/Chunked.cpp parsing/Request.cpp
 							
-GLOBALS:=	main.cpp Webserv.cpp
+GLOBALS:=	main.cpp Webserv.cpp PidTracker.cpp
 EPOLL:= epoll/EpollFd.cpp epoll/Connection.cpp epoll/Ipv4Connection.cpp epoll/Ipv6Connection.cpp \
-				epoll/Listener.cpp epoll/PipeFd.cpp
+				epoll/Listener.cpp epoll/PipeFd.cpp epoll/EpollData.cpp
 IP:= ip/IpAddress.cpp ip/Ipv4Address.cpp ip/Ipv6Address.cpp ip/IpComparison.cpp
 SRC := $(UTILS) $(LOGGER) $(CONFIGS) $(REQUESTS) $(GLOBALS) $(EPOLL) $(IP) $(RESPONSES) $(PARSING)
 SRCDIR := src
