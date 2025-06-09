@@ -11,6 +11,7 @@
 #include "Configs/Configs.hpp"
 #include "epoll/PipeFd.hpp"
 #include "exceptions/ConError.hpp"
+#include "exceptions/ExitExc.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
 #include "utils/Utils.hpp"
@@ -158,7 +159,11 @@ void CgiResponse::sendResponse(void)
   {
     processBuffer();
     if (!headers_created_)
+    {
+      if (!pipe_fd_)
+        throw ExitExc();
       return;  // Don't send anything back until we have at least the headers
+    }
   }
 
   if (full_response_.empty())
