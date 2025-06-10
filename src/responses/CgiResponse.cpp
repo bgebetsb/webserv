@@ -14,6 +14,7 @@
 #include "exceptions/ExitExc.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/Request.hpp"
+#include "requests/RequestMethods.hpp"
 #include "utils/Utils.hpp"
 
 // TODO: This shouldn't always be 200, the CGI could set a Status: header which
@@ -26,7 +27,8 @@ CgiResponse::CgiResponse(int client_fd,
                          const std::string& file_path,
                          const std::string& method,
                          const std::string& query_string,
-                         long file_size)
+                         long file_size,
+                         RequestMethod method_enum)
     : Response(client_fd, 200, close),
       headers_created_(false),
       status_found_(false),
@@ -37,14 +39,15 @@ CgiResponse::CgiResponse(int client_fd,
       file_path_(file_path),
       method_(method),
       query_string_(query_string),
-      last_chunk_sent_(false)
+      last_chunk_sent_(false),
+      method_enum_(method_enum)
 {
   meta_variables_ = implementMetaVariables();
 
   try
   {
     pipe_fd_ = new PipeFd(full_response_, script_path, cgi_path, file_path,
-                          this, meta_variables_);
+                          this, meta_variables_, method_enum_);
   }
   catch (std::exception& e)
   {
