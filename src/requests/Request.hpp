@@ -1,7 +1,6 @@
 #pragma once
 
 #include <sys/types.h>
-#include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -11,6 +10,7 @@
 #include "../responses/Response.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
+#include "utils/FdWrap.hpp"
 
 typedef std::map< std::string, std::string > mHeader;
 typedef std::vector< Server > vServer;
@@ -85,7 +85,7 @@ class Request
   std::string filename_;
   std::string absolute_path_;
   long total_written_bytes_;
-  std::ofstream upload_file_;
+  Utils::FdWrap upload_file_;
   std::string cgi_skript_path_;
   bool file_existed_;
   static std::set< std::string > current_upload_files_;

@@ -72,7 +72,8 @@ PipeFd::PipeFd(std::string& write_buffer,
 
     EpollData& ed = getEpollData();
 
-    if (epoll_ctl(ed.fd, EPOLL_CTL_ADD, read_end_, getEvent()) == -1)
+    if (Utils::addCloExecFlag(fds[0]) == -1 ||
+        epoll_ctl(ed.fd, EPOLL_CTL_ADD, read_end_, getEvent()) == -1)
     {
       Utils::ft_close(fds[0]);
       killProcess();
