@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include "../Configs/Configs.hpp"
@@ -63,7 +64,7 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
     std::remove(absolute_path_.c_str());
     throw RequestError(400, "Invalid chunk size");
   }
-  upload_file_.write(body.c_str(), body.size());
+  upload_file_.write(body);
   if (upload_file_.bad())
   {
     upload_file_.close();
