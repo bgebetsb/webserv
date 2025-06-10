@@ -146,7 +146,10 @@ void CgiResponse::addHeaderLine(const std::string& line)
     {
       throw RequestError(500, "Invalid Status header from CGI");
     }
-    response_title_ = ss.str();
+    response_code_ = code;
+    response_title_ = Utils::trimString(ss.str().substr(ss.tellg()));
+    if (code >= 500)
+      close_connection_ = true;
   }
   // TODO: Special processing for some headers, probably we should also
   // concatinate duplicate headers like we also do for the Request headers
