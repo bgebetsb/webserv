@@ -212,6 +212,7 @@ EpollAction PipeFd::epollCallback(int event)
 void PipeFd::unsetResponse(void)
 {
   cgi_response_ = NULL;
+  killProcess();
 }
 
 void PipeFd::checkExited(CgiResponse* response)

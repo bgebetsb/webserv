@@ -19,7 +19,7 @@ PidTracker::~PidTracker()
 
 void PidTracker::killPid(pid_t pid)
 {
-  if (pids_.find(pid) != pids_.end())
+  if (pids_.find(pid) == pids_.end())
   {
     kill(pid, SIGTERM);
     pids_[pid] = KillStatus();
