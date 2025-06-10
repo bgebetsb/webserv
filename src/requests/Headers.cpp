@@ -97,6 +97,7 @@ void Request::validateHeaders(void)
     host_ = host.unwrap();
 }
 
+// TODO: Make this function strict
 void Request::validateTransferEncoding(const std::string& value)
 {
   std::istringstream stream(value);
