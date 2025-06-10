@@ -111,8 +111,8 @@ namespace Parsing
     string hostname(host);
     string port_str;
 
-    pos = hostname.find_last_of(':');
-    if (pos != string::npos)
+    pos = hostname.find_last_of(":]");
+    if (pos != string::npos && hostname[pos] == ':')
     {
       port_str = hostname.substr(pos);
       hostname = hostname.substr(0, pos);
