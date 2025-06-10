@@ -253,4 +253,30 @@ namespace Parsing
 
     return segment;
   }
+
+  void validateQuotedString(std::istringstream& stream)
+  {
+    int c;
+
+    while (true)
+    {
+      c = stream.get();
+      if (stream.fail())
+        throw RequestError(400, "Unclosed quote");
+      if (c == '"')
+        return;
+      if (is_qdtext(c))
+        ;
+      else if (c == '\\')
+      {
+        c = stream.get();
+        if (stream.fail())
+          throw RequestError(400, "EOF after Backslash");
+        if (!is_space(c && !is_vchar(c && !is_obs_text(c))))
+          throw RequestError(400, "Invalid character in quoted string");
+      }
+      else
+        throw RequestError(400, "Invalid character in quoted string");
+    }
+  }
 }  // namespace Parsing

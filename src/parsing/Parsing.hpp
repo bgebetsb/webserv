@@ -18,6 +18,7 @@ namespace Parsing
   void skip_ows(std::istringstream& stream);
   void skip_token(std::istringstream& stream);
   void skip_character(std::istringstream& stream, char expected);
+  void validateQuotedString(std::istringstream& stream);
 
   size_t getChunkHeaderSize(const std::string& line);
   void validateChunkTrailer(const std::string& line);

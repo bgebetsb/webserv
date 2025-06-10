@@ -42,7 +42,6 @@ void Request::parseMethod(std::istringstream& stream)
     method_ = INVALID;
 }
 
-#include <iostream>
 void Request::parsePath(std::istringstream& stream)
 {
   std::string::iterator it;
@@ -50,7 +49,6 @@ void Request::parsePath(std::istringstream& stream)
 
   if (!(stream >> std::noskipws >> path_))
     throw RequestError(400, "Unable to parse path");
-  std::cout << "Path: " << path_ << "\n";
   pos = path_.find('?');
   if (pos != std::string::npos)
   {
