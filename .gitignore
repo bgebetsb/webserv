@@ -8,3 +8,5 @@ test*
 Doxyfile
 *.o
 webserv.log
+
+!tests/
