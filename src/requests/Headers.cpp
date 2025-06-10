@@ -97,24 +97,63 @@ void Request::validateHeaders(void)
     host_ = host.unwrap();
 }
 
-// TODO: Make this function strict
 void Request::validateTransferEncoding(const std::string& value)
 {
+  bool invalid = false;
   std::istringstream stream(value);
-  std::string part;
+  int c;
 
-  while (std::getline(stream, part, ','))
+  while (true)
   {
-    std::string trimmed = Utils::trimString(part);
-    if (trimmed.empty())
-      throw RequestError(400, "Empty part in transfer encoding");
-    std::for_each(trimmed.begin(), trimmed.end(), Utils::toLower);
-    if (trimmed != "chunked")
-      throw RequestError(501, "Invalid Transfer-Encoding");
-    if (chunked_)
-      throw RequestError(400, "Chunked header defined multiple times");
-    chunked_ = true;
+    std::string transfer_coding = Parsing::get_token(stream);
+    if (transfer_coding == "chunked")
+    {
+      if (chunked_)
+        throw RequestError(400, "Chunked header defined multiple times");
+      chunked_ = true;
+    }
+    else
+      invalid = true;
+    Parsing::skip_ows(stream);
+    c = stream.get();
+    if (stream.fail())
+      break;
+    Parsing::skip_ows(stream);
+    if (c == ',')
+      continue;
+    else if (c == ';')
+    {
+      Parsing::skip_token(stream);
+      Parsing::skip_ows(stream);
+      Parsing::skip_character(stream, '=');
+      Parsing::skip_ows(stream);
+      c = stream.get();
+      if (stream.fail())
+        throw RequestError(400, "Transfer-Encoding header stopped too soon");
+      if (c == '\"')
+        Parsing::validateQuotedString(stream);
+      else
+      {
+        stream.unget();
+        Parsing::skip_token(stream);
+      }
+      invalid = true;
+      c = stream.get();
+      if (stream.fail())
+        break;
+      Parsing::skip_ows(stream);
+      if (c == ',')
+        continue;
+      else
+        throw RequestError(400,
+                           "Invalid character in Transfer-Encoding header");
+    }
+    else
+      throw RequestError(400, "Invalid character in Transfer-Encoding header");
   }
+
+  if (invalid)
+    throw RequestError(501, "Unsupported value in chunked encoding");
 }
 
 void Request::validateContentLength(const std::string& value)
