@@ -450,7 +450,7 @@ bool Request::isFileUpload(const Location& loc)
   if (method_ != POST)
     return false;  // Not a POST request, no file upload
   if (is_cgi_ == false && path_[path_.length() - 1] != '/')
-    throw RequestError(405, "File upload not allowed on directories");
+    throw RequestError(405, "File upload only allowed on directories");
   if (status_ == READING_BODY)
     throw;
 
@@ -478,10 +478,9 @@ bool Request::isFileUpload(const Location& loc)
       absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
       PathInfos infos = getFileType(absolute_path_);
       if (!infos.exists)
-      {
-        current_upload_files_.insert(absolute_path_);
+
         break;  // Found a random filename that does not exist
-      }
+
       // else continue to generate a new random filename
     }
   }
@@ -513,7 +512,6 @@ void Request::setupFileUpload()
   std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
   if (current_upload_files_.insert(absolute_path_).second)
   {
-    std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
     errno = 0;  // Reset errno before opening the file
     upload_file_.open(absolute_path_.c_str(), std::ios::out | std::ios::binary);
     if (errno == ENAMETOOLONG)
@@ -527,7 +525,7 @@ void Request::setupFileUpload()
   }
   else
   {
-    throw RequestError(409, "File already exists");
+    throw RequestError(409, "File current in upload");
   }
 }
 
