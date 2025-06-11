@@ -14,6 +14,8 @@ class Response
   bool isComplete(void) const;
   bool getClosing() const;
   u_int16_t getResponseCode() const;
+  virtual bool isCgiAndEmpty(void) const;
+  int getClientFd(void) const;
 
  protected:
   std::string full_response_;

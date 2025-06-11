@@ -89,6 +89,7 @@ PipeFd::~PipeFd()
   if (cgi_response_)
   {
     CgiResponse* converted = reinterpret_cast< CgiResponse* >(cgi_response_);
+    enableSending(converted);
     converted->unsetPipeFd();
   }
 
@@ -204,6 +205,7 @@ EpollAction PipeFd::epollCallback(int event)
               << " but no EPOLLIN event(" << event << ")" << std::endl;
   }
 
+  enableSending(response);
   if (process_finished_)
     action.op = EPOLL_ACTION_DEL;
   return action;
@@ -248,5 +250,27 @@ void PipeFd::killProcess()
   {
     PidTracker& pidtracker = getPidTracker();
     pidtracker.killPid(process_id_);
+  }
+}
+
+void PipeFd::enableSending(CgiResponse* response)
+{
+  if (response)
+  {
+    int fd = response->getClientFd();
+    EpollData& ed = getEpollData();
+    if (ed.fds.find(fd) != ed.fds.end())
+    {
+      epoll_event* event = ed.fds[fd]->getEvent();
+      if (event->events == 0)
+      {
+        event->events = EPOLLOUT | EPOLLRDHUP;
+        if (epoll_ctl(ed.fd, EPOLL_CTL_MOD, fd, event) == -1)
+        {
+          killProcess();
+          process_finished_ = true;
+        }
+      }
+    }
   }
 }

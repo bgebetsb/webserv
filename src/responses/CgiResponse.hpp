@@ -21,6 +21,7 @@ class CgiResponse : public Response
   void sendResponse(void);
   void unsetPipeFd(void);
   bool getHeadersCreated(void) const;
+  bool isCgiAndEmpty(void) const;
 
  private:
   EpollFd* pipe_fd_;
@@ -36,6 +37,7 @@ class CgiResponse : public Response
   const std::string& query_string_;
   bool last_chunk_sent_;
   RequestMethod method_enum_;
+  int connection_fd_;
   CgiResponse(const CgiResponse& other);
   CgiResponse& operator=(const CgiResponse& other);
   char** implementMetaVariables();

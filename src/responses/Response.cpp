@@ -138,3 +138,13 @@ void Response::sendResponse()
   if (full_response_.empty())
     complete_ = true;
 }
+
+bool Response::isCgiAndEmpty() const
+{
+  return false;
+}
+
+int Response::getClientFd() const
+{
+  return client_fd_;
+}
