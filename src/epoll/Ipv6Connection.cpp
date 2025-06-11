@@ -1,10 +1,10 @@
 #include "Ipv6Connection.hpp"
+#include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include "exceptions/ConError.hpp"
 #include "exceptions/FdLimitReached.hpp"
-
 Ipv6Connection::Ipv6Connection(int socket_fd,
                                const std::vector< Server >& servers)
     : Connection(servers)
