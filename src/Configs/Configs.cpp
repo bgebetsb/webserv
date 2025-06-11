@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -18,6 +19,7 @@
 #include "../ip/Ipv6Address.hpp"
 #include "../utils/Utils.hpp"
 #include "configUtils.hpp"
+#include "parsing/Parsing.hpp"
 
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Con. / Destructors     ║
@@ -598,18 +600,22 @@ void Configuration::process_server_item(std::stringstream& item, Server& config)
                   "argument");
     for (size_t i = 0; i < tokens.size(); ++i)
     {
-      if (Utils::isValidHostname(tokens[i]))
+      try
       {
-        if (config.server_names.insert(tokens[i]).second == false)
+        std::pair< string, u_int16_t > host_port =
+            Parsing::parseHost(tokens[i]);
+        if (config.server_names.insert(host_port.first).second == false)
         {
           std::cerr << WARNING << "Duplicate server name, statement ignored => "
                     << tokens[i] << std::endl;
           continue;
         }
       }
-      else
+      catch (std::exception& e)
+      {
         throw Fatal("Invalid config file format: invalid server name => " +
                     tokens[i]);
+      }
     }
   }
   // ── ◼︎ listen ─────────────────────────────────────────────────────────────
