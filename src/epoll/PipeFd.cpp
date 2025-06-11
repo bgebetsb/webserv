@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include "../exceptions/RequestError.hpp"
+#include "Configs/Configs.hpp"
 #include "Logger/Logger.hpp"
 #include "PidTracker.hpp"
 #include "epoll/EpollAction.hpp"
@@ -59,11 +60,35 @@ PipeFd::PipeFd(std::string& write_buffer,
     Utils::ft_close(fds[0]);
     Logger::close();  // Needs to be closed manually because we can't set
                       // O_CLOEXEC on ofstreams...
+    Configuration& config = Configuration::getInstance();
+    const LogSettings& error_settings = config.getErrorLogsettings();
+    if (error_settings.configured)
+    {
+      if (error_settings.mode == LOGFILE)
+      {
+        int fd = open(error_settings.logfile.c_str(),
+                      O_CREAT | O_WRONLY | O_APPEND, 0644);
+        if (fd == -1)
+          std::cerr << "WARNING: Unable to open logfile for error log"
+                    << std::endl;
+        else
+        {
+          dup2(fd, STDERR_FILENO);
+          close(fd);
+        }
+      }
+    }
+    else
+    {
+      close(STDERR_FILENO);
+    }
     spawnCGI(envp);
     // Close stdin/stdout in child after execve failure, because they're fds
     // associated with files now
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
+    if (!error_settings.configured)
+      close(STDERR_FILENO);
     throw ExitExc();
   }
   else

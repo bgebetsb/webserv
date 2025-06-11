@@ -147,7 +147,7 @@ void Webserv::mainLoop()
   addServers();
   addFdsToEpoll();
 
-  const LogSettings& logsettings = config_.getLogsettings();
+  const LogSettings& logsettings = config_.getAccessLogsettings();
   if (logsettings.configured && logsettings.mode == LOGFILE)
     Logger::openFile(logsettings.logfile);
   else if (logsettings.configured)
