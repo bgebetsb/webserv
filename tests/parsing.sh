@@ -97,6 +97,10 @@ launchTests() {
   testinput "GET /index.html HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked;oida==hello\r\n\r\n" 400 "Transfer-Encoding: Two equal signs"
   testinput "GET /index.html HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked;oida=\"hello\r\n\r\n" 400 "Transfer-Encoding: Unclosed quote"
   testinput "GET /index.html HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked, chunked\r\n\r\n" 400 "Transfer-Encoding: declared chunked twice"
+  testinput "GET http://whatever.com%fu HTTP/1.1\r\nHost: whatever.com%fu\r\n\r\n" 400 "Non-hex characters in percent encoding (absolute form)"
+  testinput "GET http://[::1 HTTP/1.1\r\nHost: [::1\r\n\r\n" 400 "Ipv6 host + unclosed square bracket (absolute form)"
+  testinput "GET http://[qwer::1] HTTP/1.1\r\nHost: [qwer::1]\r\n\r\n" 400 "Invalid characters in ipv6 (absolute form)"
+  testinput "GET http://whatever:a HTTP/1.1\r\nHost: whatever:a\r\n\r\n" 400 "Invalid port (absolute form)"
 
   echo "============= Tests that should result in 200 responses================="
   testinput "GET / HTTP/1.1\r\nHost: whatever\r\n\r\n" 200 "normal"
@@ -106,6 +110,7 @@ launchTests() {
   testinput "GET / HTTP/1.1\nHost: whatever\n\n" 200 "only \n"
   testinput "GET / HTTP/1.1\r\nHost: whatever.com:\r\n\r\n" 200 "Host header ending with colon"
   testinput "GET / HTTP/1.1\r\nHost: [::1]\r\n\r\n" 200 "Host is ipv6"
+  testinput "GET http://[::1] HTTP/1.1\r\nHost: [::1]\r\n\r\n" 200 "Ipv6 host (absolute form)"
 
   echo "============================================================"
   echo "Total Tests: $TOTAL_TESTS, Passed: $PASSED_TESTS, Failed: $FAILED_TESTS"
