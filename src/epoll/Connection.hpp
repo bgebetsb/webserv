@@ -23,6 +23,7 @@ class Connection : public EpollFd
   virtual ~Connection() = 0;
   EpollAction epollCallback(int event);
   std::pair< EpollAction, u_int64_t > ping();
+  Request& getRequest();
 
  protected:
   Request request_;

@@ -395,3 +395,8 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
 
   return std::make_pair(action, time_diff);
 }
+
+Request& Connection::getRequest()
+{
+  return request_;
+}
