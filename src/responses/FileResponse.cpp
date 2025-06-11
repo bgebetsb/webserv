@@ -1,4 +1,5 @@
 #include "FileResponse.hpp"
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -12,7 +13,6 @@
 #include "requests/PathValidation/FileTypes.hpp"
 #include "requests/PathValidation/PathInfos.hpp"
 #include "requests/PathValidation/PathValidation.hpp"
-
 /*
  * https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types/Common_types
  */
