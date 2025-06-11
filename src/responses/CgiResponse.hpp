@@ -27,6 +27,7 @@ class CgiResponse : public Response
   EpollFd* pipe_fd_;
   bool headers_created_;
   mHeader headers_;
+  std::vector< std::string > cookies_;
   bool status_found_;
   int file_size_;
   char** meta_variables_;

@@ -17,9 +17,6 @@
 #include "requests/RequestMethods.hpp"
 #include "utils/Utils.hpp"
 
-// TODO: This shouldn't always be 200, the CGI could set a Status: header which
-// would determine the Response code... Only if the header doesn't exist we
-// should fallback to 200. We also need a new Response() constructor for that.
 CgiResponse::CgiResponse(int client_fd,
                          bool close,
                          const std::string& cgi_path,
@@ -113,6 +110,9 @@ void CgiResponse::addHeaderLine(const std::string& line)
         full_response_ += it->first + ": " + it->second + "\r\n";
     }
     full_response_ += "Transfer-Encoding: chunked\r\n";
+    std::vector< std::string >::iterator it;
+    for (it = cookies_.begin(); it != cookies_.end(); ++it)
+      full_response_ += "Set-Cookie: " + *it + "\r\n";
     full_response_ += "Connection: ";
     if (close_connection_)
       full_response_ += "close\r\n\r\n";
@@ -151,11 +151,14 @@ void CgiResponse::addHeaderLine(const std::string& line)
     if (code >= 500)
       close_connection_ = true;
   }
-  // TODO: Special processing for some headers, probably we should also
-  // concatinate duplicate headers like we also do for the Request headers
+  else if (key == "set-cookie")
+    cookies_.push_back(value);
   else
   {
-    headers_[key] = value;
+    if (headers_.find(key) == headers_.end())
+      headers_[key] = value;
+    else
+      headers_[key] += ", " + value;
   }
 }
 
