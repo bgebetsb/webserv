@@ -47,44 +47,6 @@ u_int32_t Utils::ipStrToUint32Max(const std::string& str, u_int32_t max)
   return static_cast< u_int32_t >(value);
 }
 
-static bool isValidHostnameLabel(const std::string& label)
-{
-  if (label.empty() || label.size() > 63)
-    return false;
-
-  if (!std::isalnum(label[0]) || !std::isalnum(label[label.size() - 1]))
-    return false;
-
-  for (size_t i = 0; i < label.size(); ++i)
-  {
-    char c = label[i];
-    if (!(std::isalnum(c) || c == '-'))
-      return false;
-  }
-  return true;
-}
-
-bool Utils::isValidHostname(const std::string& hostname)  // RFC 1035
-{
-  if (hostname.empty() || hostname.size() > 255)
-    return false;
-
-  size_t start = 0;
-  size_t end;
-
-  while ((end = hostname.find('.', start)) != std::string::npos)
-  {
-    std::string label = hostname.substr(start, end - start);
-    if (!isValidHostnameLabel(label))
-      return false;
-    start = end + 1;
-  }
-
-  // Letztes Label prüfen
-  std::string lastLabel = hostname.substr(start);
-  return isValidHostnameLabel(lastLabel);
-}
-
 bool Utils::duplicateEntries(const std::vector< std::string >& entries)
 {
   typedef std::vector< std::string > container;
