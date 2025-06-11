@@ -4,6 +4,7 @@
 #include "../utils/Utils.hpp"
 #include "Request.hpp"
 #include "parsing/Parsing.hpp"
+#include "requests/RequestMethods.hpp"
 
 static bool isStandardHeader(const std::string& key);
 
@@ -84,6 +85,8 @@ void Request::validateHeaders(void)
   if (transfer_encoding.is_some())
   {
     validateTransferEncoding(transfer_encoding.unwrap());
+    if (method_ == GET || method_ == DELETE)
+      closing_ = true;
     if (content_length.is_some())
       throw RequestError(400,
                          "Both Content-Length and Transfer-Encoding present");
@@ -91,6 +94,8 @@ void Request::validateHeaders(void)
   else if (content_length.is_some())
   {
     validateContentLength(content_length.unwrap());
+    if ((method_ == GET || method_ == DELETE) && content_length_.unwrap() > 0)
+      closing_ = true;
   }
 
   if (host_.empty())
