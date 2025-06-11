@@ -18,6 +18,8 @@
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
 #include "RequestStatus.hpp"
+#include "epoll/EpollData.hpp"
+#include "exceptions/ConError.hpp"
 #include "exceptions/ExitExc.hpp"
 #include "exceptions/RequestError.hpp"
 #include "requests/RequestMethods.hpp"
@@ -130,6 +132,15 @@ void Request::sendResponse()
 {
   try
   {
+    if (response_->isCgiAndEmpty())
+    {
+      EpollData& ep_data = getEpollData();
+      EpollFd* fd = ep_data.fds[fd_];
+      struct epoll_event* event = fd->getEvent();
+      event->events = 0;
+      if (epoll_ctl(ep_data.fd, EPOLL_CTL_MOD, fd_, event) == -1)
+        throw ConErr("Failed to modify epoll event");
+    }
     response_->sendResponse();
     if (response_->isComplete())
     {

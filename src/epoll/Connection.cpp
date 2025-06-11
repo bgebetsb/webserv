@@ -114,6 +114,7 @@ EpollAction Connection::processFileUpload()
 {
   EpollAction action = {fd_, EPOLL_ACTION_UNCHANGED, NULL};
   std::string write_buffer;
+  static size_t chunk_size;
   // ── ◼︎ Content Length Upload ───────────────────────
   if (!chunked_)
   {
@@ -154,7 +155,6 @@ EpollAction Connection::processFileUpload()
         break;
       bool carriage_return = (pos != 0 && buffer_[pos - 1] == '\r');
       std::string chunk_size_str(buffer_, 0, pos - carriage_return);
-      size_t chunk_size;
       try
       {
         if (mode_ == TRAILER)
@@ -171,8 +171,22 @@ EpollAction Connection::processFileUpload()
           }
         }
         else if (mode_ == NORM)
+        {
           chunk_size = Parsing::getChunkHeaderSize(chunk_size_str);
+          if (buffer_.size() > pos + 1)
+            buffer_ = std::string(buffer_, pos + 1);
+          else
+            buffer_.clear();
+          if (chunk_size == 0)
+          {
+            //       ○      Setup for the next request
+            mode_ = TRAILER;
+            continue;
+          }
+          mode_ = PROGRESS;
+        }
       }
+
       catch (RequestError& e)
       {
         throw;
@@ -184,38 +198,36 @@ EpollAction Connection::processFileUpload()
       }
 
       //       ○      End of chunked transfer encoding
-      if (mode_ == NORM)
+      if (mode_ == PROGRESS)
       {
+        //       ○      Check if chunk available
+        if (buffer_.empty() || buffer_.size() == chunk_size ||
+            (buffer_.size() == chunk_size + 1 && buffer_[chunk_size] == '\r'))
+          return action;
+        //       ○      Extract the chunk
+        std::string::size_type amount = std::min(chunk_size, buffer_.size());
+        write_buffer.append(buffer_, 0, amount);
+        chunk_size -= amount;
+        buffer_ = buffer_.substr(amount);
+        total_written_bytes_ += amount;
+
         if (chunk_size == 0)
         {
-          //       ○      Setup for the next request
-          if (buffer_.size() > pos + 1)
-            buffer_ = std::string(buffer_, pos + 1);
+          if (buffer_[0] == '\n')
+          {
+            buffer_ = buffer_.substr(1);
+            mode_ = NORM;
+          }
+          else if (buffer_[0] != '\r')
+            throw RequestError(400, "Invalid chunk, expected newline");
+          else if (buffer_[1] != '\n')
+            throw RequestError(400, "Invalid chunk, expected newline after CR");
           else
-            buffer_.clear();
-          mode_ = TRAILER;
-          continue;
+          {
+            buffer_ = buffer_.substr(2);
+            mode_ = NORM;
+          }
         }
-
-        //       ○      Check if chunk available
-        if (pos + 1 + chunk_size > buffer_.size())
-          return action;
-        if (buffer_[pos + 1 + chunk_size] == '\n')
-          carriage_return = false;
-        else if (buffer_[pos + 1 + chunk_size] != '\r')
-          throw RequestError(400, "Invalid chunk, expected carriage return");
-        else if (pos + 2 + chunk_size > buffer_.size())
-          return action;
-        else if (buffer_.substr(pos + 1 + chunk_size, 2) == "\r\n")
-          carriage_return = true;
-        else
-          throw RequestError(400, "Chunk longer than expected");
-
-        //       ○      Extract the chunk
-        write_buffer.append(buffer_, pos + 1, chunk_size);
-
-        //       ○      Update the total written bytes
-        total_written_bytes_ += chunk_size;
 
         //       ○      Check if total written bytes exceed max body size
         if (total_written_bytes_ > max_body_size_)
@@ -223,12 +235,6 @@ EpollAction Connection::processFileUpload()
           mode_ = ERROR_LENGTH;  // Indicate an error
           break;
         }
-        // Remove the chunk size and CRLF from the buffer
-        if (buffer_.size() > pos + 2 + carriage_return + chunk_size)
-          buffer_ =
-              std::string(buffer_, pos + 2 + carriage_return + chunk_size);
-        else
-          buffer_.clear();
       }
     }
   }

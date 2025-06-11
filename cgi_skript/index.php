@@ -15,4 +15,8 @@ if (strlen($body) > 0) {
 } else {
     echo "Kein Body empfangen.";
 }
+for ($i = 0; $i < 1000000000; $i++) {
+}
+
+echo "Surprise motherfucker\n";
 ?>

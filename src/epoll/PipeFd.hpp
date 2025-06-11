@@ -48,6 +48,7 @@ class PipeFd : public EpollFd
   void spawnCGI(char** envp);
   void checkExited(CgiResponse* response);
   void killProcess();
+  void enableSending(CgiResponse* response);
 
   // ── ◼︎ disabled
   // ───────────────────────

@@ -21,6 +21,7 @@ const static std::string STANDARD_HEADERS[] = {"host", "content-length",
 enum UploadMode
 {
   NORM,
+  PROGRESS,
   TRAILER,
   END,
   ERROR_LENGTH,
