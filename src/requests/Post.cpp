@@ -6,7 +6,7 @@
 /*   By: mbonengl <mbonengl@student.42vienna.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/20 19:25:39 by mbonengl          #+#    #+#             */
-/*   Updated: 2025/06/03 20:59:38 by mbonengl         ###   ########.fr       */
+/*   Updated: 2025/06/11 14:33:16 by mbonengl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 #include "../Configs/Configs.hpp"
 #include "../responses/CgiResponse.hpp"
@@ -65,6 +66,8 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
     throw RequestError(400, "Invalid chunk size");
   }
   upload_file_.write(body);
+  total_written_bytes_ += body.size();
+
   if (upload_file_.bad())
   {
     upload_file_.close();
