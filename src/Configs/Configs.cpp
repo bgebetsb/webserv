@@ -160,18 +160,37 @@ void Configuration::parseConfigFile(const string& config_file)
       }
       else if (identifier_token == "access_log")
       {
-        if (log_.configured)
+        if (access_log_.configured)
           throw Fatal("Invalid config file format: access_log already defined");
         std::string token;
         if (!(ss >> token))
           throw Fatal("Invalid config file format: expected access_log value");
-        log_.configured = true;
+        access_log_.configured = true;
         if (token == "stdout")
-          log_.mode = STDOUT;
+          access_log_.mode = STDOUT;
         else if (token == "stderr")
-          log_.mode = STDERR;
+          access_log_.mode = STDERR;
         else
-          log_.logfile = token;
+          access_log_.logfile = token;
+        if (ss >> token)
+          throw Fatal("Invalid config file format: access_log requires exactly "
+                      "1 argument");
+      }
+      else if (identifier_token == "error_log")
+      {
+        if (error_log_.configured)
+          throw Fatal("Invalid config file format: error_log already defined");
+        std::string token;
+        if (!(ss >> token))
+          throw Fatal("Invalid config file format: expected error_log value");
+        error_log_.configured = true;
+        if (token == "stdout")
+          throw Fatal(
+              "Invalid config file format: stdout not valid for error_log");
+        else if (token == "stderr")
+          error_log_.mode = STDERR;
+        else
+          error_log_.logfile = token;
         if (ss >> token)
           throw Fatal("Invalid config file format: access_log requires exactly "
                       "1 argument");

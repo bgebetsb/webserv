@@ -174,7 +174,8 @@ class Configuration
   size_pair keep_alive_timeout_;
   string php_path_;
   string python_path_;
-  LogSettings log_;
+  LogSettings access_log_;
+  LogSettings error_log_;
   const string config_file_;
 
  public:
@@ -199,9 +200,14 @@ class Configuration
     return server_configs_;
   }
 
-  const LogSettings& getLogsettings() const
+  const LogSettings& getAccessLogsettings() const
   {
-    return log_;
+    return access_log_;
+  }
+
+  const LogSettings& getErrorLogsettings() const
+  {
+    return error_log_;
   }
 
   size_t getCgiTimeout() const
