@@ -297,7 +297,6 @@ void Configuration::process_server_block(const std::string& block)
         cursor = end + 1;  // weiter hinter der schließenden Klammer
       }
     }
-    // TODO: check here if configs are valid
     server_configs_.push_back(config);
   }
   catch (std::exception& e)

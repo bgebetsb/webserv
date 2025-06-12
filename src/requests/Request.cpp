@@ -222,7 +222,7 @@ void Request::processRequest(void)
     return (setupFileUpload());
   else if (is_upload && is_cgi_ == true)
     return (setupCgi());
-  else if (is_cgi_)  // TODO: Handle CGI requests GET and DELETE
+  else if (is_cgi_)
   {
     std::string cgi_bin_path;
     cgi_extension_ == PHP

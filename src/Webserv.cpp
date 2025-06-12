@@ -122,7 +122,7 @@ void Webserv::deleteFd(int fd)
 
 void Webserv::addServers()
 {
-  for (size_t i = 0; i < servers_.size(); ++i)  // TODO: extract this
+  for (size_t i = 0; i < servers_.size(); ++i)
   {
     std::cout << "Server " << i << ": " << servers_[i] << std::endl;
     const Server& server = servers_[i];
