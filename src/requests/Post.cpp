@@ -65,14 +65,17 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
     throw RequestError(400, "Invalid chunk size");
   }
   upload_file_.write(body);
-  total_written_bytes_ += body.size();
 
   if (upload_file_.bad())
   {
     upload_file_.close();
     std::remove(absolute_path_.c_str());
+    if (total_written_bytes_ > 0)
+      throw RequestError(
+          507, "Failed to write to upload file due to insufficient storage");
     throw RequestError(500, "Failed to write to upload file");
   }
+  total_written_bytes_ += body.size();
   if (mode == END)
   {
     if (is_cgi_)

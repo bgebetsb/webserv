@@ -7,7 +7,6 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
-#include <iostream>
 #include <string>
 #include "../Configs/Configs.hpp"
 #include "../epoll/EpollData.hpp"
