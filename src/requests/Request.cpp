@@ -555,18 +555,16 @@ void Request::setupFileUpload()
     errno = 0;  // Reset errno before opening the file
     upload_file_.open(absolute_path_.c_str(),
                       O_CREAT | O_TRUNC | O_CLOEXEC | O_WRONLY);
+
     if (errno == ENAMETOOLONG)
-    {
       throw RequestError(400, "Filename too long");
-    }
+
     total_written_bytes_ = 0;
     status_ = READING_BODY;
     return;
   }
   else
-  {
     throw RequestError(409, "File current in upload");
-  }
 }
 
 void Request::setupCgi()
