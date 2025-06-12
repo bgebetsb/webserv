@@ -93,6 +93,10 @@ Response::Response(int client_fd, int response_code, bool close_connection)
       response_title_ = "HTTP Version Not Supported";
       close_connection_ = true;
       break;
+    case 507:
+      response_title_ = "Insufficient Storage";
+      close_connection_ = true;
+      break;
     default:
       response_title_ = "Not implemented";
   }

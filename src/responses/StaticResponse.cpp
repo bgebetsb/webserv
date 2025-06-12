@@ -8,9 +8,10 @@
 StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
     : Response(client_fd, response_code, close)
 {
-  std::string content("<html><head><title>" + response_title_ +
-                      "</title></head><body><h1>" + response_title_ +
-                      "</h1></body></html>\r\n");
+  std::string content("<!DOCTYPE html>\r\n<html>\r\n<head>\r\n<title>" +
+                      response_title_ +
+                      "</title>\r\n</head>\r\n<body>\r\n<h1>" +
+                      response_title_ + "</h1>\r\n</body>\r\n</html>\r\n");
 
   std::ostringstream response;
   response << createResponseHeaderLine()
