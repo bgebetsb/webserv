@@ -121,10 +121,13 @@ void CgiResponse::addHeaderLine(const std::string& line)
     else
       full_response_ += "keep-alive\r\n\r\n";
 
-    std::ostringstream ss;
-    ss << std::hex << rest.length() << "\r\n";
+    if (!rest.empty())
+    {
+      std::ostringstream ss;
+      ss << std::hex << rest.length() << "\r\n";
 
-    full_response_ += ss.str() + rest + "\r\n";
+      full_response_ += ss.str() + rest + "\r\n";
+    }
     headers_created_ = true;
     return;
   }
@@ -256,7 +259,7 @@ bool CgiResponse::getHeadersCreated() const
 
 bool CgiResponse::isCgiAndEmpty() const
 {
-  return full_response_.empty();
+  return full_response_.empty() && pipe_fd_;
 }
 
 bool CgiResponse::headersSent() const
