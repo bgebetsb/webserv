@@ -6,7 +6,7 @@
 /*   By: mbonengl <mbonengl@student.42vienna.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/20 19:25:39 by mbonengl          #+#    #+#             */
-/*   Updated: 2025/06/11 14:33:16 by mbonengl         ###   ########.fr       */
+/*   Updated: 2025/06/12 12:50:32 by mbonengl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 #include "../Configs/Configs.hpp"
 #include "../responses/CgiResponse.hpp"
@@ -100,9 +99,14 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
           break;
       }
       upload_file_.close();
+      std::string cookies;
+      if (getHeader("cookie").is_some())
+        cookies = getHeader("cookie").unwrap();
+      else
+        cookies = "";
       response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
                                   absolute_path_, method_str, query_string_,
-                                  total_written_bytes_, POST);
+                                  total_written_bytes_, POST, cookies);
       status_ = SENDING_RESPONSE;
       return;
     }
