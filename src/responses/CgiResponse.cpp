@@ -217,7 +217,13 @@ char** CgiResponse::implementMetaVariables()
   meta_vars.push_back("REDIRECT_STATUS=200");
   meta_vars.push_back("REQUEST_METHOD=" + method_);
   meta_vars.push_back("PATH=/usr/bin/:/bin");
-  meta_vars.push_back("PATH_INFO=" + script_path_);
+  meta_vars.push_back("PATH_INFO=/");
+  string home = "/home/bgebetsb/html/";
+  std::cout << "SCRIPT_NAME: " << script_path_.substr(home.length())
+            << std::endl;
+  meta_vars.push_back("REQUEST_URI=" + script_path_.substr(home.length()));
+  meta_vars.push_back("SCRIPT_NAME=" + script_path_.substr(home.length()));
+  meta_vars.push_back("HTTP_HOST=localhost:8080");
   meta_vars.push_back("QUERY_STRING=" + query_string_);
   meta_vars.push_back("CONTENT_TYPE=application/x-www-form-urlencoded");
   meta_vars.push_back("HTTP_COOKIE=" + cookies_in_);
