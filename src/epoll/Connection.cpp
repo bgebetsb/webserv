@@ -52,7 +52,6 @@ EpollAction Connection::epollCallback(int event)
     }
     catch (RequestError& e)
     {
-      std::cerr << "RequestError: " << e.what() << std::endl;  // DEBUG
       try
       {
         const Server& server = request_.getServer();
@@ -67,8 +66,7 @@ EpollAction Connection::epollCallback(int event)
           throw RequestError(405, "Method not allowed for error page");
         if (location.root.empty())
           throw RequestError(404, "Error page: no root directory set");
-        std::string path = location.root + '/' +
-                           it->second.substr(location.location_name.length());
+        std::string path = location.root + '/' + it->second;
         request_.setResponse(new FileResponse(fd_, path, e.getCode(),
                                               request_.closingConnection()));
         ep_event_->events = EPOLLOUT;
@@ -77,8 +75,7 @@ EpollAction Connection::epollCallback(int event)
       }
       catch (std::exception& e)
       {
-        // Fall back to the Static-Response if something happens with the
-        // ErrorPagethrow RequestError(413, "Request body too large");
+        std::cout << e.what() << std::endl;
       }
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
