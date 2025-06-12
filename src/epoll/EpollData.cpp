@@ -1,6 +1,6 @@
-#include "epoll/EpollData.hpp"
-#include "exceptions/Fatal.hpp"
-#include "utils/Utils.hpp"
+#include "EpollData.hpp"
+#include "../exceptions/Fatal.hpp"
+#include "../utils/Utils.hpp"
 
 EpollData::EpollData() : fd(epoll_create(1024))
 {

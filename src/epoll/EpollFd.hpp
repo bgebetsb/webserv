@@ -2,7 +2,6 @@
 
 #include <sys/epoll.h>
 #include "EpollAction.hpp"
-// class Webserv;
 
 class EpollFd
 {

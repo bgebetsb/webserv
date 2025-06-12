@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "requests/PathValidation/FileTypes.hpp"
+#include "../requests/PathValidation/FileTypes.hpp"
 
 namespace DirectoryListing
 {

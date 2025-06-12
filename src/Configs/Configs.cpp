@@ -17,9 +17,9 @@
 #include "../ip/IpAddress.hpp"
 #include "../ip/Ipv4Address.hpp"
 #include "../ip/Ipv6Address.hpp"
+#include "../parsing/Parsing.hpp"
 #include "../utils/Utils.hpp"
 #include "configUtils.hpp"
-#include "parsing/Parsing.hpp"
 
 // ╔══════════════════════════════════════════════╗
 // ║              SECTION: Con. / Destructors     ║

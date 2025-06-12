@@ -17,12 +17,12 @@
 #include <cstdlib>
 #include <string>
 #include "../Configs/Configs.hpp"
+#include "../exceptions/RequestError.hpp"
 #include "../responses/CgiResponse.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "Request.hpp"
 #include "RequestStatus.hpp"
-#include "exceptions/RequestError.hpp"
 
 std::string Request::generateRandomFilename()
 {

@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <map>
 #include <string>
-#include "responses/Response.hpp"
+#include "Response.hpp"
 
 typedef std::map< std::string, std::string > MMimeTypes;
 

@@ -3,7 +3,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <map>
-#include "epoll/EpollFd.hpp"
+#include "EpollFd.hpp"
 
 typedef std::map< const int, EpollFd* > EpollMap;
 

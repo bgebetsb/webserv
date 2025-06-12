@@ -8,9 +8,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "../exceptions/RequestError.hpp"
+#include "../utils/Utils.hpp"
 #include "Parsing.hpp"
-#include "exceptions/RequestError.hpp"
-#include "utils/Utils.hpp"
 
 namespace Parsing
 {

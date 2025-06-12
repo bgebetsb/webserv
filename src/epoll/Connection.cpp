@@ -8,17 +8,17 @@
 #include <exception>
 #include <string>
 #include <vector>
-#include "Configs/Configs.hpp"
-#include "Logger/Logger.hpp"
-#include "epoll/EpollAction.hpp"
-#include "exceptions/ConError.hpp"
-#include "exceptions/RequestError.hpp"
-#include "parsing/Parsing.hpp"
-#include "requests/Request.hpp"
-#include "requests/RequestStatus.hpp"
-#include "responses/FileResponse.hpp"
-#include "responses/StaticResponse.hpp"
-#include "utils/Utils.hpp"
+#include "../Configs/Configs.hpp"
+#include "../Logger/Logger.hpp"
+#include "../exceptions/ConError.hpp"
+#include "../exceptions/RequestError.hpp"
+#include "../parsing/Parsing.hpp"
+#include "../requests/Request.hpp"
+#include "../requests/RequestStatus.hpp"
+#include "../responses/FileResponse.hpp"
+#include "../responses/StaticResponse.hpp"
+#include "../utils/Utils.hpp"
+#include "EpollAction.hpp"
 
 Connection::Connection(const std::vector< Server >& servers)
     : request_(Request(-1, servers)),

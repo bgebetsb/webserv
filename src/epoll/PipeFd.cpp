@@ -7,16 +7,16 @@
 #include <cstddef>
 #include <iostream>
 #include <sstream>
+#include "../Configs/Configs.hpp"
+#include "../Logger/Logger.hpp"
+#include "../PidTracker.hpp"
+#include "../exceptions/ExitExc.hpp"
 #include "../exceptions/RequestError.hpp"
-#include "Configs/Configs.hpp"
-#include "Logger/Logger.hpp"
-#include "PidTracker.hpp"
-#include "epoll/EpollAction.hpp"
-#include "epoll/EpollData.hpp"
-#include "exceptions/ExitExc.hpp"
-#include "requests/RequestMethods.hpp"
-#include "responses/CgiResponse.hpp"
-#include "utils/Utils.hpp"
+#include "../requests/RequestMethods.hpp"
+#include "../responses/CgiResponse.hpp"
+#include "../utils/Utils.hpp"
+#include "EpollAction.hpp"
+#include "EpollData.hpp"
 PipeFd::PipeFd(std::string& write_buffer,
                const std::string& skript_path,
                const std::string& cgi_path,

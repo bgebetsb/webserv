@@ -7,12 +7,12 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "epoll/Connection.hpp"
-#include "exceptions/ConError.hpp"
-#include "exceptions/RequestError.hpp"
-#include "requests/PathValidation/FileTypes.hpp"
-#include "requests/PathValidation/PathInfos.hpp"
-#include "requests/PathValidation/PathValidation.hpp"
+#include "../epoll/Connection.hpp"
+#include "../exceptions/ConError.hpp"
+#include "../exceptions/RequestError.hpp"
+#include "../requests/PathValidation/FileTypes.hpp"
+#include "../requests/PathValidation/PathInfos.hpp"
+#include "../requests/PathValidation/PathValidation.hpp"
 
 /*
  * https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types/Common_types

@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <cerrno>
 #include <string>
+#include "../../exceptions/RequestError.hpp"
 #include "PathInfos.hpp"
-#include "exceptions/RequestError.hpp"
 
 static bool fileReadable(const std::string& filename);
 static bool fileWritable(const std::string& filename);

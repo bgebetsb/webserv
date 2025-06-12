@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <sstream>
 #include "../exceptions/RequestError.hpp"
+#include "../parsing/Parsing.hpp"
+#include "../requests/RequestMethods.hpp"
 #include "../utils/Utils.hpp"
 #include "Request.hpp"
-#include "parsing/Parsing.hpp"
-#include "requests/RequestMethods.hpp"
 
 static bool isStandardHeader(const std::string& key);
 

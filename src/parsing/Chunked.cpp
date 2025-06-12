@@ -1,7 +1,7 @@
 #include <sstream>
 #include <string>
+#include "../exceptions/RequestError.hpp"
 #include "Parsing.hpp"
-#include "exceptions/RequestError.hpp"
 
 namespace Parsing
 {

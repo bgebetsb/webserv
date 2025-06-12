@@ -8,7 +8,7 @@
 #include <cstring>
 #include <set>
 #include "../exceptions/Fatal.hpp"
-#include "ip/Ipv6Address.hpp"
+#include "../ip/Ipv6Address.hpp"
 
 #define VALID_URI_CHARS                      \
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"               \

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "epoll/EpollFd.hpp"
-#include "requests/Request.hpp"
-#include "requests/RequestMethods.hpp"
-#include "responses/Response.hpp"
+#include "../epoll/EpollFd.hpp"
+#include "../requests/Request.hpp"
+#include "../requests/RequestMethods.hpp"
+#include "../responses/Response.hpp"
 class CgiResponse : public Response
 {
  public:
