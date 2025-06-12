@@ -66,13 +66,20 @@ namespace Parsing
       string segment = get_segment(ss);
       if (segment.empty())
         continue;
-      if (segment == "..")
+      std::istringstream ss(segment);
+      string subsegment;
+      while (std::getline(ss, subsegment, '/'))
       {
-        if (!segments.empty())
-          segments.pop_back();
+        if (subsegment.empty())
+          continue;
+        if (subsegment == "..")
+        {
+          if (!segments.empty())
+            segments.pop_back();
+        }
+        else
+          segments.push_back(subsegment);
       }
-      else
-        segments.push_back(segment);
     }
 
     string escaped;

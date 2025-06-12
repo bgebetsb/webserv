@@ -10,7 +10,6 @@ REQUESTS:= 		requests/Request.cpp \
 							requests/Startline.cpp \
 							requests/Headers.cpp \
 							requests/PathValidation/PathValidation.cpp \
-							requests/PathValidation/PreventEscape.cpp \
 							requests/Post.cpp \
 							
 RESPONSES:=		responses/FileResponse.cpp \
