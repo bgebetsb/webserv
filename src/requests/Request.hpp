@@ -44,7 +44,7 @@ class Request
   const Server* server_;
   RequestStatus status_;
   RequestMethod method_;
-  std::string host_;  // TODO: Initialize the Values
+  std::string host_;
   std::string path_;
   std::string startline_;
   std::string query_string_;
