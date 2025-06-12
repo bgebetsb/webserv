@@ -215,7 +215,6 @@ void Request::processRequest(void)
   bool is_upload = isFileUpload(location);
   if (is_cgi_)
   {
-    std::cout << "CGI Skript: " << cgi_skript_path_ << std::endl;
     PathInfos infos = getFileType(cgi_skript_path_);
     if (!infos.exists || infos.types != REGULAR_FILE)
       throw RequestError(404, "CGI Skript not found");
@@ -552,7 +551,6 @@ bool Request::isFileUpload(const Location& loc)
 
 void Request::setupFileUpload()
 {
-  std::cout << "Setting up file upload for: " << absolute_path_ << std::endl;
   if (current_upload_files_.insert(absolute_path_).second)
   {
     errno = 0;  // Reset errno before opening the file
@@ -560,7 +558,6 @@ void Request::setupFileUpload()
                       O_CREAT | O_TRUNC | O_CLOEXEC | O_WRONLY);
     if (errno == ENAMETOOLONG)
     {
-      std::cout << "ERRNO: " << errno << std::endl;
       throw RequestError(400, "Filename too long");
     }
     total_written_bytes_ = 0;
