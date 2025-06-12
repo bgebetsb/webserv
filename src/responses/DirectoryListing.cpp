@@ -6,9 +6,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "exceptions/RequestError.hpp"
-#include "requests/PathValidation/FileTypes.hpp"
-#include "utils/Utils.hpp"
+#include "../exceptions/RequestError.hpp"
+#include "../requests/PathValidation/FileTypes.hpp"
+#include "../utils/Utils.hpp"
 
 namespace DirectoryListing
 {

@@ -3,10 +3,10 @@
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <vector>
-#include "Configs/Configs.hpp"
-#include "epoll/EpollAction.hpp"
-#include "epoll/EpollFd.hpp"
-#include "ip/IpAddress.hpp"
+#include "../Configs/Configs.hpp"
+#include "../ip/IpAddress.hpp"
+#include "EpollAction.hpp"
+#include "EpollFd.hpp"
 
 class Listener : public EpollFd
 {

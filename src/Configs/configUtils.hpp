@@ -4,7 +4,7 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "ip/Ipv6Address.hpp"
+#include "../ip/Ipv6Address.hpp"
 
 namespace Utils
 {

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "../ip/IpAddress.hpp"
-#include "ip/IpComparison.hpp"
+#include "../ip/IpComparison.hpp"
 
 #define CGI_TIMEOUT_MAX 300
 #define KEEP_ALIVE_TIMEOUT_MAX 60

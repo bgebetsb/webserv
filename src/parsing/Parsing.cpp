@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <utility>
-#include "exceptions/RequestError.hpp"
+#include "../exceptions/RequestError.hpp"
 
 namespace Parsing
 {

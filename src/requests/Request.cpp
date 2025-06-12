@@ -9,22 +9,22 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include "../Configs/Configs.hpp"
+#include "../epoll/EpollData.hpp"
+#include "../exceptions/ConError.hpp"
+#include "../exceptions/ExitExc.hpp"
+#include "../exceptions/RequestError.hpp"
+#include "../responses/CgiResponse.hpp"
 #include "../responses/DirectoryListing.hpp"
+#include "../responses/FileResponse.hpp"
 #include "../responses/RedirectResponse.hpp"
 #include "../responses/StaticResponse.hpp"
 #include "../utils/Utils.hpp"
-#include "Configs/Configs.hpp"
 #include "PathValidation/FileTypes.hpp"
 #include "PathValidation/PathInfos.hpp"
 #include "PathValidation/PathValidation.hpp"
+#include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
-#include "epoll/EpollData.hpp"
-#include "exceptions/ConError.hpp"
-#include "exceptions/ExitExc.hpp"
-#include "exceptions/RequestError.hpp"
-#include "requests/RequestMethods.hpp"
-#include "responses/CgiResponse.hpp"
-#include "responses/FileResponse.hpp"
 
 std::set< std::string > Request::current_upload_files_;
 

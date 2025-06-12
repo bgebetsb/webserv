@@ -6,14 +6,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
+#include "../exceptions/ConError.hpp"
+#include "../exceptions/Fatal.hpp"
+#include "../ip/IpAddress.hpp"
+#include "../utils/Utils.hpp"
 #include "Connection.hpp"
+#include "EpollAction.hpp"
 #include "Ipv4Connection.hpp"
 #include "Ipv6Connection.hpp"
-#include "epoll/EpollAction.hpp"
-#include "exceptions/ConError.hpp"
-#include "exceptions/Fatal.hpp"
-#include "ip/IpAddress.hpp"
-#include "utils/Utils.hpp"
 
 Listener::Listener(IpAddress* address) : address_(address)
 {

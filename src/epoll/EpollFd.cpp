@@ -1,7 +1,6 @@
 #include "EpollFd.hpp"
 #include <sys/epoll.h>
 #include <unistd.h>
-#include <iostream>
 #include <stdexcept>
 
 EpollFd::EpollFd() : fd_(-1)

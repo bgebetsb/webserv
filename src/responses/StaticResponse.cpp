@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <map>
 #include <sstream>
-#include "responses/Response.hpp"
+#include "../responses/Response.hpp"
 
 StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
     : Response(client_fd, response_code, close)

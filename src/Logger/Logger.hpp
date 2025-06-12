@@ -3,7 +3,7 @@
 #include <fstream>
 #include <ostream>
 #include <string>
-#include "Configs/Configs.hpp"
+#include "../Configs/Configs.hpp"
 
 class Logger
 {

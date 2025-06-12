@@ -2,10 +2,10 @@
 
 #include <cstddef>
 #include <string>
+#include "../responses/CgiResponse.hpp"
+#include "../responses/Response.hpp"
+#include "Connection.hpp"
 #include "EpollFd.hpp"
-#include "epoll/Connection.hpp"
-#include "responses/CgiResponse.hpp"
-#include "responses/Response.hpp"
 
 #ifndef CHUNK_SIZE
 #  define CHUNK_SIZE 4096

@@ -4,10 +4,10 @@
 #include <sys/types.h>
 #include <string>
 #include <vector>
-#include "Configs/Configs.hpp"
-#include "epoll/EpollAction.hpp"
-#include "epoll/EpollFd.hpp"
-#include "requests/Request.hpp"
+#include "../Configs/Configs.hpp"
+#include "../epoll/EpollAction.hpp"
+#include "../epoll/EpollFd.hpp"
+#include "../requests/Request.hpp"
 
 #ifndef CHUNK_SIZE
 #  define CHUNK_SIZE 4096

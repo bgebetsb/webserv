@@ -6,7 +6,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include "exceptions/Fatal.hpp"
+#include "../exceptions/Fatal.hpp"
 
 using std::ios_base;
 

@@ -8,14 +8,14 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "Configs/Configs.hpp"
-#include "epoll/PipeFd.hpp"
-#include "exceptions/ConError.hpp"
-#include "exceptions/ExitExc.hpp"
-#include "exceptions/RequestError.hpp"
-#include "requests/Request.hpp"
-#include "requests/RequestMethods.hpp"
-#include "utils/Utils.hpp"
+#include "../Configs/Configs.hpp"
+#include "../epoll/PipeFd.hpp"
+#include "../exceptions/ConError.hpp"
+#include "../exceptions/ExitExc.hpp"
+#include "../exceptions/RequestError.hpp"
+#include "../requests/Request.hpp"
+#include "../requests/RequestMethods.hpp"
+#include "../utils/Utils.hpp"
 
 CgiResponse::CgiResponse(int client_fd,
                          bool close,

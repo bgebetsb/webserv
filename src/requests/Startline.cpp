@@ -2,10 +2,10 @@
 #include <cctype>
 #include <sstream>
 #include <string>
+#include "../exceptions/RequestError.hpp"
+#include "../parsing/Parsing.hpp"
 #include "Request.hpp"
-#include "exceptions/RequestError.hpp"
-#include "parsing/Parsing.hpp"
-#include "requests/RequestStatus.hpp"
+#include "RequestStatus.hpp"
 
 static void parseHTTPVersion(std::istringstream& stream);
 
