@@ -51,8 +51,7 @@ static MMimeTypes createMimeTypesMap()
   map.insert(std::make_pair(".jar", "application/java-archive"));
   map.insert(std::make_pair(".jpeg", "image/jpeg"));
   map.insert(std::make_pair(".jpg", "image/jpeg"));
-  map.insert(std::make_pair(
-      ".js", "text/javascript (Specifications: HTML and RFC 9239)"));
+  map.insert(std::make_pair(".js", "text/javascript"));
   map.insert(std::make_pair(".json", "application/json"));
   map.insert(std::make_pair(".jsonld", "application/ld+json"));
   map.insert(std::make_pair(".md", "text/markdown"));

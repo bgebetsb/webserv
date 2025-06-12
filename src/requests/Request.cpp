@@ -433,14 +433,14 @@ void Request::checkForCgi(const Location& loc)
   is_cgi_ = false;
   std::string skriptname = path_.substr(loc.location_name.length());
   if (skriptname.empty())
+    skriptname = "/";
+  if (skriptname[skriptname.length() - 1] == '/')
   {
     for (VDefaultFiles::const_iterator it = loc.default_files.begin();
          it != loc.default_files.end(); ++it)
     {
-      if (it->empty())
-        continue;  // Skip empty default files
-      PathInfos infos =
-          getFileType(loc.root + "/" + *it);  // Check if default file exists
+      string filename = loc.root + "/" + skriptname + *it;
+      PathInfos infos = getFileType(filename);  // Check if default file exists
       if (infos.exists == true && infos.types == REGULAR_FILE &&
           infos.readable == true)
       {
@@ -452,7 +452,7 @@ void Request::checkForCgi(const Location& loc)
             cgi_extension_ = PHP;
           else if (file_extension == ".py")
             cgi_extension_ = PYTHON;
-          cgi_skript_path_ = loc.root + "/" + *it;
+          cgi_skript_path_ = filename;
         }
         return;  // Found a default file (either cgi or not cgi)
       }
