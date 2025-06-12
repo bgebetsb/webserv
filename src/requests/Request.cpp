@@ -230,17 +230,27 @@ void Request::processRequest(void)
         : cgi_bin_path = Configuration::getInstance().getPythonPath();
     if (cgi_extension_ == PHP)
     {
-      response_ =
-          new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
-                          absolute_path_, method_ == GET ? "GET" : "DELETE",
-                          query_string_, total_written_bytes_, method_);
+      std::string cookies;
+      if (getHeader("cookie").is_some())
+        cookies = getHeader("cookie").unwrap();
+      else
+        cookies = "";
+      response_ = new CgiResponse(
+          fd_, closing_, cgi_bin_path, cgi_skript_path_, absolute_path_,
+          method_ == GET ? "GET" : "DELETE", query_string_,
+          total_written_bytes_, method_, cookies);
     }
     else
     {
-      response_ =
-          new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
-                          absolute_path_, method_ == GET ? "GET" : "DELETE",
-                          query_string_, total_written_bytes_, method_);
+      std::string cookies;
+      if (getHeader("cookie").is_some())
+        cookies = getHeader("cookie").unwrap();
+      else
+        cookies = "";
+      response_ = new CgiResponse(
+          fd_, closing_, cgi_bin_path, cgi_skript_path_, absolute_path_,
+          method_ == GET ? "GET" : "DELETE", query_string_,
+          total_written_bytes_, method_, cookies);
     }
     status_ = SENDING_RESPONSE;
     return;

@@ -25,7 +25,8 @@ CgiResponse::CgiResponse(int client_fd,
                          const std::string& method,
                          const std::string& query_string,
                          long file_size,
-                         RequestMethod method_enum)
+                         RequestMethod method_enum,
+                         const std::string& cookies_in)
     : Response(client_fd, 200, close),
       headers_created_(false),
       status_found_(false),
@@ -37,7 +38,8 @@ CgiResponse::CgiResponse(int client_fd,
       method_(method),
       query_string_(query_string),
       last_chunk_sent_(false),
-      method_enum_(method_enum)
+      method_enum_(method_enum),
+      cookies_in_(cookies_in)
 {
   meta_variables_ = implementMetaVariables();
 
@@ -205,7 +207,7 @@ void CgiResponse::sendResponse(void)
 char** CgiResponse::implementMetaVariables()
 {
   std::vector< std::string > meta_vars;
-  meta_vars.reserve(10);
+  meta_vars.reserve(11);
   meta_vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
   meta_vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
   meta_vars.push_back("SCRIPT_FILENAME=" + script_path_);
@@ -215,12 +217,12 @@ char** CgiResponse::implementMetaVariables()
   meta_vars.push_back("PATH_INFO=" + script_path_);
   meta_vars.push_back("QUERY_STRING=" + query_string_);
   meta_vars.push_back("CONTENT_TYPE=application/x-www-form-urlencoded");
+  meta_vars.push_back("HTTP_COOKIE=" + cookies_in_);
   std::stringstream ss;
   ss << "CONTENT_LENGTH=" << file_size_;
   meta_vars.push_back(ss.str());
 
   char** envp = new char*[meta_vars.size() + 1]();
-
   try
   {
     for (size_t i = 0; i < meta_vars.size(); ++i)

@@ -15,7 +15,8 @@ class CgiResponse : public Response
               const std::string& method,
               const std::string& query_string,
               long file_size,
-              RequestMethod method_enum);
+              RequestMethod method_enum,
+              const std::string& cookies_in = std::string());
   ~CgiResponse();
 
   void sendResponse(void);
@@ -27,7 +28,6 @@ class CgiResponse : public Response
   EpollFd* pipe_fd_;
   bool headers_created_;
   mHeader headers_;
-  std::vector< std::string > cookies_;
   bool status_found_;
   int file_size_;
   char** meta_variables_;
@@ -38,7 +38,9 @@ class CgiResponse : public Response
   const std::string& query_string_;
   bool last_chunk_sent_;
   RequestMethod method_enum_;
+  std::vector< std::string > cookies_;
   int connection_fd_;
+  const std::string& cookies_in_;
   CgiResponse(const CgiResponse& other);
   CgiResponse& operator=(const CgiResponse& other);
   char** implementMetaVariables();

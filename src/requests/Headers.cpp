@@ -37,7 +37,6 @@ void Request::insertHeader(const std::string& key, const std::string& value)
 
   if (key == "cookie")
     Parsing::validateCookies(value);
-
   if (key == "host")
     headers_[key] = Parsing::parseHost(value).first;
   else if (existing.is_none())
