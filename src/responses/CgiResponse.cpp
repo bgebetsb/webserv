@@ -258,3 +258,8 @@ bool CgiResponse::isCgiAndEmpty() const
 {
   return full_response_.empty();
 }
+
+bool CgiResponse::headersSent() const
+{
+  return headers_created_;
+}

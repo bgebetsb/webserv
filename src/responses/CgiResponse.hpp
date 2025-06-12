@@ -23,6 +23,7 @@ class CgiResponse : public Response
   void unsetPipeFd(void);
   bool getHeadersCreated(void) const;
   bool isCgiAndEmpty(void) const;
+  bool headersSent(void) const;
 
  private:
   EpollFd* pipe_fd_;

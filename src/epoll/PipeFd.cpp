@@ -299,3 +299,13 @@ void PipeFd::enableSending(CgiResponse* response)
     }
   }
 }
+
+size_t PipeFd::getStartTime() const
+{
+  return start_time_;
+}
+
+Response* PipeFd::getResponse() const
+{
+  return cgi_response_;
+}

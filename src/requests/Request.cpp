@@ -39,7 +39,8 @@ Request::Request(const int fd, const std::vector< Server >& servers)
       total_header_size_(0),
       response_(NULL),
       is_cgi_(false),
-      file_existed_(false)
+      file_existed_(false),
+      total_written_bytes_(0)
 {}
 
 Request::Request(const Request& other)
@@ -52,7 +53,8 @@ Request::Request(const Request& other)
       servers_(other.servers_),
       total_header_size_(other.total_header_size_),
       response_(other.response_),
-      file_existed_(other.file_existed_)
+      file_existed_(other.file_existed_),
+      total_written_bytes_(other.total_written_bytes_)
 {}
 
 Request& Request::operator=(const Request& other)
@@ -75,6 +77,7 @@ Request& Request::operator=(const Request& other)
       delete response_;
     }
     response_ = other.response_;
+    total_written_bytes_ = other.total_written_bytes_;
   }
 
   return *this;
@@ -359,6 +362,10 @@ void Request::timeout()
 
 void Request::setResponse(Response* response)
 {
+  if (response_)
+  {
+    delete response_;
+  }
   response_ = response;
   status_ = SENDING_RESPONSE;
 }

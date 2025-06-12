@@ -80,6 +80,10 @@ Response::Response(int client_fd, int response_code, bool close_connection)
       response_title_ = "Service unavailable";
       close_connection_ = true;
       break;
+    case 504:
+      response_title_ = "Gateway Timeout";
+      close_connection_ = true;
+      break;
     case 505:
       response_title_ = "HTTP Version Not Supported";
       close_connection_ = true;

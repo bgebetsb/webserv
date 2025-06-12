@@ -23,10 +23,14 @@
 #include "epoll/EpollAction.hpp"
 #include "epoll/EpollFd.hpp"
 #include "epoll/Listener.hpp"
+#include "epoll/PipeFd.hpp"
 #include "exceptions/ConError.hpp"
 #include "exceptions/Fatal.hpp"
 #include "exceptions/FdLimitReached.hpp"
 #include "ip/IpAddress.hpp"
+#include "responses/CgiResponse.hpp"
+#include "responses/StaticResponse.hpp"
+#include "utils/Utils.hpp"
 
 #define MAX_EVENTS 1024
 
@@ -111,6 +115,8 @@ void Webserv::modifyFd(int fd, struct epoll_event* event) const
 
 void Webserv::deleteFd(int fd)
 {
+  if (ed_.fds.find(fd) == ed_.fds.end())
+    return;
   if (epoll_ctl(ed_.fd, EPOLL_CTL_DEL, fd, NULL) == -1)
   {
     throw std::runtime_error("Unable to remove fd from epoll");
@@ -221,6 +227,7 @@ void Webserv::pingAllClients(size_t needed_fds)
 {
   EpollMap::iterator it;
   MMKeepAlive keepalive_fds;
+  std::vector< PipeFd* > delete_pipe_fds;
 
   for (it = ed_.fds.begin(); it != ed_.fds.end(); ++it)
   {
@@ -240,8 +247,37 @@ void Webserv::pingAllClients(size_t needed_fds)
             MMKeepAlive::value_type(action_time.second, action_time.first.fd));
       }
     }
+    else
+    {
+      PipeFd* pipe_fd = dynamic_cast< PipeFd* >(it->second);
+      if (pipe_fd)
+      {
+        std::cout << "PipeFd with fd " << pipe_fd->getFd()
+                  << " is still active, checking time...\n";
+        size_t time = Utils::getCurrentTime() - pipe_fd->getStartTime();
+        if (time > config_.getCgiTimeout())
+          delete_pipe_fds.push_back(pipe_fd);
+      }
+    }
   }
 
+  for (size_t i = 0; i < delete_pipe_fds.size(); ++i)
+  {
+    PipeFd* pipe_fd = delete_pipe_fds[i];
+    CgiResponse* response = static_cast< CgiResponse* >(pipe_fd->getResponse());
+    EpollFd* connection = ed_.fds[pipe_fd->getResponse()->getClientFd()];
+    deleteFd(pipe_fd->getFd());
+    if (response->headersSent())
+    {
+      deleteFd(connection->getFd());
+    }
+    else
+    {
+      static_cast< Connection* >(connection)
+          ->getRequest()
+          .setResponse(new StaticResponse(connection->getFd(), 504, true));
+    }
+  }
   closeClientConnections(keepalive_fds, needed_fds);
 }
 

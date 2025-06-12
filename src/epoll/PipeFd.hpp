@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include "EpollFd.hpp"
 #include "epoll/Connection.hpp"
@@ -26,6 +27,8 @@ class PipeFd : public EpollFd
 
   EpollAction epollCallback(int event);
   void unsetResponse(void);
+  size_t getStartTime() const;
+  Response* getResponse() const;
 
  private:
   // ── ◼︎ member variables
@@ -42,16 +45,14 @@ class PipeFd : public EpollFd
   Response* cgi_response_;
   size_t start_time_;
   RequestMethod method_;
-  // ── ◼︎ utils
-  // ───────────────────────
+  // ── ◼︎ utils ───────────────────────
   void closePipe();
   void spawnCGI(char** envp);
   void checkExited(CgiResponse* response);
   void killProcess();
   void enableSending(CgiResponse* response);
 
-  // ── ◼︎ disabled
-  // ───────────────────────
+  // ── ◼︎ disabled ───────────────────────
   PipeFd();
   PipeFd(const PipeFd& other);
   PipeFd& operator=(const PipeFd& other);
