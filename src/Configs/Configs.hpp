@@ -14,8 +14,9 @@
 #define CGI_TIMEOUT_MAX 300
 #define KEEP_ALIVE_TIMEOUT_MAX 60
 
-// ── ◼︎ errorcodes implemented ───────────────────────// TODO: check if complete
-static const u_int16_t error_codes[] = {403, 404, 405, 500};
+// ── ◼︎ errorcodes implemented ───────────────────────
+static const u_int16_t error_codes[] = {400, 403, 404, 405, 408, 409, 411,
+                                        413, 414, 500, 501, 503, 504, 505};
 
 // ── ◼︎ invalid chars for servername ───────────────────────
 static const char invalid_server_name_chars[] = {

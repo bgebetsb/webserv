@@ -75,6 +75,11 @@ Response::Response(int client_fd, int response_code, bool close_connection)
       break;
     case 500:
       response_title_ = "Internal Server Error";
+      close_connection_ = true;
+      break;
+    case 501:
+      response_title_ = "Not Implemented";
+      close_connection_ = true;
       break;
     case 503:
       response_title_ = "Service unavailable";
