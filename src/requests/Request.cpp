@@ -491,6 +491,7 @@ void Request::checkForCgi(const Location& loc)
 */
 bool Request::isFileUpload(const Location& loc)
 {
+  upload_dir_ = loc.upload_dir;
   if (method_ != POST)
     return false;  // Not a POST request, no file upload
   if (is_cgi_ == false && path_[path_.length() - 1] != '/')
@@ -552,7 +553,6 @@ bool Request::isFileUpload(const Location& loc)
   // ── ◼︎ check for file
   // ────────────────────────────────────────────
 
-  location_name_ = loc.location_name;
   absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
   PathInfos infos = getFileType(absolute_path_);
   if (!infos.exists)
