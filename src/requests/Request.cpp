@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <algorithm>
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
@@ -24,11 +25,15 @@
 #include "PathValidation/PathValidation.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
+#include "requests/CgiVars.hpp"
 
 std::set< std::string > Request::current_upload_files_;
 
-Request::Request(const int fd, const std::vector< Server >& servers)
+Request::Request(const int fd,
+                 const std::vector< Server >& servers,
+                 const std::string& client_ip)
     : fd_(fd),
+      client_ip_(client_ip),
       server_(NULL),
       status_(READING_START_LINE),
       chunked_(false),
@@ -44,6 +49,7 @@ Request::Request(const int fd, const std::vector< Server >& servers)
 
 Request::Request(const Request& other)
     : fd_(other.fd_),
+      client_ip_(other.client_ip_),
       server_(other.server_),
       status_(other.status_),
       chunked_(other.chunked_),
@@ -206,6 +212,7 @@ void Request::processRequest(void)
 
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
+  splitPathInfo(location.root);
   if (location.max_body_size.second)
     max_body_size_ = location.max_body_size.first;
   else
@@ -214,7 +221,7 @@ void Request::processRequest(void)
   bool is_upload = isFileUpload(location);
   if (is_cgi_)
   {
-    PathInfos infos = getFileType(cgi_skript_path_);
+    PathInfos infos = getFileType(cgi_script_filename_);
     if (!infos.exists || infos.types != REGULAR_FILE)
       throw RequestError(404, "CGI Skript not found");
     // PathInfos
@@ -225,34 +232,17 @@ void Request::processRequest(void)
     return (setupCgi());
   else if (is_cgi_)
   {
+    CgiVars cgi_vars = createCgiVars();
     std::string cgi_bin_path;
     cgi_extension_ == PHP
         ? cgi_bin_path = Configuration::getInstance().getPhpPath()
         : cgi_bin_path = Configuration::getInstance().getPythonPath();
-    if (cgi_extension_ == PHP)
-    {
-      std::string cookies;
-      if (getHeader("cookie").is_some())
-        cookies = getHeader("cookie").unwrap();
-      else
-        cookies = "";
-      response_ = new CgiResponse(
-          fd_, closing_, cgi_bin_path, cgi_skript_path_, absolute_path_,
-          method_ == GET ? "GET" : "DELETE", query_string_,
-          total_written_bytes_, method_, cookies);
-    }
+    std::string cookies;
+    if (getHeader("cookie").is_some())
+      cookies = getHeader("cookie").unwrap();
     else
-    {
-      std::string cookies;
-      if (getHeader("cookie").is_some())
-        cookies = getHeader("cookie").unwrap();
-      else
-        cookies = "";
-      response_ = new CgiResponse(
-          fd_, closing_, cgi_bin_path, cgi_skript_path_, absolute_path_,
-          method_ == GET ? "GET" : "DELETE", query_string_,
-          total_written_bytes_, method_, cookies);
-    }
+      cookies = "";
+    response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_vars);
     status_ = SENDING_RESPONSE;
     return;
   }
@@ -455,7 +445,9 @@ void Request::checkForCgi(const Location& loc)
             cgi_extension_ = PHP;
           else if (file_extension == ".py")
             cgi_extension_ = PYTHON;
-          cgi_skript_path_ = filename;
+          cgi_script_filename_ = filename;
+          cgi_script_name_ = "/" + skriptname + *it;
+          document_root_ = loc.root;
         }
         return;  // Found a default file (either cgi or not cgi)
       }
@@ -479,7 +471,9 @@ void Request::checkForCgi(const Location& loc)
         cgi_extension_ = PHP;
       else if (file_extension == ".py")
         cgi_extension_ = PYTHON;
-      cgi_skript_path_ = loc.root + "/" + skriptname;
+      cgi_script_filename_ = loc.root + "/" + skriptname;
+      cgi_script_name_ = "/" + skriptname;
+      document_root_ = loc.root;
     }
   }
 }
@@ -618,4 +612,85 @@ const Server& Request::getServer() const
 long Request::getMaxBodySize() const
 {
   return max_body_size_;
+}
+
+CgiVars Request::createCgiVars(void) const
+{
+  CgiVars cgi_vars;
+  mHeader::const_iterator it;
+
+  cgi_vars.input_file = absolute_path_;
+  cgi_vars.file_size = total_written_bytes_;
+  cgi_vars.request_method_enum_ = method_;
+  cgi_vars.request_method_str = methodToString(method_);
+  cgi_vars.request_uri = uri_;
+  cgi_vars.server_name = host_;
+  cgi_vars.server_port = port_;
+  cgi_vars.remote_addr = client_ip_;
+  cgi_vars.path_info = path_info_;
+  cgi_vars.script_filename = cgi_script_filename_;
+  cgi_vars.script_name = cgi_script_name_;
+  cgi_vars.query_string = query_string_;
+  cgi_vars.document_root = document_root_;
+
+  for (it = headers_.begin(); it != headers_.end(); ++it)
+  {
+    if (it->first == "content-type")
+      cgi_vars.content_type = it->second;
+    else if (it->first == "host")
+    {
+      if (port_ == "80")
+        cgi_vars.headers["HTTP_HOST"] = it->second;
+      else
+        cgi_vars.headers["HTTP_HOST"] = it->second + ":" + port_;
+    }
+    else if (it->first != "content-length" &&
+             it->first != "transfer-encoding" && it->first != "connection")
+    {
+      std::string key = it->first;
+      std::for_each(key.begin(), key.end(), Utils::toUpperWithUnderscores);
+      cgi_vars.headers["HTTP_" + key] = it->second;
+    }
+  }
+
+  return cgi_vars;
+}
+
+/*
+ * This might look a bit over-engineered, but its actually needed in case
+ * someone is crazy enough to create a directory which ends with one of the CGI
+ * extensions
+ */
+void Request::splitPathInfo(const std::string& server_root)
+{
+  std::set< std::string::size_type > positions;
+
+  std::string::size_type pos = path_.find(".php/");
+  while (pos != std::string::npos)
+  {
+    std::string::size_type slash_pos = pos + 4;
+    positions.insert(slash_pos);
+    pos = path_.find(".php/", slash_pos + 1);
+  }
+
+  pos = path_.find(".py/");
+  while (pos != std::string::npos)
+  {
+    std::string::size_type slash_pos = pos + 3;
+    positions.insert(slash_pos);
+    pos = path_.find(".php/", slash_pos + 1);
+  }
+
+  std::set< std::string::size_type >::iterator it;
+  for (it = positions.begin(); it != positions.end(); ++it)
+  {
+    std::string path = server_root + path_.substr(0, *it);
+    PathInfos infos = getFileType(path);
+    if (infos.exists && infos.types == REGULAR_FILE)
+    {
+      path_info_ = path_.substr(*it);
+      path_ = path_.substr(0, *it);
+      return;
+    }
+  }
 }

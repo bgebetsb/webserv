@@ -21,7 +21,7 @@
 #include "EpollAction.hpp"
 
 Connection::Connection(const std::vector< Server >& servers)
-    : request_(Request(-1, servers)),
+    : request_(Request(-1, servers, client_ip_)),
       servers_(servers),
       readbuf_(new char[CHUNK_SIZE]),
       polling_write_(false),
@@ -323,7 +323,7 @@ EpollAction Connection::handleWrite()
     Logger::log() << "- " << client_ip_ << " - \"" << request_.getStartLine()
                   << "\" - " << request_.getHost() << " - "
                   << request_.getResponseCode() << std::endl;
-    request_ = Request(fd_, servers_);
+    request_ = Request(fd_, servers_, client_ip_);
     try
     {
       processBuffer();

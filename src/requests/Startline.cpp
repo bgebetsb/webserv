@@ -19,7 +19,10 @@ void Request::readStartLine(const std::string& line)
 
   parseMethod(stream);
   Parsing::skip_character(stream, ' ');
+  std::istringstream::pos_type start_pos = stream.tellg();
   parsePath(stream);
+  std::istringstream::pos_type end_pos = stream.tellg();
+  uri_ = line.substr(start_pos, end_pos - start_pos);
   Parsing::skip_character(stream, ' ');
   parseHTTPVersion(stream);
 
@@ -95,9 +98,11 @@ void Request::parseAbsoluteForm(const std::string& abs_path)
     path_ = "/";
   }
 
-  // Port is unused as we'll most likely not need it
   std::pair< std::string, u_int16_t > authority = Parsing::parseHost(host_);
   host_ = authority.first;
+  std::ostringstream ss;
+  ss << authority.second;
+  port_ = ss.str();
 }
 
 static void parseHTTPVersion(std::istringstream& stream)

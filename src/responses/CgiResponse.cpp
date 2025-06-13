@@ -14,39 +14,27 @@
 #include "../exceptions/ExitExc.hpp"
 #include "../exceptions/RequestError.hpp"
 #include "../requests/Request.hpp"
-#include "../requests/RequestMethods.hpp"
 #include "../utils/Utils.hpp"
 
 CgiResponse::CgiResponse(int client_fd,
                          bool close,
                          const std::string& cgi_path,
-                         const std::string& script_path,
-                         const std::string& file_path,
-                         const std::string& method,
-                         const std::string& query_string,
-                         long file_size,
-                         RequestMethod method_enum,
-                         const std::string& cookies_in)
+                         const CgiVars& cgi_vars)
     : Response(client_fd, 200, close),
       headers_created_(false),
       status_found_(false),
-      file_size_(file_size),
       meta_variables_(NULL),
+      cgi_vars_(cgi_vars),
       cgi_path_(cgi_path),
-      script_path_(script_path),
-      file_path_(file_path),
-      method_(method),
-      query_string_(query_string),
-      last_chunk_sent_(false),
-      method_enum_(method_enum),
-      cookies_in_(cookies_in)
+      last_chunk_sent_(false)
 {
   meta_variables_ = implementMetaVariables();
 
   try
   {
-    pipe_fd_ = new PipeFd(full_response_, script_path, cgi_path, file_path,
-                          this, meta_variables_, method_enum_);
+    pipe_fd_ = new PipeFd(full_response_, cgi_vars.script_filename, cgi_path,
+                          cgi_vars.input_file, this, meta_variables_,
+                          cgi_vars.request_method_enum_);
   }
   catch (std::exception& e)
   {
@@ -210,20 +198,34 @@ void CgiResponse::sendResponse(void)
 char** CgiResponse::implementMetaVariables()
 {
   std::vector< std::string > meta_vars;
-  meta_vars.reserve(11);
   meta_vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
   meta_vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
-  meta_vars.push_back("SCRIPT_FILENAME=" + script_path_);
+  meta_vars.push_back("SERVER_SOFTWARE=42 Webserv powered by Genki/1.0");
   meta_vars.push_back("REDIRECT_STATUS=200");
-  meta_vars.push_back("REQUEST_METHOD=" + method_);
+  meta_vars.push_back("SCRIPT_FILENAME=" + cgi_vars_.script_filename);
+  meta_vars.push_back("SCRIPT_NAME=" + cgi_vars_.script_name);
+  meta_vars.push_back("REQUEST_METHOD=" + cgi_vars_.request_method_str);
   meta_vars.push_back("PATH=/usr/bin/:/bin");
-  meta_vars.push_back("PATH_INFO=" + script_path_);
-  meta_vars.push_back("QUERY_STRING=" + query_string_);
-  meta_vars.push_back("CONTENT_TYPE=application/x-www-form-urlencoded");
-  meta_vars.push_back("HTTP_COOKIE=" + cookies_in_);
-  std::stringstream ss;
-  ss << "CONTENT_LENGTH=" << file_size_;
-  meta_vars.push_back(ss.str());
+  if (!cgi_vars_.path_info.empty())
+    meta_vars.push_back("PATH_INFO=" + cgi_vars_.path_info);
+  meta_vars.push_back("REQUEST_URI=" + cgi_vars_.request_uri);
+  meta_vars.push_back("QUERY_STRING=" + cgi_vars_.query_string);
+  if (cgi_vars_.request_method_enum_ == POST)
+  {
+    if (!cgi_vars_.content_type.empty())
+      meta_vars.push_back("CONTENT_TYPE=" + cgi_vars_.content_type);
+    std::stringstream ss;
+    ss << "CONTENT_LENGTH=" << cgi_vars_.file_size;
+    meta_vars.push_back(ss.str());
+  }
+  meta_vars.push_back("SERVER_NAME=" + cgi_vars_.server_name);
+  meta_vars.push_back("SERVER_PORT=" + cgi_vars_.server_port);
+  meta_vars.push_back("REMOTE_ADDR=" + cgi_vars_.remote_addr);
+  meta_vars.push_back("DOCUMENT_ROOT=" + cgi_vars_.document_root);
+
+  std::map< std::string, std::string >::iterator it;
+  for (it = cgi_vars_.headers.begin(); it != cgi_vars_.headers.end(); ++it)
+    meta_vars.push_back(it->first + "=" + it->second);
 
   char** envp = new char*[meta_vars.size() + 1]();
   try
