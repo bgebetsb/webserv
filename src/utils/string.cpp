@@ -42,6 +42,14 @@ namespace Utils
     c = static_cast< char >(std::tolower(static_cast< unsigned char >(c)));
   }
 
+  void toUpperWithUnderscores(char& c)
+  {
+    if (c == '-')
+      c = '_';
+    else
+      c = static_cast< char >(std::toupper(static_cast< unsigned char >(c)));
+  }
+
   std::string replaceString(const std::string& input,
                             const std::string& search,
                             const std::string& replace)

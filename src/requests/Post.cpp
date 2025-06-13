@@ -107,9 +107,8 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
         cookies = getHeader("cookie").unwrap();
       else
         cookies = "";
-      response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_skript_path_,
-                                  absolute_path_, method_str, query_string_,
-                                  total_written_bytes_, POST, cookies);
+      CgiVars cgi_vars = createCgiVars();
+      response_ = new CgiResponse(fd_, closing_, cgi_bin_path, cgi_vars);
       status_ = SENDING_RESPONSE;
       return;
     }

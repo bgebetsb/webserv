@@ -9,6 +9,7 @@
 #include "../Option.hpp"
 #include "../responses/Response.hpp"
 #include "../utils/FdWrap.hpp"
+#include "CgiVars.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
 
@@ -41,11 +42,14 @@ class Request
   // ───────────────────────
  private:
   int fd_;
+  const std::string& client_ip_;
   const Server* server_;
   RequestStatus status_;
   RequestMethod method_;
+  std::string uri_;
   std::string host_;
   std::string path_;
+  std::string path_info_;
   std::string port_;
   std::string startline_;
   std::string query_string_;
@@ -60,7 +64,9 @@ class Request
   // ── ◼︎ constructors, destructors, assignment
   // ───────────────────────
  public:
-  Request(int fd, const std::vector< Server >& servers);
+  Request(int fd,
+          const std::vector< Server >& servers,
+          const std::string& client_ip);
   Request(const Request& other);
   Request& operator=(const Request& other);
   ~Request();
@@ -87,7 +93,9 @@ class Request
   std::string filename_;
   std::string absolute_path_;
   Utils::FdWrap upload_file_;
-  std::string cgi_skript_path_;
+  std::string cgi_script_filename_;
+  std::string cgi_script_name_;
+  std::string document_root_;
   bool file_existed_;
   static std::set< std::string > current_upload_files_;
   CgiExtension cgi_extension_;
@@ -144,4 +152,6 @@ class Request
   bool methodAllowed(const Location& location) const;
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
+  CgiVars createCgiVars(void) const;
+  void splitPathInfo(const std::string& server_root);
 };

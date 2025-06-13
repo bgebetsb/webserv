@@ -27,9 +27,11 @@ Ipv6Connection::Ipv6Connection(int socket_fd,
   }
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
+  // TODO: Convert peer_addr.sin6_addr to string
+  client_ip_ = "[::1]";
 
   ep_event_->data.ptr = this;
-  request_ = Request(fd_, servers);
+  request_ = Request(fd_, servers, client_ip_);
 }
 
 Ipv6Connection::~Ipv6Connection() {}

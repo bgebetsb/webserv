@@ -32,7 +32,7 @@ Ipv4Connection::Ipv4Connection(int socket_fd,
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
 
   ep_event_->data.ptr = this;
-  request_ = Request(fd_, servers);
+  request_ = Request(fd_, servers, client_ip_);
 }
 
 Ipv4Connection::~Ipv4Connection() {}

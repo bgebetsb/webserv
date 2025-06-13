@@ -19,7 +19,10 @@ void Request::readStartLine(const std::string& line)
 
   parseMethod(stream);
   Parsing::skip_character(stream, ' ');
+  std::istringstream::pos_type start_pos = stream.tellg();
   parsePath(stream);
+  std::istringstream::pos_type end_pos = stream.tellg();
+  uri_ = line.substr(start_pos, end_pos - start_pos);
   Parsing::skip_character(stream, ' ');
   parseHTTPVersion(stream);
 

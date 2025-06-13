@@ -11,6 +11,7 @@ REQUESTS:= 		requests/Request.cpp \
 							requests/Headers.cpp \
 							requests/PathValidation/PathValidation.cpp \
 							requests/Post.cpp \
+							requests/RequestMethods.cpp
 							
 RESPONSES:=		responses/FileResponse.cpp \
 							responses/RedirectResponse.cpp \

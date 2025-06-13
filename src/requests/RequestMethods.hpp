@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 enum RequestMethod
 {
   GET,
@@ -7,3 +9,5 @@ enum RequestMethod
   DELETE,
   INVALID
 };
+
+std::string methodToString(const RequestMethod& method);

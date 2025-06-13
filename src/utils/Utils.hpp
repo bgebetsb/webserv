@@ -21,6 +21,7 @@ namespace Utils
   std::string trimString(const std::string& input);
   size_t countSubstr(const std::string& str, const std::string& substr);
   void toLower(char& c);
+  void toUpperWithUnderscores(char& c);
   std::string replaceString(const std::string& input,
                             const std::string& search,
                             const std::string& replace);
