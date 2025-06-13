@@ -431,6 +431,9 @@ const Location& Request::findMatchingLocationBlock(const MLocations& locations,
 void Request::checkForCgi(const Location& loc)
 {
   is_cgi_ = false;
+  if (!filename_.empty())
+    return;
+
   std::string skriptname = path_.substr(loc.location_name.length());
   if (skriptname.empty())
     skriptname = "/";
@@ -481,6 +484,7 @@ void Request::checkForCgi(const Location& loc)
   }
 }
 
+#include <iostream>
 /*
   This function is to check if the request is a file upload or if it is a cgi
   since this gets treated differently
@@ -495,7 +499,8 @@ bool Request::isFileUpload(const Location& loc)
   if (status_ == READING_BODY)
     throw;
 
-  // ── ◼︎ check for upload dir ──────────────────────────────────────
+  // ── ◼︎ check for upload dir
+  // ──────────────────────────────────────
   if (loc.upload_dir.empty() && is_cgi_ == false)
     throw RequestError(403, "No upload dir set");
   else if (is_cgi_ == false)
@@ -509,7 +514,8 @@ bool Request::isFileUpload(const Location& loc)
     }
   }
 
-  // ── ◼︎ check for empty filename & CGI ───────────────────────────────
+  // ── ◼︎ check for empty filename & CGI
+  // ───────────────────────────────
   if (filename_.empty() && is_cgi_ == false)
   {
     // ── ◼︎ generate random filename
@@ -525,13 +531,27 @@ bool Request::isFileUpload(const Location& loc)
       // else continue to generate a new random filename
     }
   }
+  else if (is_cgi_ == false)
+  {
+    std::string::size_type pos_dot = filename_.find_last_of(("."));
+    if (pos_dot != std::string::npos)
+    {
+      std::string file_extension = filename_.substr(pos_dot);
+      if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
+      {
+        throw RequestError(403, "File upload not allowed for CGI skripts");
+      }
+    }
+  }
 
-  // ── ◼︎ if no cgi, check for slash -> forbidden ───────────────────
+  // ── ◼︎ if no cgi, check for slash -> forbidden
+  // ───────────────────
   if (is_cgi_ == false && filename_.find_first_of("/") != std::string::npos)
     throw RequestError(400, "Invalid filename_");
   if (is_cgi_ == true)
     return true;  // CGI requests always have a filename
-  // ── ◼︎ check for file ────────────────────────────────────────────
+  // ── ◼︎ check for file
+  // ────────────────────────────────────────────
   absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
   PathInfos infos = getFileType(absolute_path_);
   if (!infos.exists)
