@@ -92,7 +92,7 @@ class Request
   static std::set< std::string > current_upload_files_;
   CgiExtension cgi_extension_;
   long total_written_bytes_;
-  std::string location_name_;
+  std::string upload_dir_;
   // ── ◼︎ Response
   // ───────────────────────
  public:
