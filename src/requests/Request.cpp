@@ -484,7 +484,6 @@ void Request::checkForCgi(const Location& loc)
   }
 }
 
-#include <iostream>
 /*
   This function is to check if the request is a file upload or if it is a cgi
   since this gets treated differently
@@ -552,6 +551,8 @@ bool Request::isFileUpload(const Location& loc)
     return true;  // CGI requests always have a filename
   // ── ◼︎ check for file
   // ────────────────────────────────────────────
+
+  location_name_ = loc.location_name;
   absolute_path_ = loc.root + "/" + loc.upload_dir + "/" + filename_;
   PathInfos infos = getFileType(absolute_path_);
   if (!infos.exists)

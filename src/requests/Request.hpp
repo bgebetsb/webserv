@@ -46,6 +46,7 @@ class Request
   RequestMethod method_;
   std::string host_;
   std::string path_;
+  std::string port_;
   std::string startline_;
   std::string query_string_;
   mHeader headers_;
@@ -91,6 +92,7 @@ class Request
   static std::set< std::string > current_upload_files_;
   CgiExtension cgi_extension_;
   long total_written_bytes_;
+  std::string location_name_;
   // ── ◼︎ Response
   // ───────────────────────
  public:
