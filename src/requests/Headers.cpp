@@ -39,10 +39,14 @@ void Request::insertHeader(const std::string& key, const std::string& value)
     Parsing::validateCookies(value);
   if (key == "host")
   {
-    headers_[key] = Parsing::parseHost(value).first;
-    std::stringstream ss;
-    ss << Parsing::parseHost(value).second;
-    port_ = ss.str();
+    std::pair< string, u_int16_t > host_port = Parsing::parseHost(value);
+    headers_[key] = host_port.first;
+    if (port_.empty())
+    {
+      std::ostringstream ss;
+      ss << host_port.second;
+      port_ = ss.str();
+    }
   }
   else if (existing.is_none())
     headers_[key] = value;
