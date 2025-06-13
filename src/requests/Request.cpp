@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
+#include <iostream>
 #include <string>
 #include "../Configs/Configs.hpp"
 #include "../epoll/EpollData.hpp"
@@ -156,8 +157,15 @@ void Request::sendResponse()
         throw ConErr("Failed to modify epoll event");
     }
   }
+  catch (RequestError& e)
+  {
+    std::cerr << e.what() << std::endl;
+    delete response_;
+    response_ = new StaticResponse(fd_, 500, true);
+  }
   catch (ExitExc& e)
   {
+    std::cerr << e.what() << std::endl;
     delete response_;
     response_ = new StaticResponse(fd_, 500, true);
   }
