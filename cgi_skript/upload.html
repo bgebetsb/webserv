@@ -125,9 +125,10 @@
                 }
 
             } catch (error) {
-                // A network error occurred
+                // Unable to upload, could be network error or if the file is very big it could also happen
+                // if the server is closing the connection (e.g. 413 Payload too Large) without reading full body
                 console.error('Upload Error:', error);
-                statusDiv.textContent = `An error occurred during upload: ${error.message}`;
+                statusDiv.textContent = `Upload failed.`;
             }
         }
     </script>
