@@ -387,7 +387,7 @@ bool Request::isChunked() const
 long Request::getContentLength() const
 {
   if (content_length_.is_none())
-    throw RequestError(400, "Content-Length header not set");
+    throw RequestError(411, "Content-Length header not set");
   return content_length_.unwrap();
 }
 
