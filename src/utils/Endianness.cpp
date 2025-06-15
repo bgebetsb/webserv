@@ -1,34 +1,11 @@
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace Utils
 {
-  bool isBigEndian()
-  {
-    unsigned int num = 1;
-    unsigned char* converted = (unsigned char*)&num;
-
-    return (*converted == 0);
-  }
-
-  /* u_int32_t ipv4ToBigEndian(u_int8_t octets[4])
-  {
-    if (isBigEndian())
-    {
-      return octets[0] << 24 | octets[1] << 16 | octets[2] << 8 | octets[3];
-    }
-    return octets[3] << 24 | octets[2] << 16 | octets[1] << 8 | octets[0];
-  } */
-  u_int32_t ipv4ToBigEndian(u_int8_t octets[4])
-  {
-    u_int32_t result = 0;
-
-    result =
-        (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3];
-    return result;
-  }
-
   /*
    * This expects the input to be in network byte order - i.e. directly coming
    * from the struct sockaddr_in
@@ -46,8 +23,56 @@ namespace Utils
     return stream.str();
   }
 
-  u_int16_t u16ToBigEndian(u_int16_t value)
+  std::string ipv6ToString(struct in6_addr& address)
   {
-    return (value << 8) | (value >> 8);
+    std::vector< std::string > parts;
+    for (unsigned int i = 0; i < 8; i++)
+    {
+      std::ostringstream stream;
+      stream << ntohs(address.s6_addr16[i]);
+      parts.push_back(stream.str());
+    }
+
+    std::string::size_type longest_pos = 0;
+    unsigned int longest_amount = 0;
+    for (unsigned int i = 0; i < 8; i++)
+    {
+      if (parts[i] == "0")
+      {
+        unsigned int amount = 1;
+        for (unsigned int j = i + 1; j < 8; j++)
+        {
+          if (parts[j] == "0")
+            amount++;
+          else
+            break;
+        }
+        if (amount > longest_amount)
+        {
+          longest_amount = amount;
+          longest_pos = i;
+        }
+      }
+    }
+    if (longest_amount > 1)
+    {
+      parts.erase(parts.begin() + longest_pos,
+                  parts.begin() + longest_pos + longest_amount);
+      parts.insert(parts.begin() + longest_pos, ":");
+    }
+
+    std::ostringstream stream;
+    stream << "[";
+    if (parts.size() == 1)
+      stream << ":";
+    for (unsigned int i = 0; i < parts.size(); ++i)
+    {
+      if (i != 0)
+        stream << ":";
+      stream << parts[i];
+    }
+    stream << "]";
+
+    return stream.str();
   }
 }  // namespace Utils

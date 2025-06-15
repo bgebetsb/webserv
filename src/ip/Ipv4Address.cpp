@@ -3,7 +3,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "../exceptions/Fatal.hpp"
-#include "../utils/Utils.hpp"
 #include "IpAddress.hpp"
 
 // ╔══════════════════════════════════════════════╗
@@ -51,7 +50,7 @@ Ipv4Address::Ipv4Address(u_int32_t ip,
   if (port == 0)
     throw Fatal("Invalid Ipv4 Address format");
   ip_ = ip;
-  port_ = Utils::u16ToBigEndian(port);
+  port_ = htons(port);
 }
 
 Ipv4Address::~Ipv4Address() {}
