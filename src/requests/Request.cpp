@@ -539,10 +539,8 @@ bool Request::isFileUpload(const Location& loc)
     if (pos_dot != std::string::npos)
     {
       std::string file_extension = filename_.substr(pos_dot);
-      if (loc.cgi_extensions.find(file_extension) != loc.cgi_extensions.end())
-      {
+      if (file_extension == ".php" || file_extension == ".py")
         throw RequestError(403, "File upload not allowed for CGI skripts");
-      }
     }
   }
 
