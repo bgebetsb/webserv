@@ -45,6 +45,7 @@ class PipeFd : public EpollFd
   Response* cgi_response_;
   size_t start_time_;
   RequestMethod method_;
+  int stdin_;
   // ── ◼︎ utils ───────────────────────
   void closePipe();
   void spawnCGI(char** envp);
