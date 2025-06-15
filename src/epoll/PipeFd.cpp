@@ -34,7 +34,8 @@ PipeFd::PipeFd(std::string& write_buffer,
       file_path_(file_path),
       cgi_response_(cgi_response),
       start_time_(Utils::getCurrentTime()),
-      method_(method)
+      method_(method),
+      stdin_(STDIN_FILENO)
 {
   int fds[2];
   if (pipe(fds) == -1)
@@ -83,9 +84,12 @@ PipeFd::PipeFd(std::string& write_buffer,
       close(STDERR_FILENO);
     }
     spawnCGI(envp);
-    // Close stdin/stdout in child after execve failure, because they're fds
-    // associated with files now
-    close(STDIN_FILENO);
+    /*
+     * Close stdin/stdout in child after execve failure, because they're fds
+     * associated with files now. Use ft_close for stdin because it could
+     * already be closed (when there is no request body)
+     */
+    Utils::ft_close(stdin_);
     close(STDOUT_FILENO);
     if (!error_settings.configured)
       close(STDERR_FILENO);
@@ -159,11 +163,11 @@ void PipeFd::spawnCGI(char** envp)
     Utils::ft_close(file_fd);
   }
   else
-    close(STDIN_FILENO);
+    Utils::ft_close(stdin_);
 
   if (dup2(write_end_, STDOUT_FILENO) == -1)
   {
-    close(STDIN_FILENO);
+    Utils::ft_close(stdin_);
     Utils::ft_close(write_end_);
     throw(ExitExc());
   }
