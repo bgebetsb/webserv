@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include "../exceptions/ConError.hpp"
 #include "../exceptions/FdLimitReached.hpp"
+#include "utils/Utils.hpp"
+
 Ipv6Connection::Ipv6Connection(int socket_fd,
                                const std::vector< Server >& servers)
     : Connection(servers)
@@ -27,8 +29,7 @@ Ipv6Connection::Ipv6Connection(int socket_fd,
   }
 
   ep_event_->events = EPOLLIN | EPOLLRDHUP;
-  // TODO: Convert peer_addr.sin6_addr to string
-  client_ip_ = "[::1]";
+  client_ip_ = Utils::ipv6ToString(peer_addr.sin6_addr);
 
   ep_event_->data.ptr = this;
   request_ = Request(fd_, servers, client_ip_);
