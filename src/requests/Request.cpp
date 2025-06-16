@@ -15,6 +15,7 @@
 #include "../exceptions/ConError.hpp"
 #include "../exceptions/ExitExc.hpp"
 #include "../exceptions/RequestError.hpp"
+#include "../requests/CgiVars.hpp"
 #include "../responses/CgiResponse.hpp"
 #include "../responses/DirectoryListing.hpp"
 #include "../responses/FileResponse.hpp"
@@ -26,7 +27,6 @@
 #include "PathValidation/PathValidation.hpp"
 #include "RequestMethods.hpp"
 #include "RequestStatus.hpp"
-#include "requests/CgiVars.hpp"
 
 std::set< std::string > Request::current_upload_files_;
 
@@ -37,6 +37,7 @@ Request::Request(const int fd,
       client_ip_(client_ip),
       server_(NULL),
       status_(READING_START_LINE),
+      method_(INVALID),
       chunked_(false),
       content_length_(Option< long >()),
       closing_(false),
@@ -53,12 +54,18 @@ Request::Request(const Request& other)
       client_ip_(other.client_ip_),
       server_(other.server_),
       status_(other.status_),
+      method_(other.method_),
+      host_(other.host_),
+      path_(other.path_),
+      headers_(other.headers_),
       chunked_(other.chunked_),
       content_length_(other.content_length_),
       closing_(other.closing_),
       servers_(other.servers_),
       total_header_size_(other.total_header_size_),
       response_(other.response_),
+      is_cgi_(other.is_cgi_),
+      filename_(other.filename_),
       file_existed_(other.file_existed_),
       total_written_bytes_(other.total_written_bytes_)
 {}
@@ -73,7 +80,7 @@ Request& Request::operator=(const Request& other)
     method_ = other.method_;
     host_ = other.host_;
     path_ = other.path_;
-    headers_.clear();
+    headers_ = other.headers_;
     chunked_ = other.chunked_;
     content_length_ = other.content_length_;
     closing_ = other.closing_;
@@ -83,8 +90,11 @@ Request& Request::operator=(const Request& other)
       delete response_;
     }
     response_ = other.response_;
+    is_cgi_ = other.is_cgi_;
+    file_existed_ = other.file_existed_;
     total_written_bytes_ = other.total_written_bytes_;
   }
+  filename_ = other.filename_;
 
   return *this;
 }
@@ -205,7 +215,7 @@ void Request::processRequest(void)
   if (method_ == INVALID)
     throw RequestError(501, "Method not recognized");
   if (!methodAllowed(location))
-    throw RequestError(405, "Method now allowed");
+    throw RequestError(405, "Method not allowed");
 
   Redirection redir = location.redirect;
   if (redir.has_been_set)

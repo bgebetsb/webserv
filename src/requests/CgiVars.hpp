@@ -2,7 +2,7 @@
 
 #include <map>
 #include <string>
-#include "requests/RequestMethods.hpp"
+#include "../requests/RequestMethods.hpp"
 
 typedef std::map< std::string, std::string > mHeader;
 
