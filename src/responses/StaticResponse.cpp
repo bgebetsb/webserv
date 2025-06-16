@@ -14,13 +14,9 @@ StaticResponse::StaticResponse(int client_fd, int response_code, bool close)
                       response_title_ + "</h1>\r\n</body>\r\n</html>\r\n");
 
   std::ostringstream response;
-  response << createResponseHeaderLine()
+  response << createGenericResponseLines()
            << "Content-Length: " << content.length()
-           << "\r\nContent-Type: text/html; charset=utf-8\r\nConnection: ";
-  if (close_connection_)
-    response << "close\r\n\r\n";
-  else
-    response << "keep-alive\r\n\r\n";
+           << "\r\nContent-Type: text/html; charset=utf-8\r\n\r\n";
   response << content;
 
   full_response_ = response.str();
@@ -35,7 +31,7 @@ StaticResponse::StaticResponse(
     : Response(client_fd, response_code, close)
 {
   std::ostringstream response;
-  response << createResponseHeaderLine()
+  response << createGenericResponseLines()
            << "Content-Length: " << content.length() << "\r\n";
   if (!content.empty())
     response << "Content-Type: text/html\r\n";
@@ -45,11 +41,7 @@ StaticResponse::StaticResponse(
   {
     response << it->first << ": " << it->second << "\r\n";
   }
-  response << "Connection: ";
-  if (close_connection_)
-    response << "close\r\n\r\n";
-  else
-    response << "keep-alive\r\n\r\n";
+  response << "\r\n";
   response << content;
   full_response_ = response.str();
 }

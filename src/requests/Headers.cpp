@@ -37,18 +37,19 @@ void Request::insertHeader(const std::string& key, const std::string& value)
 
   if (key == "cookie")
     Parsing::validateCookies(value);
-  if (key == "host")
+  else if (key == "host")
   {
     std::pair< string, u_int16_t > host_port = Parsing::parseHost(value);
-    headers_[key] = host_port.first;
-    if (port_.empty())
+    if (host_.empty())
     {
+      host_ = host_port.first;
       std::ostringstream ss;
       ss << host_port.second;
       port_ = ss.str();
     }
   }
-  else if (existing.is_none())
+
+  if (existing.is_none())
     headers_[key] = value;
   else
   {
@@ -105,9 +106,6 @@ void Request::validateHeaders(void)
     if ((method_ == GET || method_ == DELETE) && content_length_.unwrap() > 0)
       closing_ = true;
   }
-
-  if (host_.empty())
-    host_ = host.unwrap();
 }
 
 void Request::validateTransferEncoding(const std::string& value)

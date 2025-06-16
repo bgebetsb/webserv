@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/types.h>
+#include <sstream>
 #include <string>
 
 class Response
@@ -25,9 +26,11 @@ class Response
   bool close_connection_;
   bool complete_;
 
-  std::string createResponseHeaderLine(void) const;
+  std::string createGenericResponseLines(void) const;
 
  private:
   Response(const Response& other);
   Response& operator=(const Response& other);
+
+  void addDateHeader(std::ostringstream& stream) const;
 };

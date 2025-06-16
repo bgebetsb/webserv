@@ -93,7 +93,7 @@ void CgiResponse::addHeaderLine(const std::string& line)
   if (line.empty())
   {
     std::string rest(full_response_);
-    full_response_ = createResponseHeaderLine();
+    full_response_ = createGenericResponseLines();
     for (mHeader::iterator it = headers_.begin(); it != headers_.end(); ++it)
     {
       if (it->first != "content-length" && it->first != "transfer-encoding")
@@ -103,11 +103,7 @@ void CgiResponse::addHeaderLine(const std::string& line)
     std::vector< std::string >::iterator it;
     for (it = cookies_.begin(); it != cookies_.end(); ++it)
       full_response_ += "Set-Cookie: " + *it + "\r\n";
-    full_response_ += "Connection: ";
-    if (close_connection_)
-      full_response_ += "close\r\n\r\n";
-    else
-      full_response_ += "keep-alive\r\n\r\n";
+    full_response_ += "\r\n";
 
     if (!rest.empty())
     {
