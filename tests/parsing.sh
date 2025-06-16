@@ -19,7 +19,7 @@ testinput() {
 
   echo -n "Test $3 => "
 
-  output=$(echo -en "$1" | nc 127.0.0.1 "$CURRENT_PORT")
+  output=$(echo -en "$1" | socat - TCP:127.0.0.1:"$CURRENT_PORT")
   responseline=$(echo "$output" | head -n 1)
   if [[ "$responseline" == "" ]]; then
     if [[ "$2" == "" ]]; then
@@ -89,7 +89,8 @@ launchTests() {
   testinput "GET / HTTP/1.1\r\nHost: whatever\r\nContent-Length: ff\r\n\r\n" 400 "Content-Length without numeric value"
   testinput "GET / HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: asdfadslf\r\n\r\n" 501 "Invalid transfer-encoding value"
   testinput "POST /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked\r\n\r\noasch\r\nHello\r\n0\r\n\r\n" 400 "Malformed chunk size"
-  testinput "GET /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding:          chunked,something\r\n\r\n0\r\n\r\n" 501 "Invalid-transfer-encoding-value, without space"
+  testinput "GET /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding:          something,chunked\r\n\r\n0\r\n\r\n" 501 "Invalid-transfer-encoding-value, without space"
+  testinput "GET /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding:          chunked,something\r\n\r\n0\r\n\r\n" 400 "Chunked not the last encoding"
   testinput "GET /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked; what=oida\r\n\r\n" 501 "Unrecognized transfer encoding parameters"
   testinput "GET /index.html HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked,\r\n\r\n" 400 "Transfer-Encoding: No value after comma"
   testinput "GET /index.html HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: chunked;;\r\n\r\n" 400 "Transfer-Encoding: Two semicolons"
@@ -101,6 +102,7 @@ launchTests() {
   testinput "GET http://[::1 HTTP/1.1\r\nHost: [::1\r\n\r\n" 400 "Ipv6 host + unclosed square bracket (absolute form)"
   testinput "GET http://[qwer::1] HTTP/1.1\r\nHost: [qwer::1]\r\n\r\n" 400 "Invalid characters in ipv6 (absolute form)"
   testinput "GET http://whatever:a HTTP/1.1\r\nHost: whatever:a\r\n\r\n" 400 "Invalid port (absolute form)"
+  testinput "POST /index.php HTTP/1.1\r\nHost: whatever\r\nTransfer-Encoding: Leberkas; Pepi=oida, chunked; extension=abc; otherextension = \"quoted string?\!\"\r\n\r\n5\r\nHello\r\n0\r\n\r\n" 501 "Crazy but a valid input, except unsupported encoding"
 
   echo "============= Tests that should result in 200 responses================="
   testinput "GET / HTTP/1.1\r\nHost: whatever\r\n\r\n" 200 "normal"
@@ -116,6 +118,6 @@ launchTests() {
   echo "Total Tests: $TOTAL_TESTS, Passed: $PASSED_TESTS, Failed: $FAILED_TESTS"
 }
 
-launchTests "Webserv" 8080
+launchTests "Webserv" $WEBSERV_PORT
 echo -e "\n======================================\n"
-launchTests "nginx" 80
+# launchTests "nginx" $NGINX_PORT
