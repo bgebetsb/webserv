@@ -108,6 +108,12 @@ void Request::validateHeaders(void)
   }
 }
 
+static void checkInvalid(bool invalid)
+{
+  if (invalid)
+    throw RequestError(501, "Unsupported value in chunked encoding");
+}
+
 void Request::validateTransferEncoding(const std::string& value)
 {
   bool invalid = false;
@@ -124,16 +130,26 @@ void Request::validateTransferEncoding(const std::string& value)
       chunked_ = true;
     }
     else
-      invalid = true;
-    Parsing::skip_ows(stream);
-    c = stream.get();
-    if (stream.fail())
-      break;
-    Parsing::skip_ows(stream);
-    if (c == ',')
-      continue;
-    else if (c == ';')
     {
+      if (chunked_)
+        throw RequestError(400, "Chunked must be the last transfer coding");
+      invalid = true;
+    }
+    Parsing::skip_ows(stream);
+    while (true)
+    {
+      c = stream.get();
+      if (stream.fail())
+        return checkInvalid(invalid);
+      Parsing::skip_ows(stream);
+      if (c == ',')
+      {
+        Parsing::skip_ows(stream);
+        break;
+      }
+      else if (c != ';')
+        throw RequestError(400,
+                           "Invalid character in Transfer-Encoding header");
       Parsing::skip_token(stream);
       Parsing::skip_ows(stream);
       Parsing::skip_character(stream, '=');
@@ -149,22 +165,10 @@ void Request::validateTransferEncoding(const std::string& value)
         Parsing::skip_token(stream);
       }
       invalid = true;
-      c = stream.get();
-      if (stream.fail())
-        break;
-      Parsing::skip_ows(stream);
-      if (c == ',')
-        continue;
-      else
-        throw RequestError(400,
-                           "Invalid character in Transfer-Encoding header");
     }
-    else
-      throw RequestError(400, "Invalid character in Transfer-Encoding header");
   }
 
-  if (invalid)
-    throw RequestError(501, "Unsupported value in chunked encoding");
+  checkInvalid(invalid);
 }
 
 void Request::validateContentLength(const std::string& value)
