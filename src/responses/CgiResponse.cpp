@@ -180,10 +180,7 @@ void CgiResponse::sendResponse(void)
   }
   size_t amount =
       std::min(static_cast< size_t >(CHUNK_SIZE), full_response_.length());
-  std::cout << "Amount to send: " << amount << std::endl;
   ssize_t ret = send(client_fd_, full_response_.c_str(), amount, 0);
-  std::cout << "After send, full_response_ size: " << full_response_.size()
-            << std::endl;
   if (ret == -1)
     throw ConErr("Peer closed connection");
   else if (ret == 0)

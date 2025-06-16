@@ -39,7 +39,6 @@ Connection::~Connection()
   delete[] readbuf_;
 }
 
-#include <iostream>  // DEBUG
 EpollAction Connection::epollCallback(int event)
 {
   if (((event & EPOLLIN) | (event & EPOLLOUT)) != 0)
@@ -74,9 +73,7 @@ EpollAction Connection::epollCallback(int event)
         return action;
       }
       catch (std::exception& e)
-      {
-        std::cout << e.what() << std::endl;
-      }
+      {}
       request_.setResponse(
           new StaticResponse(fd_, e.getCode(), request_.closingConnection()));
       ep_event_->events = EPOLLOUT;
