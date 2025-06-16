@@ -643,13 +643,6 @@ CgiVars Request::createCgiVars(void) const
   {
     if (it->first == "content-type")
       cgi_vars.content_type = it->second;
-    else if (it->first == "host")
-    {
-      if (port_ == "80")
-        cgi_vars.headers["HTTP_HOST"] = it->second;
-      else
-        cgi_vars.headers["HTTP_HOST"] = it->second + ":" + port_;
-    }
     else if (it->first != "content-length" &&
              it->first != "transfer-encoding" && it->first != "connection")
     {
