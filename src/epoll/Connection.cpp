@@ -379,7 +379,7 @@ std::pair< EpollAction, u_int64_t > Connection::ping()
   {
     if (request_.getStatus() < SENDING_RESPONSE)
     {
-      request_.timeout();
+      request_.setResponse(new StaticResponse(fd_, 408, true));
       action.event->events = EPOLLOUT | EPOLLRDHUP;
       action.op = EPOLL_ACTION_MOD;
       request_timeout_ping_ = 0;

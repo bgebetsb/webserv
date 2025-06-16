@@ -105,7 +105,6 @@ class Request
   // ───────────────────────
  public:
   void sendResponse();
-  void timeout();
   void setResponse(Response* response);
 
   // ── ◼︎ getters

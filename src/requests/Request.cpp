@@ -359,13 +359,6 @@ bool Request::closingConnection() const
   return closing_;
 }
 
-// TODO: Maybe remove this and just use the setResponse function from outside
-void Request::timeout()
-{
-  response_ = new StaticResponse(fd_, 408, true);
-  status_ = SENDING_RESPONSE;
-}
-
 void Request::setResponse(Response* response)
 {
   if (response_)
