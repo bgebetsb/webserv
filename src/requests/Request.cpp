@@ -443,7 +443,10 @@ void Request::checkForCgi(const Location& loc)
     for (VDefaultFiles::const_iterator it = loc.default_files.begin();
          it != loc.default_files.end(); ++it)
     {
-      string filename = loc.root + "/" + skriptname + *it;
+      string optional_slash;
+      if (loc.root[loc.root.length() - 1] != '/' && skriptname[0] != '/')
+        optional_slash = "/";
+      string filename = loc.root + optional_slash + skriptname + *it;
       PathInfos infos = getFileType(filename);  // Check if default file exists
       if (infos.exists == true && infos.types == REGULAR_FILE &&
           infos.readable == true)
@@ -457,7 +460,9 @@ void Request::checkForCgi(const Location& loc)
           else if (file_extension == ".py")
             cgi_extension_ = PYTHON;
           cgi_script_filename_ = filename;
-          cgi_script_name_ = "/" + skriptname + *it;
+          if (skriptname[0] == '/')
+            optional_slash = "";
+          cgi_script_name_ = optional_slash + skriptname + *it;
           document_root_ = loc.root;
         }
         return;  // Found a default file (either cgi or not cgi)
