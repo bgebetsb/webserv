@@ -113,8 +113,11 @@ void Request::uploadBody(const std::string& body, UploadMode mode)
       return;
     }
     std::map< std::string, std::string > additional_headers;
-    additional_headers["Location"] =
-        "http://" + host_ + ":" + port_ + path_ + upload_dir_ + "/" + filename_;
+    string location = "http://" + host_;
+    if (port_ != "80")
+      location += ":" + port_;
+    location += path_ + upload_dir_ + "/" + filename_;
+    additional_headers["Location"] = location;
     if (!file_existed_)
       response_ =
           new StaticResponse(fd_, 201, closing_, "", additional_headers);

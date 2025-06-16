@@ -231,6 +231,20 @@ void Request::processRequest(void)
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
   splitPathInfo(location.root);
+  if (path_[path_.length() - 1] != '/')
+  {
+    PathInfos infos = getFileType(location.root + "/" + path_);
+    if (infos.exists && infos.types == DIRECTORY)
+    {
+      string url = "http://" + host_;
+      if (port_ != "80")
+        url += ":" + port_;
+      url += path_ + "/";
+      response_ = new RedirectResponse(fd_, 301, url, closing_);
+      status_ = SENDING_RESPONSE;
+      return;
+    }
+  }
   if (location.max_body_size.second)
     max_body_size_ = location.max_body_size.first;
   else
