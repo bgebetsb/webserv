@@ -172,15 +172,7 @@ void PipeFd::spawnCGI(char** envp)
     throw(ExitExc());
   }
   Utils::ft_close(write_end_);
-  for (int i = 0; argv[i]; i++)
-  {
-    std::cerr << "argv[" << i << "] = " << argv[i] << std::endl;
-  }
 
-  for (int i = 0; envp[i]; i++)
-  {
-    std::cerr << "envp[" << i << "] = " << envp[i] << std::endl;
-  }
   execve(bin_path_.c_str(), argv, envp);
 }
 
@@ -198,8 +190,6 @@ EpollAction PipeFd::epollCallback(int event)
   else if (event & EPOLLIN)
   {
     ssize_t bytes_read_ = read(read_end_, read_buffer_, CHUNK_SIZE);
-    std::cout << "PipeFd::epollCallback read " << bytes_read_
-              << " bytes from pipe" << std::endl;
     if (bytes_read_ == -1)
     {
       killProcess();
@@ -234,11 +224,6 @@ EpollAction PipeFd::epollCallback(int event)
       killProcess();
       process_finished_ = true;
     }
-  }
-  else
-  {
-    std::cout << "PipeFd::epollCallback called for fd: " << fd_
-              << " but no EPOLLIN event(" << event << ")" << std::endl;
   }
 
   enableSending(response);

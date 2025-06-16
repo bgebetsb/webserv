@@ -252,8 +252,6 @@ void Webserv::pingAllClients(size_t needed_fds)
       PipeFd* pipe_fd = dynamic_cast< PipeFd* >(it->second);
       if (pipe_fd)
       {
-        std::cout << "PipeFd with fd " << pipe_fd->getFd()
-                  << " is still active, checking time...\n";
         size_t time = Utils::getCurrentTime() - pipe_fd->getStartTime();
         if (time > config_.getCgiTimeout())
           delete_pipe_fds.push_back(pipe_fd);
