@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <ctime>
 #include <ostream>
 #include <sstream>
 #include "../epoll/Connection.hpp"
@@ -119,12 +120,30 @@ std::string Response::createGenericResponseLines(void) const
   std::ostringstream stream;
 
   stream << "HTTP/1.1 " << response_code_ << " " << response_title_ << "\r\n";
+  addDateHeader(stream);
   stream << "Connection: ";
   if (close_connection_)
     stream << "close\r\n";
   else
     stream << "keep-alive\r\n";
   return stream.str();
+}
+
+void Response::addDateHeader(std::ostringstream& stream) const
+{
+  std::time_t current = std::time(NULL);
+
+  if (current == static_cast< std::time_t >(-1))
+    return;
+  std::tm* gmt = std::gmtime(&current);
+
+  if (!gmt)
+    return;
+
+  char buffer[30];
+  std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gmt);
+
+  stream << "Date: " << buffer << "\r\n";
 }
 
 bool Response::getClosing() const

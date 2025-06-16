@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sys/types.h>
+#include <sstream>
 #include <string>
 
 class Response
@@ -30,4 +31,6 @@ class Response
  private:
   Response(const Response& other);
   Response& operator=(const Response& other);
+
+  void addDateHeader(std::ostringstream& stream) const;
 };
