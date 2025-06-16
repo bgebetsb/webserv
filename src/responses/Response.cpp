@@ -114,11 +114,16 @@ bool Response::isComplete() const
   return complete_;
 }
 
-std::string Response::createResponseHeaderLine(void) const
+std::string Response::createGenericResponseLines(void) const
 {
   std::ostringstream stream;
 
   stream << "HTTP/1.1 " << response_code_ << " " << response_title_ << "\r\n";
+  stream << "Connection: ";
+  if (close_connection_)
+    stream << "close\r\n";
+  else
+    stream << "keep-alive\r\n";
   return stream.str();
 }
 

@@ -139,12 +139,8 @@ void FileResponse::createHeaders()
 {
   std::ostringstream response;
 
-  response << createResponseHeaderLine() << "Content-Length: " << remaining_
-           << "\r\nContent-Type: " << content_type_ << "\r\nConnection: ";
-  if (close_connection_)
-    response << "close\r\n\r\n";
-  else
-    response << "keep-alive\r\n\r\n";
+  response << createGenericResponseLines() << "Content-Length: " << remaining_
+           << "\r\nContent-Type: " << content_type_ << "\r\n\r\n";
 
   full_response_ = response.str();
   headers_created_ = true;

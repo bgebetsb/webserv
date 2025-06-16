@@ -25,7 +25,7 @@ class Response
   bool close_connection_;
   bool complete_;
 
-  std::string createResponseHeaderLine(void) const;
+  std::string createGenericResponseLines(void) const;
 
  private:
   Response(const Response& other);
