@@ -282,7 +282,7 @@ void Request::processRequest(void)
     return;
   }
   std::string full_path =
-      location.root + path_.substr(location.location_name.length() - 1);
+      location.root + path_.substr(location.location_name.find_last_of('/'));
   processFilePath(full_path, location);
 }
 
@@ -456,7 +456,7 @@ void Request::checkForCgi(const Location& loc)
   if (!filename_.empty())
     return;
 
-  std::string skriptname = path_.substr(loc.location_name.length());
+  std::string skriptname = path_.substr(loc.location_name.find_last_of('/'));
   if (skriptname.empty())
     skriptname = "/";
   if (skriptname[skriptname.length() - 1] == '/')
