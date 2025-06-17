@@ -151,5 +151,5 @@ class Request
   void validateTransferEncoding(const std::string& value);
   void validateContentLength(const std::string& value);
   CgiVars createCgiVars(void) const;
-  void splitPathInfo(const std::string& server_root);
+  void splitPathInfo(const Location& location);
 };
