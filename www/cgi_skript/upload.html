@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Demo</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #status {
+            margin-top: 1.5rem;
+            font-weight: bold;
+        }
+
+        #result a {
+            color: #28a745;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>File Upload Demo</h1>
+
+        <input type="file" id="fileInput" style="display: none;">
+
+        <button id="uploadButton">Select File</button>
+
+        <div id="status"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+            fileInput.value = '';
+        });
+
+        async function uploadFile(file) {
+            const uploadUrl = '/';
+
+            statusDiv.textContent = `Uploading "${file.name}"...`;
+            resultDiv.innerHTML = '';
+            let response;
+
+            try {
+                response = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Filename': file.name,
+                        'Content-Type': 'application/octet-stream'
+                    },
+                    body: file
+                });
+
+                if (response.ok) {
+                    statusDiv.textContent = 'Upload successful!';
+
+                    const fileUrl = response.headers.get('Location');
+                    if (fileUrl) {
+                        const urltext = document.createElement('p');
+                        urltext.textContent = `URL: ${fileUrl}`;
+                        resultDiv.appendChild(urltext);
+
+                        const openContainer = document.createElement('div');
+                        const openLink = document.createElement('a');
+                        openLink.href = fileUrl;
+                        openLink.textContent = `Open file in new tab`;
+                        openLink.target = '_blank'; // Open in a new tab
+                        openContainer.appendChild(openLink);
+                        resultDiv.appendChild(openContainer);
+
+                        const downloadContainer = document.createElement('div');
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = fileUrl;
+                        downloadLink.setAttribute('download', file.name);
+                        downloadLink.textContent = `Download file`;
+                        downloadContainer.appendChild(downloadLink);
+                        resultDiv.appendChild(downloadContainer);
+                    } else {
+                        statusDiv.textContent = 'Upload successful, but the server did not return a Location header.';
+                    }
+                } else {
+                    statusDiv.textContent = `Upload failed: ${response.status} ${response.statusText}`;
+                }
+
+            } catch (error) {
+                // Unable to upload, could be network error or if the file is very big it could also happen
+                // if the server is closing the connection (e.g. 413 Payload too Large) without reading full body
+                console.error('Upload Error:', error);
+                statusDiv.textContent = `Upload failed.`;
+            }
+        }
+    </script>
+
+</body>
+
+</html>
