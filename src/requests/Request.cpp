@@ -281,7 +281,8 @@ void Request::processRequest(void)
     status_ = SENDING_RESPONSE;
     return;
   }
-  std::string full_path = location.root + path_;
+  std::string full_path =
+      location.root + path_.substr(location.location_name.length() - 1);
   processFilePath(full_path, location);
 }
 
