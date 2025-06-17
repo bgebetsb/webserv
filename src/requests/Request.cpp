@@ -233,7 +233,7 @@ void Request::processRequest(void)
 
   if (location.root.empty())
     throw RequestError(404, "No root directory set for location");
-  splitPathInfo(location.root);
+  splitPathInfo(location);
   if (path_[path_.length() - 1] != '/')
   {
     PathInfos infos = getFileType(location.root + "/" + path_);
@@ -481,9 +481,14 @@ void Request::checkForCgi(const Location& loc)
           else if (file_extension == ".py")
             cgi_extension_ = PYTHON;
           cgi_script_filename_ = filename;
-          if (skriptname[0] == '/')
+          cgi_script_filename_ =
+              Utils::replaceString(cgi_script_filename_, "//", "/");
+          if (skriptname[0] == '/' ||
+              loc.location_name[loc.location_name.length() - 1] == '/')
             optional_slash = "";
-          cgi_script_name_ = optional_slash + skriptname + *it;
+          cgi_script_name_ =
+              loc.location_name + optional_slash + skriptname + *it;
+          cgi_script_name_ = Utils::replaceString(cgi_script_name_, "//", "/");
           document_root_ = loc.root;
         }
         return;  // Found a default file (either cgi or not cgi)
@@ -509,7 +514,14 @@ void Request::checkForCgi(const Location& loc)
       else if (file_extension == ".py")
         cgi_extension_ = PYTHON;
       cgi_script_filename_ = loc.root + "/" + skriptname;
-      cgi_script_name_ = "/" + skriptname;
+      cgi_script_name_ = loc.location_name;
+      if (loc.location_name[loc.location_name.length() - 1] != '/' &&
+          skriptname[0] != '/')
+        cgi_script_name_ += '/';
+      cgi_script_name_ += skriptname;
+      cgi_script_filename_ =
+          Utils::replaceString(cgi_script_filename_, "//", "/");
+      cgi_script_name_ = Utils::replaceString(cgi_script_name_, "//", "/");
       document_root_ = loc.root;
     }
   }
@@ -689,7 +701,7 @@ CgiVars Request::createCgiVars(void) const
  * someone is crazy enough to create a directory which ends with one of the CGI
  * extensions
  */
-void Request::splitPathInfo(const std::string& server_root)
+void Request::splitPathInfo(const Location& location)
 {
   std::set< std::string::size_type > positions;
 
@@ -712,7 +724,9 @@ void Request::splitPathInfo(const std::string& server_root)
   std::set< std::string::size_type >::iterator it;
   for (it = positions.begin(); it != positions.end(); ++it)
   {
-    std::string path = server_root + path_.substr(0, *it);
+    std::string path =
+        location.root +
+        path_.substr(0, *it).substr(location.location_name.find_last_of('/'));
     PathInfos infos = getFileType(path);
     if (infos.exists && infos.types == REGULAR_FILE)
     {

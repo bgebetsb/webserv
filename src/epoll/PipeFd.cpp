@@ -138,6 +138,7 @@ void PipeFd::spawnCGI(char** envp)
   argv[1] = const_cast< char* >(skript_path_.c_str());
   argv[2] = NULL;
 
+  std::cout.clear();
   std::string directory =
       skript_path_.substr(0, skript_path_.find_last_of('/') + 1);
   if (chdir(directory.c_str()) == -1)
