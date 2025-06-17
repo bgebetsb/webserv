@@ -197,16 +197,26 @@ void Request::processConnectionHeader(void)
   if (header.is_none())
     return;
 
-  std::istringstream stream(header.unwrap());
-  std::string part;
+  std::string value = header.unwrap();
+  std::for_each(value.begin(), value.end(), Utils::toLower);
 
-  while (std::getline(stream, part, ','))
+  std::istringstream stream(value);
+  int c;
+
+  while (true)
   {
-    part = Utils::trimString(part);
+    std::string part = Parsing::get_token(stream);
+    // Ignore everything except close and keep-alive
     if (part == "close")
       closing_ = true;
     else if (part == "keep-alive")
       closing_ = false;
-    // Ignore everything else since that seems to be nginx behavior
+    Parsing::skip_ows(stream);
+    c = stream.get();
+    if (stream.fail())
+      break;
+    if (c != ',')
+      throw RequestError(400, "Invalid character in Connection header");
+    Parsing::skip_ows(stream);
   }
 }
