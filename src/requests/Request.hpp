@@ -139,9 +139,8 @@ class Request
   void validateHeaders(void);
   void processConnectionHeader(void);
 
-  // ── ◼︎ xxx
+  // ── ◼︎ Random stuff
   // ───────────────────────
-  // //TODO: rename this
   void checkForCgi(const Location& loc);
   void processFilePath(const std::string& path, const Location& location);
   int openFile(const std::string& path) const;
