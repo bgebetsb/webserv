@@ -221,8 +221,11 @@ void Request::processRequest(void)
   if (redir.has_been_set)
   {
     std::string location = redir.uri;
-    location = Utils::replaceString(location, "$host", host_);
-    location = Utils::replaceString(location, "$request_uri", path_);
+    std::string host = host_;
+    if (port_ != "80")
+      host += ":" + port_;
+    location = Utils::replaceString(location, "$host", host);
+    location = Utils::replaceString(location, "$request_uri", uri_);
     response_ = new RedirectResponse(fd_, redir.code, location, closing_);
     status_ = SENDING_RESPONSE;
     return;
@@ -343,7 +346,10 @@ void Request::openDirectory(const std::string& path, const Location& location)
       throw RequestError(403, "File not readable or incorrect type");
     else if (infos.types == DIRECTORY)
     {
-      std::string redir_loc = "http://" + host_ + path_ + *it + '/';
+      std::string host = host_;
+      if (port_ != "80")
+        host += ":" + port_;
+      std::string redir_loc = "http://" + host + path_ + *it + '/';
       setResponse(new RedirectResponse(fd_, 301, redir_loc, closing_));
       return;
     }
