@@ -12,6 +12,7 @@ This server is designed to handle multiple client connections simultaneously, se
 - **HTTP Methods**: Implements `GET`, `POST`, and `DELETE` methods.
 - **Static File Serving**: Serves static content from specified root directories.
 - **Directory Listing**: Automatically generates an HTML index for directories when enabled.
+- **File upload**: Locations can be configured to allow file upload using the `upload_dir` directive
 - **Custom Error Pages**: Uses custom, user-defined error pages for various HTTP status codes (e.g., 404 Not Found, 403 Forbidden).
 - **CGI (Common Gateway Interface)**: Supports basic CGI execution for dynamic content generation.
 - **Configuration File**: The server's behavior is fully customizable via a `.conf` file, similar to Nginx.
@@ -62,3 +63,7 @@ server {
     }
 }
 ```
+You can also find a more complex example using all the available configuration options [here](https://github.com/bgebetsb/webserv/blob/main/webserv.conf).
+
+## 🤝 Credits
+Created by [Bernhard](https://github.com/bgebetsb) and [Max](https://github.com/mxmxmx333)
