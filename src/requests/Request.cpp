@@ -55,8 +55,13 @@ Request::Request(const Request& other)
       server_(other.server_),
       status_(other.status_),
       method_(other.method_),
+      uri_(other.uri_),
       host_(other.host_),
       path_(other.path_),
+      path_info_(other.path_info_),
+      port_(other.port_),
+      startline_(other.startline_),
+      query_string_(other.query_string_),
       headers_(other.headers_),
       chunked_(other.chunked_),
       content_length_(other.content_length_),
@@ -78,8 +83,13 @@ Request& Request::operator=(const Request& other)
     server_ = other.server_;
     status_ = other.status_;
     method_ = other.method_;
+    uri_ = other.uri_;
     host_ = other.host_;
     path_ = other.path_;
+    path_info_ = other.path_info_;
+    port_ = other.port_;
+    startline_ = other.startline_;
+    query_string_ = other.query_string_;
     headers_ = other.headers_;
     chunked_ = other.chunked_;
     content_length_ = other.content_length_;
